@@ -1,0 +1,10 @@
+# WAMP serves this folder directly (no per-project vhost), but Laravel's
+# front controller and public assets live in /public. This transparently
+# routes every request through there instead, so nothing outside /public
+# (app/, config/, .env, storage/, vendor/, ...) is ever reachable over HTTP.
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/FlatCare/public/
+RewriteRule ^(.*)$ public/$1 [L]
+
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.env
