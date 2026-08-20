@@ -339,7 +339,9 @@ class TenantService
         Cache::forget("tenant.connection.{$societyId}");
         Cache::forget("society.{$societyId}");
 
-        // Clear all module cache for this society
-        Cache::tags(['tenant', $societyId])->flush();
+        // Per-module cache (see isModuleEnabled()) isn't tagged - it isn't
+        // stored via ->tags(), and the "database"/"file" cache drivers this
+        // app uses don't support tagging anyway. Those entries just expire
+        // on their own after 6 hours instead of being busted here.
     }
 }
