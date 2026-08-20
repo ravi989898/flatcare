@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Society;
+use App\Models\Tenant\User;
 use App\Services\TenantService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +30,7 @@ class SocietyAdminController extends Controller
         $this->tenantService->switchConnection($societyId);
 
         // Get admin users
-        $admins = DB::connection('society')
-            ->table('users')
-            ->whereHas('roles', function ($query) {
+        $admins = User::whereHas('roles', function ($query) {
                 $query->where('name', 'admin');
             })
             ->with('roles')
@@ -116,11 +115,7 @@ class SocietyAdminController extends Controller
         // Switch to society's database
         $this->tenantService->switchConnection($societyId);
 
-        $admin = DB::connection('society')
-            ->table('users')
-            ->where('id', $adminId)
-            ->with('roles')
-            ->firstOrFail();
+        $admin = User::with('roles')->findOrFail($adminId);
 
         $roles = DB::connection('society')
             ->table('roles')
