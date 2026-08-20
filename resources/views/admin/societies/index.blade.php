@@ -93,6 +93,9 @@
                                     <a href="{{ route('admin.societies.admins.index', $society->id) }}" class="btn btn-sm btn-secondary">
                                         <i class="fas fa-user-shield"></i> Admins
                                     </a>
+                                    <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-building"></i> Blocks
+                                    </a>
                                     <form action="{{ route('admin.societies.destroy', $society->id) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')

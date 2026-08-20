@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PlatformSettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SocietyAdminController;
 use App\Http\Controllers\Admin\SocietyController;
+use App\Http\Controllers\Admin\SocietyStructureController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Society\AnnouncementController;
@@ -113,6 +114,21 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/societies/{id}/admins/{adminId}/activate', [SocietyAdminController::class, 'activate'])->name('societies.admins.activate');
     Route::post('/societies/{id}/admins/{adminId}/deactivate', [SocietyAdminController::class, 'deactivate'])->name('societies.admins.deactivate');
     Route::delete('/societies/{id}/admins/{adminId}', [SocietyAdminController::class, 'destroy'])->name('societies.admins.destroy');
+
+    // Society structure: Blocks, then the Flats inside each block.
+    Route::get('/societies/{id}/blocks', [SocietyStructureController::class, 'blocksIndex'])->name('societies.blocks.index');
+    Route::get('/societies/{id}/blocks/create', [SocietyStructureController::class, 'blocksCreate'])->name('societies.blocks.create');
+    Route::post('/societies/{id}/blocks', [SocietyStructureController::class, 'blocksStore'])->name('societies.blocks.store');
+    Route::get('/societies/{id}/blocks/{blockId}/edit', [SocietyStructureController::class, 'blocksEdit'])->name('societies.blocks.edit');
+    Route::put('/societies/{id}/blocks/{blockId}', [SocietyStructureController::class, 'blocksUpdate'])->name('societies.blocks.update');
+    Route::delete('/societies/{id}/blocks/{blockId}', [SocietyStructureController::class, 'blocksDestroy'])->name('societies.blocks.destroy');
+
+    Route::get('/societies/{id}/blocks/{blockId}/flats', [SocietyStructureController::class, 'flatsIndex'])->name('societies.blocks.flats.index');
+    Route::get('/societies/{id}/blocks/{blockId}/flats/create', [SocietyStructureController::class, 'flatsCreate'])->name('societies.blocks.flats.create');
+    Route::post('/societies/{id}/blocks/{blockId}/flats', [SocietyStructureController::class, 'flatsStore'])->name('societies.blocks.flats.store');
+    Route::get('/societies/{id}/blocks/{blockId}/flats/{flatId}/edit', [SocietyStructureController::class, 'flatsEdit'])->name('societies.blocks.flats.edit');
+    Route::put('/societies/{id}/blocks/{blockId}/flats/{flatId}', [SocietyStructureController::class, 'flatsUpdate'])->name('societies.blocks.flats.update');
+    Route::delete('/societies/{id}/blocks/{blockId}/flats/{flatId}', [SocietyStructureController::class, 'flatsDestroy'])->name('societies.blocks.flats.destroy');
     
     Route::get('/super-admins', function () {
         return view('admin.super_admins.index');
