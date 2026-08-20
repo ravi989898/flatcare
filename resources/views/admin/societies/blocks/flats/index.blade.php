@@ -37,7 +37,6 @@
                         <tr>
                             <th>Flat Number</th>
                             <th>Floor</th>
-                            <th>Type</th>
                             <th>Ownership</th>
                             <th>Owner</th>
                             <th>Status</th>
@@ -49,7 +48,6 @@
                             <tr>
                                 <td>{{ $flat->flat_number }}</td>
                                 <td>{{ $flat->floor_number }}</td>
-                                <td>{{ $flat->flat_type }}</td>
                                 <td>{{ ucfirst($flat->ownership_type) }}</td>
                                 <td>{{ $flat->owner_name ?? '—' }}</td>
                                 <td>
