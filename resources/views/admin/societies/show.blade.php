@@ -61,6 +61,9 @@
                         <dt class="col-sm-4">Flats / Blocks</dt>
                         <dd class="col-sm-8">{{ $society->total_flats ?? '—' }} / {{ $society->total_blocks ?? '—' }}</dd>
 
+                        <dt class="col-sm-4">Maintenance Billing</dt>
+                        <dd class="col-sm-8">₹{{ number_format($society->fixed_maintenance, 2) }} fixed + ₹{{ number_format($society->water_unit_rate, 2) }}/unit water</dd>
+
                         <dt class="col-sm-4">Access Period</dt>
                         <dd class="col-sm-8">
                             {{ $society->start_date->format('d M Y') }} &ndash; {{ $society->end_date->format('d M Y') }}

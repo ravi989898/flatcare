@@ -261,7 +261,7 @@ class SocietyController extends Controller
     {
         // Blank optional text inputs arrive as "" rather than absent; normalize
         // them to null so nullable numeric/date columns don't receive "".
-        $request->merge(collect($request->only(['registration_number', 'total_flats', 'total_blocks', 'admin_name', 'admin_email', 'admin_phone', 'alternate_phone', 'description']))
+        $request->merge(collect($request->only(['registration_number', 'total_flats', 'total_blocks', 'fixed_maintenance', 'water_unit_rate', 'admin_name', 'admin_email', 'admin_phone', 'alternate_phone', 'description']))
             ->map(fn ($value) => $value === '' ? null : $value)
             ->all());
 
@@ -279,6 +279,8 @@ class SocietyController extends Controller
             'registration_number' => 'nullable|string|max:255',
             'total_flats' => 'nullable|integer|min:0',
             'total_blocks' => 'nullable|integer|min:0',
+            'fixed_maintenance' => 'nullable|numeric|min:0',
+            'water_unit_rate' => 'nullable|numeric|min:0',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'status' => 'required|in:active,inactive,expired,archived',

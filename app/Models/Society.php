@@ -30,6 +30,8 @@ class Society extends Model
         'logo_path',
         'total_flats',
         'total_blocks',
+        'fixed_maintenance',
+        'water_unit_rate',
         'start_date',
         'end_date',
         'status',
@@ -49,6 +51,8 @@ class Society extends Model
         'is_trial' => 'boolean',
         'payment_verified' => 'boolean',
         'settings' => 'array',
+        'fixed_maintenance' => 'decimal:2',
+        'water_unit_rate' => 'decimal:2',
     ];
 
     protected $appends = [

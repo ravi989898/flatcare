@@ -17,6 +17,7 @@ class MaintenanceBill extends Model
 
     protected $fillable = [
         'flat_id',
+        'water_reading_id',
         'title',
         'amount',
         'due_date',
@@ -34,6 +35,11 @@ class MaintenanceBill extends Model
     public function flat(): BelongsTo
     {
         return $this->belongsTo(Flat::class);
+    }
+
+    public function waterReading(): BelongsTo
+    {
+        return $this->belongsTo(WaterReading::class);
     }
 
     public function payments(): HasMany

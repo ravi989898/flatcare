@@ -38,6 +38,7 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 7],
             ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 8],
             ['key' => 'payments', 'label' => 'Payments', 'route_name' => 'society.payments.index', 'icon' => 'bi-credit-card', 'display_order' => 9],
+            ['key' => 'water-readings', 'label' => 'Water Readings', 'route_name' => 'society.water-readings.index', 'icon' => 'bi-droplet', 'display_order' => 10],
         ];
 
         foreach ($menuItems as $item) {

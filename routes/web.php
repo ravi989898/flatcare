@@ -17,6 +17,7 @@ use App\Http\Controllers\Society\ElectionController;
 use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\MaintenanceController;
 use App\Http\Controllers\Society\PaymentController;
+use App\Http\Controllers\Society\WaterReadingController;
 use App\Http\Controllers\Society\SocietyAuthController;
 use App\Http\Controllers\Society\SocietyDashboardController;
 use App\Http\Controllers\Society\VisitorController;
@@ -225,6 +226,12 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::post('/', [PaymentController::class, 'store'])->name('store');
             Route::get('/{id}', [PaymentController::class, 'show'])->name('show');
             Route::post('/{id}/pay', [PaymentController::class, 'recordPayment'])->name('pay');
+        });
+
+        Route::prefix('water-readings')->name('water-readings.')->group(function () {
+            Route::get('/', [WaterReadingController::class, 'index'])->name('index');
+            Route::get('/create', [WaterReadingController::class, 'create'])->name('create');
+            Route::post('/', [WaterReadingController::class, 'store'])->name('store');
         });
     });
 });

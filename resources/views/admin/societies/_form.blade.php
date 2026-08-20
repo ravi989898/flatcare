@@ -85,6 +85,22 @@
             </div>
         </div>
 
+        <hr>
+        <h5>Maintenance Billing</h5>
+        <p class="text-muted">Society admins enter each flat's monthly water reading; the bill is calculated as (units consumed &times; water unit rate) + fixed maintenance.</p>
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="fixed_maintenance">Fixed Maintenance (₹)</label>
+                <input type="number" step="0.01" min="0" class="form-control @error('fixed_maintenance') is-invalid @enderror" id="fixed_maintenance" name="fixed_maintenance" value="{{ $old('fixed_maintenance', 0) }}">
+                @error('fixed_maintenance')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group col-md-4">
+                <label for="water_unit_rate">Water Unit Rate (₹ per unit)</label>
+                <input type="number" step="0.01" min="0" class="form-control @error('water_unit_rate') is-invalid @enderror" id="water_unit_rate" name="water_unit_rate" value="{{ $old('water_unit_rate', 0) }}">
+                @error('water_unit_rate')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+        </div>
+
         <div class="form-row">
             <div class="form-group col-md-3">
                 <label for="start_date">Access Start Date <span class="text-danger">*</span></label>
