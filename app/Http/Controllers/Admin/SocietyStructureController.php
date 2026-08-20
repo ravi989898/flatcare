@@ -47,7 +47,7 @@ class SocietyStructureController extends Controller
 
         $validated = $this->validateBlock($request);
 
-        Block::create($validated);
+        Block::create([...$validated, 'name' => $validated['block_number'], 'status' => 'active']);
 
         return redirect()
             ->route('admin.societies.blocks.index', $societyId)
@@ -72,7 +72,7 @@ class SocietyStructureController extends Controller
         $block = Block::findOrFail($blockId);
         $validated = $this->validateBlock($request, $block->id);
 
-        $block->update($validated);
+        $block->update([...$validated, 'name' => $validated['block_number']]);
 
         return redirect()
             ->route('admin.societies.blocks.index', $societyId)
@@ -184,12 +184,7 @@ class SocietyStructureController extends Controller
     private function validateBlock(Request $request, ?int $ignoreId = null): array
     {
         return $request->validate([
-            'name' => 'required|string|max:255',
             'block_number' => 'required|string|max:255|unique:society.blocks,block_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'description' => 'nullable|string|max:255',
-            'total_floors' => 'nullable|integer|min:0',
-            'block_admin_contact' => 'nullable|string|max:255',
-            'status' => 'required|in:active,inactive,under_construction',
         ]);
     }
 

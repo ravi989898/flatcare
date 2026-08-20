@@ -41,9 +41,7 @@
                 <table class="table table-striped table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>Name</th>
                             <th>Block Number</th>
-                            <th>Floors</th>
                             <th>Flats</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -53,10 +51,8 @@
                         @foreach ($blocks as $block)
                             <tr>
                                 <td>
-                                    <a href="{{ route('admin.societies.blocks.flats.index', [$society->id, $block->id]) }}">{{ $block->name }}</a>
+                                    <a href="{{ route('admin.societies.blocks.flats.index', [$society->id, $block->id]) }}">{{ $block->block_number }}</a>
                                 </td>
-                                <td>{{ $block->block_number }}</td>
-                                <td>{{ $block->total_floors ?? '—' }}</td>
                                 <td>{{ $block->flats_count }}</td>
                                 <td>
                                     @php
