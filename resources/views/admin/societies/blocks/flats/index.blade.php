@@ -9,7 +9,7 @@
         </div>
         <div class="col-sm-6 text-right">
             <a href="{{ route('admin.societies.blocks.flats.create', [$society->id, $block->id]) }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Flat
+                <i class="fas fa-plus"></i> Add Flats
             </a>
             <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Blocks
@@ -78,7 +78,7 @@
                 <div class="p-4 text-center text-muted">
                     <p>No flats found in this block.</p>
                     <a href="{{ route('admin.societies.blocks.flats.create', [$society->id, $block->id]) }}" class="btn btn-primary">
-                        Create First Flat
+                        Add Flats
                     </a>
                 </div>
             @endif

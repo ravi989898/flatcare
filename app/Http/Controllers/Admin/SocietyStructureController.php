@@ -90,7 +90,11 @@ class SocietyStructureController extends Controller
             return back()->with('error', "\"{$block->name}\" still has {$block->flats_count} flat(s) - remove those first.");
         }
 
-        $block->delete();
+        // Hard delete, not soft: block_number has a DB-level unique
+        // constraint that isn't deleted_at-aware, so a soft-deleted block
+        // would permanently block reusing its number. Safe here because
+        // the flats_count check above guarantees nothing references it.
+        $block->forceDelete();
 
         return redirect()
             ->route('admin.societies.blocks.index', $societyId)
@@ -121,21 +125,70 @@ class SocietyStructureController extends Controller
         return view('admin.societies.blocks.flats.create', compact('society', 'block'));
     }
 
+    /**
+     * Create one or many flats at once - the textarea on the Add Flat page
+     * accepts a flat number per line (or comma-separated) so a block with
+     * dozens of units doesn't need one form submission each.
+     */
     public function flatsStore(Request $request, int $societyId, int $blockId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
         $block = Block::findOrFail($blockId);
-        $validated = $this->validateFlat($request);
 
-        Flat::create([...$validated, 'block_id' => $block->id]);
+        $request->validate([
+            'flat_numbers' => 'required|string',
+        ]);
 
-        $block->increment('total_flats');
+        $numbers = collect(preg_split('/[\r\n,]+/', $request->string('flat_numbers')->value()))
+            ->map(fn ($number) => trim($number))
+            ->filter()
+            ->unique();
+
+        if ($numbers->isEmpty()) {
+            return back()->withInput()->with('error', 'Enter at least one flat number.');
+        }
+
+        $existing = Flat::whereIn('flat_number', $numbers)->pluck('flat_number');
+        $toCreate = $numbers->diff($existing);
+
+        foreach ($toCreate as $flatNumber) {
+            Flat::create([
+                'block_id' => $block->id,
+                'flat_number' => $flatNumber,
+                'floor_number' => $this->deriveFloorNumber($flatNumber),
+                'flat_type' => '2BHK',
+                'ownership_type' => 'vacant',
+                'status' => 'active',
+            ]);
+        }
+
+        $block->increment('total_flats', $toCreate->count());
+
+        $message = "{$toCreate->count()} flat" . ($toCreate->count() === 1 ? '' : 's') . ' created.';
+        if ($existing->isNotEmpty()) {
+            $message .= ' Already existed, skipped: ' . $existing->implode(', ') . '.';
+        }
 
         return redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
-            ->with('success', 'Flat created successfully.');
+            ->with('success', $message);
+    }
+
+    /**
+     * Best-effort floor guess from a flat number's trailing digits (e.g.
+     * "A-201" -> floor 2, "305" -> floor 3) so the required floor_number
+     * column has something sensible without asking for it up front. Falls
+     * back to floor 1 for numbers that don't fit that pattern.
+     */
+    private function deriveFloorNumber(string $flatNumber): string
+    {
+        if (preg_match('/(\d+)$/', $flatNumber, $match) && strlen($match[1]) >= 3) {
+            return (string) (int) substr($match[1], 0, -2);
+        }
+
+        return '1';
     }
 
     public function flatsEdit(int $societyId, int $blockId, int $flatId): View
@@ -158,7 +211,10 @@ class SocietyStructureController extends Controller
         $flat = Flat::where('block_id', $block->id)->findOrFail($flatId);
         $validated = $this->validateFlat($request, $flat->id);
 
-        $flat->update($validated);
+        $flat->update([
+            'flat_number' => $validated['flat_number'],
+            'floor_number' => $this->deriveFloorNumber($validated['flat_number']),
+        ]);
 
         return redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
@@ -192,14 +248,6 @@ class SocietyStructureController extends Controller
     {
         return $request->validate([
             'flat_number' => 'required|string|max:255|unique:society.flats,flat_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'floor_number' => 'required|string|max:255',
-            'flat_type' => 'required|in:1BHK,2BHK,3BHK,4BHK,Duplex,Penthouse,Other',
-            'area_sqft' => 'nullable|numeric|min:0',
-            'ownership_type' => 'required|in:owned,rented,vacant',
-            'owner_name' => 'nullable|string|max:255',
-            'status' => 'required|in:active,inactive,under_construction,under_maintenance',
-            'car_parking_slot' => 'nullable|string|max:255',
-            'bike_parking_slot' => 'nullable|string|max:255',
         ]);
     }
 }
