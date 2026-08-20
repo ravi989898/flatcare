@@ -14,8 +14,10 @@ use Illuminate\Validation\ValidationException;
 /**
  * Handles login for the society (tenant) portal. Unlike the super-admin
  * LoginRequest, this one must first resolve which tenant database to
- * authenticate against — via the society's public slug — before it can
- * attempt to authenticate the user at all.
+ * authenticate against before it can attempt to authenticate the user at
+ * all. There's no "Society Code" field on the form for the user to supply
+ * that with, so it's resolved by trying the email/password against each
+ * active society's tenant database in turn until one accepts it.
  */
 class SocietyLoginRequest extends FormRequest
 {
@@ -30,19 +32,17 @@ class SocietyLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'society_code' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string'],
         ];
     }
 
     /**
-     * Resolve the society being signed into, then attempt authentication
-     * against its tenant database.
-     *
-     * Note: FormRequest methods aren't resolved through the container the
-     * way controller actions are, so TenantService can't be type-hinted as
-     * a parameter here — it has to be pulled out manually.
+     * Try the submitted credentials against every active, in-period
+     * society's tenant database until one authenticates. Fine for a modest
+     * number of societies; if that list grows large this should be
+     * replaced with a main-database email -> society lookup table instead
+     * of a per-society scan.
      *
      * @throws ValidationException
      */
@@ -52,39 +52,36 @@ class SocietyLoginRequest extends FormRequest
 
         $this->ensureIsNotRateLimited();
 
-        $society = Society::where('slug', Str::slug($this->string('society_code')))->first();
+        $societies = Society::where('status', 'active')->get()
+            ->filter(fn (Society $society) => $tenantService->validateSocietyAccessPeriod($society));
 
-        if (!$society || !$tenantService->validateSocietyAccessPeriod($society)) {
-            RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
+        foreach ($societies as $society) {
+            $tenantService->setTenant($society);
 
-            throw ValidationException::withMessages([
-                'society_code' => 'We couldn\'t find an active society with that code.',
-            ]);
+            if (!Auth::guard('society')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+                continue;
+            }
+
+            $user = Auth::guard('society')->user();
+
+            if ($user->status !== 'active') {
+                Auth::guard('society')->logout();
+
+                throw ValidationException::withMessages([
+                    'email' => 'This account is not active. Please contact your society administrator.',
+                ]);
+            }
+
+            RateLimiter::clear($this->throttleKey());
+
+            return $society;
         }
 
-        $tenantService->setTenant($society);
+        RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
 
-        if (!Auth::guard('society')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
-
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
-        }
-
-        $user = Auth::guard('society')->user();
-
-        if ($user->status !== 'active') {
-            Auth::guard('society')->logout();
-
-            throw ValidationException::withMessages([
-                'email' => 'This account is not active. Please contact your society administrator.',
-            ]);
-        }
-
-        RateLimiter::clear($this->throttleKey());
-
-        return $society;
+        throw ValidationException::withMessages([
+            'email' => trans('auth.failed'),
+        ]);
     }
 
     /**
@@ -111,13 +108,13 @@ class SocietyLoginRequest extends FormRequest
     }
 
     /**
-     * Keyed by society code + email + IP so a single attacker can't lock out
-     * a legitimate tenant's account from a shared IP.
+     * Keyed by email + IP so a single attacker can't lock out a legitimate
+     * account from a shared IP.
      */
     public function throttleKey(): string
     {
         return Str::transliterate(
-            Str::lower($this->string('society_code')).'|'.Str::lower($this->string('email')).'|'.$this->ip()
+            Str::lower($this->string('email')).'|'.$this->ip()
         );
     }
 }

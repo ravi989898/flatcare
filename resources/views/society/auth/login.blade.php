@@ -45,21 +45,10 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label for="society_code" class="form-label">Society Code</label>
-                        <input type="text" class="form-control @error('society_code') is-invalid @enderror"
-                            id="society_code" name="society_code" value="{{ old('society_code') }}"
-                            placeholder="e.g. green-meadows" autofocus required>
-                        @error('society_code')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <div class="form-text">Given to you by your society's platform administrator.</div>
-                    </div>
-
-                    <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <input type="email" class="form-control @error('email') is-invalid @enderror"
                             id="email" name="email" value="{{ old('email') }}"
-                            autocomplete="username" required>
+                            autocomplete="username" autofocus required>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
