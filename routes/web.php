@@ -110,6 +110,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/societies/{id}/admins', [SocietyAdminController::class, 'store'])->name('societies.admins.store');
     Route::get('/societies/{id}/admins/{adminId}/edit', [SocietyAdminController::class, 'edit'])->name('societies.admins.edit');
     Route::put('/societies/{id}/admins/{adminId}', [SocietyAdminController::class, 'update'])->name('societies.admins.update');
+    Route::post('/societies/{id}/admins/{adminId}/activate', [SocietyAdminController::class, 'activate'])->name('societies.admins.activate');
     Route::post('/societies/{id}/admins/{adminId}/deactivate', [SocietyAdminController::class, 'deactivate'])->name('societies.admins.deactivate');
     Route::delete('/societies/{id}/admins/{adminId}', [SocietyAdminController::class, 'destroy'])->name('societies.admins.destroy');
     

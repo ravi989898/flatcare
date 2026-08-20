@@ -77,6 +77,13 @@
                                                 <i class="fas fa-ban"></i> Deactivate
                                             </button>
                                         </form>
+                                    @else
+                                        <form action="{{ route('admin.societies.admins.activate', [$society->id, $admin->id]) }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Activate this admin?')">
+                                                <i class="fas fa-check"></i> Activate
+                                            </button>
+                                        </form>
                                     @endif
                                     <form action="{{ route('admin.societies.admins.destroy', [$society->id, $admin->id]) }}" method="POST" style="display:inline;">
                                         @csrf

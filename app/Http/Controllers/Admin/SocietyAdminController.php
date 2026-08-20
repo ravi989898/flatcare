@@ -177,6 +177,26 @@ class SocietyAdminController extends Controller
     }
 
     /**
+     * Activate admin
+     */
+    public function activate(Request $request, int $societyId, int $adminId)
+    {
+        $society = Society::findOrFail($societyId);
+
+        // Switch to society's database
+        $this->tenantService->switchConnection($societyId);
+
+        DB::connection('society')
+            ->table('users')
+            ->where('id', $adminId)
+            ->update(['status' => 'active']);
+
+        return redirect()
+            ->route('admin.societies.admins.index', $societyId)
+            ->with('success', 'Admin user activated successfully');
+    }
+
+    /**
      * Deactivate admin
      */
     public function deactivate(Request $request, int $societyId, int $adminId)
