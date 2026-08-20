@@ -21,6 +21,8 @@ class MainAppSeeder extends Seeder
         $this->seedModules();
         $this->seedPermissions();
         $this->seedSuperAdmin();
+        $this->call(RoleMenuSettingSeeder::class);
+        $this->call(DashboardWidgetSeeder::class);
     }
 
     /**

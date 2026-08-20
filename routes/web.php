@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DashboardWidgetSettingController;
+use App\Http\Controllers\Admin\MenuSettingController;
 use App\Http\Controllers\Admin\PlatformSettingController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SocietyAdminController;
 use App\Http\Controllers\Admin\SocietyController;
 use App\Http\Controllers\Auth\AuthController;
@@ -112,15 +116,30 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         return view('admin.super_admins.index');
     })->name('super_admins.index');
     
-    Route::get('/audit-logs', function () {
-        return view('admin.audit_logs.index');
-    })->name('audit_logs.index');
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
 
-    // Platform branding (logo)
+    // Platform-wide settings (super admin only)
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/branding', [PlatformSettingController::class, 'edit'])->name('branding.edit');
         Route::post('/branding', [PlatformSettingController::class, 'update'])->name('branding.update');
         Route::delete('/branding', [PlatformSettingController::class, 'destroy'])->name('branding.destroy');
+
+        // Role catalog (used to provision new societies + sync into existing ones)
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        Route::post('/roles/sync', [RoleController::class, 'sync'])->name('roles.sync');
+
+        // Per-role society-portal sidebar visibility
+        Route::get('/menu', [MenuSettingController::class, 'edit'])->name('menu.edit');
+        Route::post('/menu', [MenuSettingController::class, 'update'])->name('menu.update');
+
+        // Per-role admin-dashboard widget visibility
+        Route::get('/dashboard-widgets', [DashboardWidgetSettingController::class, 'edit'])->name('dashboard_widgets.edit');
+        Route::post('/dashboard-widgets', [DashboardWidgetSettingController::class, 'update'])->name('dashboard_widgets.update');
     });
 });
 

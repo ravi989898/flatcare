@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\MenuItem;
 use App\Models\Society;
 use App\Services\TenantService;
 use Closure;
@@ -61,7 +62,33 @@ class SetSocietyContext
         // every one of them having to re-resolve it from the session.
         $request->attributes->set('society', $society);
         view()->share('currentSociety', $society);
+        view()->share('visibleMenuItems', $this->menuItemsFor(Auth::guard('society')->user()));
 
         return $next($request);
+    }
+
+    /**
+     * The sidebar entries the given tenant user's role is allowed to see,
+     * per Settings -> Menu Settings (role_menu_item.is_visible). Falls back
+     * to just Dashboard if the user has no role assigned.
+     */
+    private function menuItemsFor($tenantUser)
+    {
+        $roleName = $tenantUser?->roles()->orderByDesc('priority')->value('name');
+
+        $items = MenuItem::query()
+            ->when($roleName, function ($query) use ($roleName) {
+                $query->whereHas('roles', function ($q) use ($roleName) {
+                    $q->where('name', $roleName)->where('role_menu_item.is_visible', true);
+                });
+            }, fn ($query) => $query->whereRaw('1 = 0'))
+            ->orderBy('display_order')
+            ->get();
+
+        if ($items->isEmpty()) {
+            $items = MenuItem::where('key', 'dashboard')->get();
+        }
+
+        return $items;
     }
 }

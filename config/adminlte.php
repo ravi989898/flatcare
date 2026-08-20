@@ -322,7 +322,6 @@ return [
         ],
         [
             'header' => 'PLATFORM',
-            'can' => 'super_admin.manage',
         ],
     ],
 
@@ -340,6 +339,7 @@ return [
 
     'filters' => [
         JeroenNoten\LaravelAdminLte\Menu\Filters\GateFilter::class,
+        App\Menu\Filters\RoleMenuVisibilityFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\HrefFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\SearchFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\ActiveFilter::class,
@@ -397,12 +397,19 @@ return [
             ],
         ],
         'Chartjs' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.min.js',
+                    // Vendored locally (public/vendor/chartjs/), matching
+                    // every other admin-panel script (jquery, bootstrap,
+                    // adminlte itself) — not loaded from a CDN. Keeps the
+                    // dashboard charts working with no external network
+                    // dependency, and 'asset' => true routes it through
+                    // Laravel's asset() helper so it's same-origin under
+                    // the CSP (script-src 'self' …).
+                    'asset' => true,
+                    'location' => 'vendor/chartjs/chart.umd.min.js',
                 ],
             ],
         ],

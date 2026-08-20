@@ -84,8 +84,8 @@ class DirectoryController extends Controller
             'status' => 'active',
         ]);
 
-        if ($userRole = Role::where('name', 'user')->first()) {
-            $user->assignRole($userRole);
+        if ($residentRole = Role::where('name', 'resident')->first()) {
+            $user->assignRole($residentRole);
         }
 
         FlatResident::create([

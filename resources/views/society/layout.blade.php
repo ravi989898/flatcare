@@ -36,34 +36,20 @@
             @include('partials.brand')
         </a>
         <div class="collapse navbar-collapse">
+            {{-- Built from the logged-in user's role: Super Admin configures which
+                 items each role sees under Settings -> Menu Settings. --}}
             <ul class="navbar-nav me-auto ms-4">
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.dashboard') ? 'active' : '' }}" href="{{ route('society.dashboard') }}">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.maintenance.*') ? 'active' : '' }}" href="{{ route('society.maintenance.index') }}">Maintenance</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.visitors.*') ? 'active' : '' }}" href="{{ route('society.visitors.index') }}">Visitors</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.complaints.*') ? 'active' : '' }}" href="{{ route('society.complaints.index') }}">Complaints</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.directory.*') ? 'active' : '' }}" href="{{ route('society.directory.index') }}">Directory</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.announcements.*') ? 'active' : '' }}" href="{{ route('society.announcements.index') }}">Announcements</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.events.*') ? 'active' : '' }}" href="{{ route('society.events.index') }}">Events</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.elections.*') ? 'active' : '' }}" href="{{ route('society.elections.index') }}">Elections</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('society.payments.*') ? 'active' : '' }}" href="{{ route('society.payments.index') }}">Payments</a>
-                </li>
+                @foreach (($visibleMenuItems ?? []) as $item)
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs($item->active_pattern) || request()->routeIs($item->active_pattern . '.*') ? 'active' : '' }}"
+                           href="{{ route($item->route_name) }}">
+                            @if ($item->icon)
+                                <i class="bi {{ $item->icon }}"></i>
+                            @endif
+                            {{ $item->label }}
+                        </a>
+                    </li>
+                @endforeach
             </ul>
         </div>
         <div class="ms-auto d-flex align-items-center">
