@@ -60,6 +60,18 @@
                                     <a href="{{ route('admin.societies.blocks.flats.edit', [$society->id, $block->id, $flat->id]) }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
+                                    <form action="{{ route('admin.societies.blocks.flats.toggle_status', [$society->id, $block->id, $flat->id]) }}" method="POST" style="display:inline;">
+                                        @csrf
+                                        @if ($flat->status === 'active')
+                                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Mark this flat inactive?')">
+                                                <i class="fas fa-ban"></i> Deactivate
+                                            </button>
+                                        @else
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-check"></i> Activate
+                                            </button>
+                                        @endif
+                                    </form>
                                     <form action="{{ route('admin.societies.blocks.flats.destroy', [$society->id, $block->id, $flat->id]) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')

@@ -128,6 +128,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/societies/{id}/blocks/{blockId}/flats', [SocietyStructureController::class, 'flatsStore'])->name('societies.blocks.flats.store');
     Route::get('/societies/{id}/blocks/{blockId}/flats/{flatId}/edit', [SocietyStructureController::class, 'flatsEdit'])->name('societies.blocks.flats.edit');
     Route::put('/societies/{id}/blocks/{blockId}/flats/{flatId}', [SocietyStructureController::class, 'flatsUpdate'])->name('societies.blocks.flats.update');
+    Route::post('/societies/{id}/blocks/{blockId}/flats/{flatId}/toggle-status', [SocietyStructureController::class, 'flatsToggleStatus'])->name('societies.blocks.flats.toggle_status');
     Route::delete('/societies/{id}/blocks/{blockId}/flats/{flatId}', [SocietyStructureController::class, 'flatsDestroy'])->name('societies.blocks.flats.destroy');
     
     Route::get('/super-admins', function () {

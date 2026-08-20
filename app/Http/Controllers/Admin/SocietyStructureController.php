@@ -221,6 +221,27 @@ class SocietyStructureController extends Controller
             ->with('success', 'Flat updated successfully.');
     }
 
+    /**
+     * Toggle a flat between active and inactive. Flats can also carry
+     * under_construction/under_maintenance status from other flows, but
+     * this list only offers the active/inactive switch - toggling from
+     * either of those simply lands on active.
+     */
+    public function flatsToggleStatus(int $societyId, int $blockId, int $flatId): RedirectResponse
+    {
+        $society = Society::findOrFail($societyId);
+        $this->tenantService->switchConnection($societyId);
+
+        $block = Block::findOrFail($blockId);
+        $flat = Flat::where('block_id', $block->id)->findOrFail($flatId);
+
+        $flat->update(['status' => $flat->status === 'active' ? 'inactive' : 'active']);
+
+        return redirect()
+            ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
+            ->with('success', "Flat {$flat->flat_number} marked " . ($flat->status === 'active' ? 'active' : 'inactive') . '.');
+    }
+
     public function flatsDestroy(int $societyId, int $blockId, int $flatId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
