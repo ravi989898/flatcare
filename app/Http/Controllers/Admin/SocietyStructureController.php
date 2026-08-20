@@ -150,8 +150,14 @@ class SocietyStructureController extends Controller
             return back()->withInput()->with('error', 'Enter at least one flat number.');
         }
 
-        $existing = Flat::whereIn('flat_number', $numbers)->pluck('flat_number');
-        $toCreate = $numbers->diff($existing);
+        // flat_number carries a DB-level unique constraint that isn't
+        // deleted_at-aware, so a previously-deleted flat with this number
+        // still occupies it. withTrashed() so those show up here instead
+        // of being silently missed and then crashing on insert below.
+        $matches = Flat::withTrashed()->whereIn('flat_number', $numbers)->get()->keyBy('flat_number');
+        $active = $matches->reject(fn (Flat $flat) => $flat->trashed())->keys();
+        $restorable = $matches->filter(fn (Flat $flat) => $flat->trashed());
+        $toCreate = $numbers->diff($matches->keys());
 
         foreach ($toCreate as $flatNumber) {
             Flat::create([
@@ -164,11 +170,25 @@ class SocietyStructureController extends Controller
             ]);
         }
 
-        $block->increment('total_flats', $toCreate->count());
+        foreach ($restorable as $flat) {
+            $flat->restore();
+            $flat->update([
+                'block_id' => $block->id,
+                'floor_number' => $this->deriveFloorNumber($flat->flat_number),
+                'ownership_type' => 'vacant',
+                'owner_name' => null,
+                'status' => 'active',
+            ]);
+        }
+
+        $block->increment('total_flats', $toCreate->count() + $restorable->count());
 
         $message = "{$toCreate->count()} flat" . ($toCreate->count() === 1 ? '' : 's') . ' created.';
-        if ($existing->isNotEmpty()) {
-            $message .= ' Already existed, skipped: ' . $existing->implode(', ') . '.';
+        if ($restorable->isNotEmpty()) {
+            $message .= " {$restorable->count()} previously-deleted flat" . ($restorable->count() === 1 ? '' : 's') . ' restored: ' . $restorable->keys()->implode(', ') . '.';
+        }
+        if ($active->isNotEmpty()) {
+            $message .= ' Already existed, skipped: ' . $active->implode(', ') . '.';
         }
 
         return redirect()
