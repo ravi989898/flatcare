@@ -65,16 +65,18 @@ class SocietyAdminController extends Controller
     {
         $society = Society::findOrFail($societyId);
 
+        // Switch to society's database before validating so the unique
+        // checks below run against this society's users table, not
+        // whichever tenant a previous request happened to leave connected.
+        $this->tenantService->switchConnection($societyId);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|digits:10|unique:users,phone',
+            'email' => 'required|email|unique:society.users,email',
+            'phone' => 'required|digits:10|unique:society.users,phone',
             'password' => 'required|min:10|confirmed',
-            'role' => 'required|exists:roles,id',
+            'role' => 'required|exists:society.roles,id',
         ]);
-
-        // Switch to society's database
-        $this->tenantService->switchConnection($societyId);
 
         // Create user
         $user = DB::connection('society')
@@ -134,16 +136,17 @@ class SocietyAdminController extends Controller
     {
         $society = Society::findOrFail($societyId);
 
+        // Switch to society's database before validating so the unique
+        // checks below run against this society's users table.
+        $this->tenantService->switchConnection($societyId);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $adminId,
-            'phone' => 'required|digits:10|unique:users,phone,' . $adminId,
+            'email' => 'required|email|unique:society.users,email,' . $adminId,
+            'phone' => 'required|digits:10|unique:society.users,phone,' . $adminId,
             'password' => 'nullable|min:10|confirmed',
-            'role' => 'required|exists:roles,id',
+            'role' => 'required|exists:society.roles,id',
         ]);
-
-        // Switch to society's database
-        $this->tenantService->switchConnection($societyId);
 
         $updates = [
             'name' => $validated['name'],
