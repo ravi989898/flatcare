@@ -2,9 +2,11 @@
 
 @section('title', 'New Announcement')
 
-@section('content')
-    <h1 class="h3 mb-4">New Announcement</h1>
+@section('content_header')
+    <h1>New Announcement</h1>
+@stop
 
+@section('content')
     <form action="{{ route('society.announcements.store') }}" method="POST">
         @csrf
         @include('society.announcements._form', ['announcement' => null])

@@ -2,17 +2,19 @@
 
 @section('title', 'Raise Bill')
 
-@section('content')
-    <h1 class="h3 mb-4">Raise Bill</h1>
+@section('content_header')
+    <h1>Raise Bill</h1>
+@stop
 
+@section('content')
     <form action="{{ route('society.payments.store') }}" method="POST">
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row">
                     <div class="col-md-6">
                         <label for="flat_id" class="form-label">Flat <span class="text-danger">*</span></label>
-                        <select name="flat_id" id="flat_id" class="form-select @error('flat_id') is-invalid @enderror" required>
+                        <select name="flat_id" id="flat_id" class="custom-select @error('flat_id') is-invalid @enderror" required>
                             <option value="">— Select —</option>
                             <option value="all" {{ old('flat_id') === 'all' ? 'selected' : '' }}>All active flats ({{ $flats->count() }})</option>
                             @foreach ($flats as $flat)

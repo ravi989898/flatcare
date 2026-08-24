@@ -16,36 +16,36 @@
     $winners = $election->isClosed() ? $election->winners() : collect();
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.elections.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Elections
-        </a>
-        <div class="d-flex align-items-center justify-content-between mt-2">
-            <div class="d-flex align-items-center gap-2">
-                <h1 class="h3 mb-0">{{ $election->title }}</h1>
-                <span class="badge bg-{{ $statusBadge[$election->status] }}">{{ ucfirst(str_replace('_', ' ', $election->status)) }}</span>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('society.elections.edit', $election->id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
-                @foreach ($nextSteps[$election->status] ?? [] as $nextStatus => $label)
-                    <form action="{{ route('society.elections.status', $election->id) }}" method="POST" class="d-inline">
-                        @csrf
-                        <input type="hidden" name="status" value="{{ $nextStatus }}">
-                        <button type="submit" class="btn btn-sm btn-brand">{{ $label }}</button>
-                    </form>
-                @endforeach
-                @if (!in_array($election->status, ['closed', 'cancelled']))
-                    <form action="{{ route('society.elections.status', $election->id) }}" method="POST" class="d-inline">
-                        @csrf
-                        <input type="hidden" name="status" value="cancelled">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this election?')">Cancel</button>
-                    </form>
-                @endif
-            </div>
+@section('content_header')
+    <a href="{{ route('society.elections.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Elections
+    </a>
+    <div class="d-flex align-items-center justify-content-between mt-2">
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 mb-0">{{ $election->title }}</h1>
+            <span class="badge bg-{{ $statusBadge[$election->status] }}">{{ ucfirst(str_replace('_', ' ', $election->status)) }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('society.elections.edit', $election->id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
+            @foreach ($nextSteps[$election->status] ?? [] as $nextStatus => $label)
+                <form action="{{ route('society.elections.status', $election->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <input type="hidden" name="status" value="{{ $nextStatus }}">
+                    <button type="submit" class="btn btn-sm btn-brand">{{ $label }}</button>
+                </form>
+            @endforeach
+            @if (!in_array($election->status, ['closed', 'cancelled']))
+                <form action="{{ route('society.elections.status', $election->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Cancel this election?">Cancel</button>
+                </form>
+            @endif
         </div>
     </div>
+@stop
 
+@section('content')
     @if ($election->description)
         <p class="text-muted">{{ $election->description }}</p>
     @endif
@@ -61,7 +61,7 @@
         </div>
     @endif
 
-    <div class="row g-3">
+    <div class="row">
         <div class="col-lg-7">
             <div class="card stat-card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -90,7 +90,7 @@
                                                 <form action="{{ route('society.elections.candidates.destroy', [$election->id, $candidate->id]) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this candidate?')">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Remove this candidate?">
                                                         <i class="bi bi-x"></i>
                                                     </button>
                                                 </form>
@@ -117,7 +117,7 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="user_id" class="form-label">Resident</label>
-                                    <select name="user_id" id="user_id" class="form-select" required>
+                                    <select name="user_id" id="user_id" class="custom-select" required>
                                         <option value="">— Select a resident —</option>
                                         @foreach ($eligibleCandidates as $resident)
                                             <option value="{{ $resident->id }}">{{ $resident->name }}</option>
@@ -148,7 +148,7 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="voter_user_id" class="form-label">Voter</label>
-                                    <select name="voter_user_id" id="voter_user_id" class="form-select" required>
+                                    <select name="voter_user_id" id="voter_user_id" class="custom-select" required>
                                         <option value="">— Select a resident —</option>
                                         @foreach ($eligibleVoters as $voter)
                                             <option value="{{ $voter->id }}">{{ $voter->name }}</option>
@@ -157,7 +157,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="candidate_id" class="form-label">Vote For</label>
-                                    <select name="candidate_id" id="candidate_id" class="form-select" required>
+                                    <select name="candidate_id" id="candidate_id" class="custom-select" required>
                                         <option value="">— Select a candidate —</option>
                                         @foreach ($election->candidates as $candidate)
                                             <option value="{{ $candidate->id }}">{{ $candidate->user->name }}</option>

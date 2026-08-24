@@ -7,21 +7,30 @@
     $methodLabel = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'upi' => 'UPI', 'cheque' => 'Cheque', 'other' => 'Other'];
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.payments.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Payments
-        </a>
-        <div class="d-flex align-items-center gap-2 mt-2">
-            <h1 class="h3 mb-0">{{ $bill->title }}</h1>
-            <span class="badge bg-{{ $statusBadge[$bill->status] }}">{{ ucfirst(str_replace('_', ' ', $bill->status)) }}</span>
+@section('content_header')
+    <a href="{{ route('society.payments.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Payments
+    </a>
+    <div class="d-flex align-items-center justify-content-between mt-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 mb-0">{{ $bill->title }}</h1>
+                <span class="badge bg-{{ $statusBadge[$bill->status] }}">{{ ucfirst(str_replace('_', ' ', $bill->status)) }}</span>
+            </div>
+            <p class="text-muted mb-0">{{ $bill->flat?->display_label ?? '—' }} &middot; Due {{ $bill->due_date->format('d M Y') }}</p>
         </div>
-        <p class="text-muted mb-0">{{ $bill->flat?->display_label ?? '—' }} &middot; Due {{ $bill->due_date->format('d M Y') }}</p>
+        <div class="d-flex gap-2">
+            <a href="{{ route('society.payments.invoice', $bill->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-receipt"></i> Invoice
+            </a>
+        </div>
     </div>
+@stop
 
-    <div class="row g-3">
+@section('content')
+    <div class="row">
         <div class="col-lg-7">
-            <div class="row g-3 mb-3">
+            <div class="row mb-3">
                 <div class="col-4">
                     <div class="card stat-card h-100">
                         <div class="card-body text-center">
@@ -103,7 +112,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="payment_method" class="form-label">Method</label>
-                                <select name="payment_method" id="payment_method" class="form-select">
+                                <select name="payment_method" id="payment_method" class="custom-select">
                                     @foreach (\App\Models\Tenant\Payment::METHODS as $method)
                                         <option value="{{ $method }}">{{ $methodLabel[$method] }}</option>
                                     @endforeach

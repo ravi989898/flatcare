@@ -6,8 +6,8 @@
     $residentTypeBadge = ['owner' => 'success', 'tenant' => 'info', 'occupant' => 'secondary'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Directory</h1>
             <p class="text-muted mb-0">{{ $residentCount }} resident{{ $residentCount === 1 ? '' : 's' }}</p>
@@ -16,17 +16,19 @@
             <i class="bi bi-person-plus"></i> Add Resident
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="card stat-card mb-3">
         <div class="card-body">
-            <form action="{{ route('society.directory.index') }}" method="GET" class="row g-2 align-items-end">
+            <form action="{{ route('society.directory.index') }}" method="GET" class="row align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small text-muted">Search</label>
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Name, phone, email or flat number">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Block</label>
-                    <select name="block_id" class="form-select">
+                    <select name="block_id" class="custom-select">
                         <option value="">All Blocks</option>
                         @foreach ($blocks as $block)
                             <option value="{{ $block->id }}" {{ request('block_id') == $block->id ? 'selected' : '' }}>{{ $block->name }}</option>

@@ -58,13 +58,46 @@ class SetSocietyContext
             return redirect()->route('society.login');
         }
 
+        // The Society portal shares the Super Admin panel's AdminLTE shell
+        // (resources/views/society/layout.blade.php extends adminlte::page).
+        // AdminLTE's built-in top-bar user menu and logout link always read
+        // Auth::user()/Auth::guard() with NO guard argument, so make the
+        // default guard resolve to 'society' for the rest of this request.
+        Auth::shouldUse('society');
+
         // Make the current society available to controllers/views without
         // every one of them having to re-resolve it from the session.
         $request->attributes->set('society', $society);
         view()->share('currentSociety', $society);
-        view()->share('visibleMenuItems', $this->menuItemsFor(Auth::guard('society')->user()));
+        $menuItems = $this->menuItemsFor(Auth::guard('society')->user());
+        view()->share('visibleMenuItems', $menuItems);
+        $this->configureAdminlteSidebar($menuItems);
 
         return $next($request);
+    }
+
+    /**
+     * Point the (globally-scoped) AdminLTE config at this request's Society
+     * sidebar instead of the Super Admin one. Safe to overwrite outright:
+     * config('adminlte.menu') is only ever read when AdminLte::class is
+     * resolved while rendering a response for *this* request, and admin
+     * routes never run this middleware.
+     */
+    private function configureAdminlteSidebar($menuItems): void
+    {
+        $items = $menuItems->map(fn (MenuItem $item) => [
+            'text' => $item->label,
+            'url' => route($item->route_name),
+            'icon' => 'bi ' . $item->icon,
+            'active' => request()->routeIs($item->active_pattern) || request()->routeIs($item->active_pattern . '.*'),
+        ])->all();
+
+        config([
+            'adminlte.menu' => $items,
+            'adminlte.logout_url' => 'society.logout',
+            'adminlte.dashboard_url' => 'society.dashboard',
+            'adminlte.classes_sidebar' => 'sidebar-dark-success elevation-4',
+        ]);
     }
 
     /**

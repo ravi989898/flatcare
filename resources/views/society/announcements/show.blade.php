@@ -6,13 +6,13 @@
     $categoryBadge = ['general' => 'secondary', 'maintenance' => 'info', 'event' => 'success', 'urgent' => 'danger', 'other' => 'dark'];
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.announcements.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Announcements
-        </a>
-    </div>
+@section('content_header')
+    <a href="{{ route('society.announcements.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Announcements
+    </a>
+@stop
 
+@section('content')
     <div class="card stat-card">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start mb-3">
@@ -40,7 +40,7 @@
                         <form action="{{ route('society.announcements.destroy', $announcement->id) }}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this announcement?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Archive this announcement?">
                                 <i class="bi bi-archive"></i> Archive
                             </button>
                         </form>

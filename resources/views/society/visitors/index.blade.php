@@ -7,8 +7,8 @@
     $purposeLabel = ['guest' => 'Guest', 'delivery' => 'Delivery', 'cab' => 'Cab/Taxi', 'service' => 'Service', 'other' => 'Other'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Visitors</h1>
             <p class="text-muted mb-0">{{ $currentlyInCount }} currently in the society</p>
@@ -17,17 +17,19 @@
             <i class="bi bi-person-plus"></i> Check In Visitor
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="card stat-card mb-3">
         <div class="card-body">
-            <form action="{{ route('society.visitors.index') }}" method="GET" class="row g-2 align-items-end">
+            <form action="{{ route('society.visitors.index') }}" method="GET" class="row align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Search</label>
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Name, phone or vehicle number">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="custom-select">
                         <option value="checked_in" {{ $status === 'checked_in' ? 'selected' : '' }}>Currently In</option>
                         <option value="checked_out" {{ $status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
                         <option value="all" {{ $status === 'all' ? 'selected' : '' }}>All</option>

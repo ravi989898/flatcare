@@ -10,8 +10,8 @@
     $priorityBadge = ['low' => 'secondary', 'medium' => 'info', 'high' => 'warning', 'urgent' => 'danger'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Complaints</h1>
             <p class="text-muted mb-0">
@@ -23,17 +23,19 @@
             <i class="bi bi-plus-lg"></i> Log Complaint
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="card stat-card mb-3">
         <div class="card-body">
-            <form action="{{ route('society.complaints.index') }}" method="GET" class="row g-2 align-items-end">
+            <form action="{{ route('society.complaints.index') }}" method="GET" class="row align-items-end">
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Search</label>
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Subject, resident, or against">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="custom-select">
                         <option value="">All</option>
                         @foreach (\App\Models\Tenant\Complaint::STATUSES as $status)
                             <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>
@@ -44,7 +46,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Priority</label>
-                    <select name="priority" class="form-select">
+                    <select name="priority" class="custom-select">
                         <option value="">All</option>
                         @foreach (\App\Models\Tenant\Complaint::PRIORITIES as $priority)
                             <option value="{{ $priority }}" {{ request('priority') === $priority ? 'selected' : '' }}>{{ ucfirst($priority) }}</option>
@@ -53,7 +55,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Category</label>
-                    <select name="category" class="form-select">
+                    <select name="category" class="custom-select">
                         <option value="">All</option>
                         @foreach (\App\Models\Tenant\Complaint::CATEGORIES as $category)
                             <option value="{{ $category }}" {{ request('category') === $category ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $category)) }}</option>

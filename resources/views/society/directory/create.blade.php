@@ -2,17 +2,19 @@
 
 @section('title', 'Add Resident')
 
-@section('content')
-    <h1 class="h3 mb-4">Add Resident</h1>
+@section('content_header')
+    <h1>Add Resident</h1>
+@stop
 
+@section('content')
     <form action="{{ route('society.directory.store') }}" method="POST">
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row">
                     <div class="col-md-6">
                         <label for="flat_id" class="form-label">Flat <span class="text-danger">*</span></label>
-                        <select name="flat_id" id="flat_id" class="form-select @error('flat_id') is-invalid @enderror" required>
+                        <select name="flat_id" id="flat_id" class="custom-select @error('flat_id') is-invalid @enderror" required>
                             <option value="">— Select a flat —</option>
                             @foreach ($flats as $flat)
                                 <option value="{{ $flat->id }}" {{ old('flat_id') == $flat->id ? 'selected' : '' }}>{{ $flat->display_label }}</option>
@@ -22,7 +24,7 @@
                     </div>
                     <div class="col-md-6">
                         <label for="resident_type" class="form-label">Resident Type <span class="text-danger">*</span></label>
-                        <select name="resident_type" id="resident_type" class="form-select @error('resident_type') is-invalid @enderror" required>
+                        <select name="resident_type" id="resident_type" class="custom-select @error('resident_type') is-invalid @enderror" required>
                             <option value="owner" {{ old('resident_type', 'owner') === 'owner' ? 'selected' : '' }}>Owner</option>
                             <option value="tenant" {{ old('resident_type') === 'tenant' ? 'selected' : '' }}>Tenant</option>
                             <option value="occupant" {{ old('resident_type') === 'occupant' ? 'selected' : '' }}>Occupant</option>

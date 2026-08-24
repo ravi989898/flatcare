@@ -1,82 +1,71 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in — {{ config('app.name', 'FlatCare') }}</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+{{--
+    Society-portal sign-in screen, on the same AdminLTE auth-page shell as
+    the main app's login (resources/views/auth/login.blade.php) so both
+    look identical apart from which guard/route they post to.
+--}}
+@extends('adminlte::auth.auth-page', ['authType' => 'login'])
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+@section('adminlte_css_pre')
+    <link rel="stylesheet" href="{{ asset('vendor/icheck-bootstrap/icheck-bootstrap.min.css') }}">
+@stop
 
+@section('css')
     <style>
-        :root { --brand: #2f6f4f; --brand-dark: #234f38; --brand-light: #eaf5ee; --ink: #17241d; }
-        body {
-            font-family: 'Inter', system-ui, sans-serif; color: var(--ink); min-height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at top right, var(--brand-light), #fff 60%);
-        }
-        .brand { font-weight: 800; letter-spacing: -.02em; color: var(--brand); }
-        .auth-card { max-width: 420px; width: 100%; border: 1px solid #eceff1; border-radius: 1rem; }
-        .btn-brand { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .btn-brand:hover { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
-        a { color: var(--brand); }
+        .btn-brand { background: #2f6f4f; border-color: #2f6f4f; color: #fff; }
+        .btn-brand:hover { background: #234f38; border-color: #234f38; color: #fff; }
     </style>
-</head>
-<body>
-    <div class="container py-5">
-        <div class="card auth-card mx-auto shadow-sm">
-            <div class="card-body p-4 p-md-5">
-                <div class="text-center mb-4">
-                    <a href="{{ route('home') }}" class="brand text-decoration-none fs-4">
-                        @include('partials.brand', ['height' => '32px'])
-                    </a>
-                    <p class="text-muted mt-2 mb-0">Sign in to your society portal</p>
+@stop
+
+@section('auth_header', 'Sign in to your society portal')
+
+@section('auth_body')
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
+    <form action="{{ route('society.login') }}" method="post" novalidate>
+        @csrf
+
+        <div class="input-group mb-3">
+            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                value="{{ old('email') }}" placeholder="Email" autofocus autocomplete="username">
+            <div class="input-group-append">
+                <div class="input-group-text"><span class="fas fa-envelope"></span></div>
+            </div>
+            @error('email')
+                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+            @enderror
+        </div>
+
+        <div class="input-group mb-3">
+            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
+                placeholder="Password" autocomplete="current-password">
+            <div class="input-group-append">
+                <div class="input-group-text"><span class="fas fa-lock"></span></div>
+            </div>
+            @error('password')
+                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+            @enderror
+        </div>
+
+        <div class="row">
+            <div class="col-7">
+                <div class="icheck-primary">
+                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                    <label for="remember">Remember Me</label>
                 </div>
-
-                @if (session('error'))
-                    <div class="alert alert-danger">{{ session('error') }}</div>
-                @endif
-
-                <form action="{{ route('society.login') }}" method="POST" novalidate>
-                    @csrf
-
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror"
-                            id="email" name="email" value="{{ old('email') }}"
-                            autocomplete="username" autofocus required>
-                        @error('email')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror"
-                            id="password" name="password" autocomplete="current-password" required>
-                        @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="form-check mb-4">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
-                        <label class="form-check-label" for="remember">Remember me</label>
-                    </div>
-
-                    <button type="submit" class="btn btn-brand w-100">
-                        <i class="bi bi-box-arrow-in-right"></i> Sign In
-                    </button>
-                </form>
+            </div>
+            <div class="col-5">
+                <button type="submit" class="btn btn-block btn-flat btn-brand">
+                    <span class="fas fa-sign-in-alt"></span> Sign In
+                </button>
             </div>
         </div>
-        <p class="text-center text-muted mt-3">
-            <a href="{{ route('home') }}"><i class="bi bi-arrow-left"></i> Back to homepage</a>
-        </p>
-    </div>
-</body>
-</html>
+    </form>
+@stop
+
+@section('auth_footer')
+    <p class="my-0">
+        <a href="{{ route('home') }}">&laquo; Back to homepage</a>
+    </p>
+@stop

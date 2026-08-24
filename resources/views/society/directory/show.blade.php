@@ -6,16 +6,16 @@
     $residentTypeBadge = ['owner' => 'success', 'tenant' => 'info', 'occupant' => 'secondary'];
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.directory.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Directory
-        </a>
-        <h1 class="h3 mb-0 mt-2">{{ $resident->name }}</h1>
-        <p class="text-muted mb-0">{{ $resident->phone }} &middot; {{ $resident->email }}</p>
-    </div>
+@section('content_header')
+    <a href="{{ route('society.directory.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Directory
+    </a>
+    <h1 class="h3 mb-0 mt-2">{{ $resident->name }}</h1>
+    <p class="text-muted mb-0">{{ $resident->phone }} &middot; {{ $resident->email }}</p>
+@stop
 
-    <div class="row g-3">
+@section('content')
+    <div class="row">
         <div class="col-lg-7">
             <div class="card stat-card mb-3">
                 <div class="card-header bg-white"><strong>Flat(s)</strong></div>

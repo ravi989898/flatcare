@@ -111,6 +111,157 @@ class PaymentController extends Controller
     }
 
     /**
+     * Printable bill: a line-item breakdown (available the moment the bill
+     * is raised) with a Receipt section appended at the bottom once a
+     * payment exists — one document instead of two, matching how a resident
+     * would actually receive a paper bill.
+     */
+    public function invoice(Request $request, int $id): View
+    {
+        $bill = MaintenanceBill::with([
+            'flat.block',
+            'flat.residents' => fn ($query) => $query->where('is_primary', true),
+            'waterReading',
+            'payments.recordedBy',
+        ])->findOrFail($id);
+
+        $society = $request->attributes->get('society');
+
+        // Older bills for the same flat that are still outstanding — shown
+        // for context, same as a running account statement would. Doesn't
+        // affect this bill's own balance math (payments are only ever
+        // recorded against the bill they were raised for).
+        $previousDues = (float) MaintenanceBill::where('flat_id', $bill->flat_id)
+            ->where('id', '!=', $bill->id)
+            ->where('due_date', '<', $bill->due_date)
+            ->get()
+            ->sum('balance');
+
+        return view('society.payments.invoice', [
+            'bill' => $bill,
+            'society' => $society,
+            'lineItems' => $this->billLineItems($bill, $society),
+            'previousDues' => $previousDues,
+            'residentName' => $bill->flat?->residents->first()?->user?->name,
+            'amountInWords' => $this->amountInWords((float) $bill->amount + $previousDues),
+        ]);
+    }
+
+    /**
+     * The line items that make up a bill's amount. Water-reading-generated
+     * bills (see WaterReadingController) get a Water Charges + Fixed
+     * Charges split; a manually-raised bill (society.payments.store) has no
+     * such breakdown, so it's shown as a single line.
+     *
+     * The water-charges amount is recomputed from the current society rate
+     * rather than stored at billing time, so if the rate changes later the
+     * Fixed Charges line (amount minus water charges) absorbs the
+     * difference — the two lines always add up to the actual amount billed.
+     */
+    private function billLineItems(MaintenanceBill $bill, $society): array
+    {
+        if ($bill->water_reading_id && $bill->waterReading) {
+            $reading = $bill->waterReading;
+            $rate = (float) ($society->water_unit_rate ?? 0);
+            $waterAmount = round((float) $reading->units * $rate, 2);
+
+            return [
+                [
+                    'label' => 'Water Charges',
+                    'detail' => sprintf(
+                        'Unit Price: ₹%s · Previous Reading: %s · Current Reading: %s · Units Consumed: %s',
+                        number_format($rate, 2),
+                        $reading->previous_reading,
+                        $reading->current_reading,
+                        $reading->units
+                    ),
+                    'amount' => $waterAmount,
+                ],
+                [
+                    'label' => 'Fixed Charges',
+                    'detail' => null,
+                    'amount' => round((float) $bill->amount - $waterAmount, 2),
+                ],
+            ];
+        }
+
+        return [[
+            'label' => $bill->title,
+            'detail' => $bill->notes,
+            'amount' => (float) $bill->amount,
+        ]];
+    }
+
+    /**
+     * Indian-numbering (Lakh/Crore) amount-in-words, e.g. "Eight Hundred
+     * Fifty Rupees Only" — the standard "Amount in Words" line on an Indian
+     * maintenance bill.
+     */
+    private function amountInWords(float $amount): string
+    {
+        $rupees = (int) floor($amount);
+        $paise = (int) round(($amount - $rupees) * 100);
+
+        $words = $this->numberToIndianWords($rupees) . ' Rupees';
+
+        if ($paise > 0) {
+            $words .= ' and ' . $this->numberToIndianWords($paise) . ' Paise';
+        }
+
+        return $words . ' Only';
+    }
+
+    private function numberToIndianWords(int $number): string
+    {
+        if ($number === 0) {
+            return 'Zero';
+        }
+
+        $ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+            'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        $tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+        $twoDigits = function (int $n) use ($ones, $tens): string {
+            if ($n < 20) {
+                return $ones[$n];
+            }
+
+            return trim($tens[intdiv($n, 10)] . ' ' . $ones[$n % 10]);
+        };
+
+        $threeDigits = function (int $n) use ($twoDigits, $ones): string {
+            if ($n >= 100) {
+                $rest = $twoDigits($n % 100);
+
+                return trim($ones[intdiv($n, 100)] . ' Hundred' . ($rest ? ' ' . $rest : ''));
+            }
+
+            return $twoDigits($n);
+        };
+
+        $crore = intdiv($number, 10000000);
+        $lakh = intdiv($number % 10000000, 100000);
+        $thousand = intdiv($number % 100000, 1000);
+        $hundred = $number % 1000;
+
+        $parts = [];
+        if ($crore > 0) {
+            $parts[] = $twoDigits($crore) . ' Crore';
+        }
+        if ($lakh > 0) {
+            $parts[] = $twoDigits($lakh) . ' Lakh';
+        }
+        if ($thousand > 0) {
+            $parts[] = $twoDigits($thousand) . ' Thousand';
+        }
+        if ($hundred > 0) {
+            $parts[] = $threeDigits($hundred);
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
      * Record a payment against a bill. Rejected if it would push the bill
      * into credit — a real overpayment/refund workflow is out of scope
      * here, so the ledger only ever tracks payments up to what's owed.

@@ -10,19 +10,19 @@
     $priorityBadge = ['low' => 'secondary', 'medium' => 'info', 'high' => 'warning', 'urgent' => 'danger'];
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.complaints.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Complaints
-        </a>
-        <div class="d-flex align-items-center gap-2 mt-2">
-            <h1 class="h3 mb-0">{{ $complaint->subject }}</h1>
-            <span class="badge bg-{{ $statusBadge[$complaint->status] }}">{{ ucfirst(str_replace('_', ' ', $complaint->status)) }}</span>
-            <span class="badge bg-{{ $priorityBadge[$complaint->priority] }}">{{ ucfirst($complaint->priority) }} priority</span>
-        </div>
+@section('content_header')
+    <a href="{{ route('society.complaints.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Complaints
+    </a>
+    <div class="d-flex align-items-center gap-2 mt-2">
+        <h1 class="h3 mb-0">{{ $complaint->subject }}</h1>
+        <span class="badge bg-{{ $statusBadge[$complaint->status] }}">{{ ucfirst(str_replace('_', ' ', $complaint->status)) }}</span>
+        <span class="badge bg-{{ $priorityBadge[$complaint->priority] }}">{{ ucfirst($complaint->priority) }} priority</span>
     </div>
+@stop
 
-    <div class="row g-3">
+@section('content')
+    <div class="row">
         <div class="col-lg-7">
             <div class="card stat-card mb-3">
                 <div class="card-body p-4">
@@ -103,7 +103,7 @@
 
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
-                            <select name="status" id="status" class="form-select">
+                            <select name="status" id="status" class="custom-select">
                                 @foreach (\App\Models\Tenant\Complaint::STATUSES as $status)
                                     <option value="{{ $status }}" {{ $complaint->status === $status ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
                                 @endforeach
@@ -112,7 +112,7 @@
 
                         <div class="mb-3">
                             <label for="priority" class="form-label">Priority</label>
-                            <select name="priority" id="priority" class="form-select">
+                            <select name="priority" id="priority" class="custom-select">
                                 @foreach (\App\Models\Tenant\Complaint::PRIORITIES as $priority)
                                     <option value="{{ $priority }}" {{ $complaint->priority === $priority ? 'selected' : '' }}>{{ ucfirst($priority) }}</option>
                                 @endforeach
@@ -121,7 +121,7 @@
 
                         <div class="mb-3">
                             <label for="assigned_to_user_id" class="form-label">Assign To</label>
-                            <select name="assigned_to_user_id" id="assigned_to_user_id" class="form-select">
+                            <select name="assigned_to_user_id" id="assigned_to_user_id" class="custom-select">
                                 <option value="">— Unassigned —</option>
                                 @foreach ($staff as $member)
                                     <option value="{{ $member->id }}" {{ $complaint->assigned_to_user_id === $member->id ? 'selected' : '' }}>{{ $member->name }}</option>

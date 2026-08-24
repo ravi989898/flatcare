@@ -2,17 +2,19 @@
 
 @section('title', 'Check In Visitor')
 
-@section('content')
-    <h1 class="h3 mb-4">Check In Visitor</h1>
+@section('content_header')
+    <h1>Check In Visitor</h1>
+@stop
 
+@section('content')
     <form action="{{ route('society.visitors.store') }}" method="POST">
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row">
                     <div class="col-md-6">
                         <label for="flat_id" class="form-label">Visiting Flat <span class="text-danger">*</span></label>
-                        <select name="flat_id" id="flat_id" class="form-select @error('flat_id') is-invalid @enderror" required>
+                        <select name="flat_id" id="flat_id" class="custom-select @error('flat_id') is-invalid @enderror" required>
                             <option value="">— Select a flat —</option>
                             @foreach ($flats as $flat)
                                 <option value="{{ $flat->id }}" {{ old('flat_id') == $flat->id ? 'selected' : '' }}>{{ $flat->display_label }}</option>
@@ -22,7 +24,7 @@
                     </div>
                     <div class="col-md-6">
                         <label for="purpose" class="form-label">Purpose <span class="text-danger">*</span></label>
-                        <select name="purpose" id="purpose" class="form-select @error('purpose') is-invalid @enderror" required>
+                        <select name="purpose" id="purpose" class="custom-select @error('purpose') is-invalid @enderror" required>
                             @foreach (\App\Models\Tenant\Visitor::PURPOSES as $purpose)
                                 <option value="{{ $purpose }}" {{ old('purpose', 'guest') === $purpose ? 'selected' : '' }}>{{ ucfirst($purpose) }}</option>
                             @endforeach

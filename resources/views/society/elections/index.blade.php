@@ -9,8 +9,8 @@
     ];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Elections</h1>
             <p class="text-muted mb-0">Society committee elections</p>
@@ -19,7 +19,9 @@
             <i class="bi bi-plus-lg"></i> New Election
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="card stat-card">
         <div class="card-body p-0">
             @if ($elections->count() > 0)

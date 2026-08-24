@@ -6,13 +6,13 @@
     $categoryBadge = ['cultural' => 'info', 'sports' => 'success', 'meeting' => 'secondary', 'festival' => 'warning', 'other' => 'dark'];
 @endphp
 
-@section('content')
-    <div class="mb-4">
-        <a href="{{ route('society.events.index') }}" class="text-decoration-none text-muted small">
-            <i class="bi bi-arrow-left"></i> Back to Events
-        </a>
-    </div>
+@section('content_header')
+    <a href="{{ route('society.events.index') }}" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left"></i> Back to Events
+    </a>
+@stop
 
+@section('content')
     <div class="card stat-card">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start mb-3">
@@ -43,7 +43,7 @@
                         <form action="{{ route('society.events.destroy', $event->id) }}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this event?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Cancel this event?">
                                 <i class="bi bi-x-circle"></i> Cancel Event
                             </button>
                         </form>

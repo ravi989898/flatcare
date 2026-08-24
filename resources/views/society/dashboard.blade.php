@@ -2,13 +2,13 @@
 
 @section('title', 'Dashboard')
 
-@section('content')
-    <div class="mb-4">
-        <h1 class="h3 mb-1">Welcome, {{ $user->name }}</h1>
-        <p class="text-muted mb-0">{{ $society->name }} &middot; {{ $society->city }}, {{ $society->state }}</p>
-    </div>
+@section('content_header')
+    <h1 class="h3 mb-1">Welcome, {{ $user->name }}</h1>
+    <p class="text-muted mb-0">{{ $society->name }} &middot; {{ $society->city }}, {{ $society->state }}</p>
+@stop
 
-    <div class="row g-3 mb-4">
+@section('content')
+    <div class="row mb-4">
         <div class="col-md-4">
             <div class="card stat-card h-100">
                 <div class="card-body d-flex align-items-center gap-3">
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <div class="row g-3">
+    <div class="row">
         <div class="col-md-6">
             <div class="card stat-card h-100">
                 <div class="card-body p-4">

@@ -9,7 +9,10 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SocietyAdminController;
 use App\Http\Controllers\Admin\SocietyController;
 use App\Http\Controllers\Admin\SocietyStructureController;
+use App\Http\Controllers\Admin\SocietyUserController;
+use App\Http\Controllers\Admin\TrialInquiryController as AdminTrialInquiryController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\TrialInquiryController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Society\AnnouncementController;
 use App\Http\Controllers\Society\ComplaintController;
@@ -28,6 +31,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+// "Start free trial" on the landing page — captures a lead for Super Admin
+// to follow up with (Admin > Inquiries). It does not create an account.
+Route::post('/trial-inquiries', [TrialInquiryController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('trial_inquiries.store');
 
 // Guest-only auth routes (login/register). Throttled at the route level as a
 // coarse network-wide backstop; the fine-grained per-email+IP lockout lives
@@ -115,6 +124,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/societies/{id}/admins/{adminId}/deactivate', [SocietyAdminController::class, 'deactivate'])->name('societies.admins.deactivate');
     Route::delete('/societies/{id}/admins/{adminId}', [SocietyAdminController::class, 'destroy'])->name('societies.admins.destroy');
 
+    Route::get('/societies/{id}/users', [SocietyUserController::class, 'index'])->name('societies.users.index');
+    Route::post('/societies/{id}/users/{userId}/role', [SocietyUserController::class, 'updateRole'])->name('societies.users.role');
+
     // Society structure: Blocks, then the Flats inside each block.
     Route::get('/societies/{id}/blocks', [SocietyStructureController::class, 'blocksIndex'])->name('societies.blocks.index');
     Route::get('/societies/{id}/blocks/create', [SocietyStructureController::class, 'blocksCreate'])->name('societies.blocks.create');
@@ -136,6 +148,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     })->name('super_admins.index');
     
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
+
+    // "Start free trial" leads from the landing page
+    Route::get('/inquiries', [AdminTrialInquiryController::class, 'index'])->name('inquiries.index');
+    Route::post('/inquiries/{inquiry}/contacted', [AdminTrialInquiryController::class, 'markContacted'])->name('inquiries.mark_contacted');
+    Route::post('/inquiries/{inquiry}/dismiss', [AdminTrialInquiryController::class, 'dismiss'])->name('inquiries.dismiss');
+    Route::delete('/inquiries/{inquiry}', [AdminTrialInquiryController::class, 'destroy'])->name('inquiries.destroy');
 
     // Platform-wide settings (super admin only)
     Route::prefix('settings')->name('settings.')->group(function () {
@@ -244,6 +262,7 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::post('/', [PaymentController::class, 'store'])->name('store');
             Route::get('/{id}', [PaymentController::class, 'show'])->name('show');
             Route::post('/{id}/pay', [PaymentController::class, 'recordPayment'])->name('pay');
+            Route::get('/{id}/invoice', [PaymentController::class, 'invoice'])->name('invoice');
         });
 
         Route::prefix('water-readings')->name('water-readings.')->group(function () {

@@ -1,22 +1,28 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Dashboard') — {{ $currentSociety->name ?? 'FlatCare' }}</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+{{--
+    Society-portal shell. Rebuilt to sit on top of the same AdminLTE page
+    (jeroennoten/laravel-adminlte, AdminLTE 3.2 / Bootstrap 4) that the
+    Super Admin panel uses under resources/views/admin, rather than a
+    separately hand-rolled Bootstrap 5 top-nav — see App\Http\Middleware\
+    SetSocietyContext, which builds this request's sidebar menu (from the
+    tenant user's role) and points config('adminlte.menu') /
+    config('adminlte.logout_url') at it before this view ever renders, and
+    switches the default auth guard to 'society' so AdminLTE's built-in
+    top-bar user menu (which always reads Auth::user() with no guard
+    argument) shows the right name and signs the right guard out.
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    Every society/*.blade.php page still does @extends('society.layout')
+    and fills @section('title') / @section('content_header') /
+    @section('content') exactly as before — only this shared shell changed.
+--}}
+@extends('adminlte::page')
+
+@section('adminlte_css_pre')
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+@stop
 
+@section('adminlte_css')
     <style>
-        :root { --brand: #2f6f4f; --brand-dark: #234f38; --brand-light: #eaf5ee; --ink: #17241d; }
-        body { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); background: #f7f9f8; }
-        .navbar-brand { font-weight: 800; letter-spacing: -.02em; color: var(--brand) !important; }
-        .nav-link.active { color: var(--brand) !important; font-weight: 600; }
+        :root { --brand: #2f6f4f; --brand-dark: #234f38; --brand-light: #eaf5ee; }
         .stat-card { border: 1px solid #eceff1; border-radius: 1rem; }
         .stat-icon {
             width: 48px; height: 48px; border-radius: .8rem; background: var(--brand-light); color: var(--brand);
@@ -24,64 +30,37 @@
         }
         .btn-brand { background: var(--brand); border-color: var(--brand); color: #fff; }
         .btn-brand:hover { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
-        a { color: var(--brand); }
+        .text-brand { color: var(--brand); }
+
+        {{-- Bootstrap 4 (bundled with AdminLTE) has no gap-* utilities; the
+             society pages use them on flex containers for tight, even
+             spacing between buttons/icons. --}}
+        .gap-2 { gap: .5rem !important; }
+        .gap-3 { gap: 1rem !important; }
     </style>
     @stack('styles')
-</head>
-<body>
+@stop
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand" href="{{ route('society.dashboard') }}">
-            @include('partials.brand')
-        </a>
-        <div class="collapse navbar-collapse">
-            {{-- Built from the logged-in user's role: Super Admin configures which
-                 items each role sees under Settings -> Menu Settings. --}}
-            <ul class="navbar-nav me-auto ms-4">
-                @foreach (($visibleMenuItems ?? []) as $item)
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs($item->active_pattern) || request()->routeIs($item->active_pattern . '.*') ? 'active' : '' }}"
-                           href="{{ route($item->route_name) }}">
-                            @if ($item->icon)
-                                <i class="bi {{ $item->icon }}"></i>
-                            @endif
-                            {{ $item->label }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-        <div class="ms-auto d-flex align-items-center">
-            <span class="text-muted me-3 d-none d-sm-inline">{{ $currentSociety->name ?? '' }}</span>
-            <form action="{{ route('society.logout') }}" method="POST" class="m-0">
-                @csrf
-                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-box-arrow-right"></i> Sign out
-                </button>
-            </form>
-        </div>
-    </div>
-</nav>
-
-<div class="container py-4">
+{{-- AdminLTE renders @stack('content') before @yield('content') inside the
+     same wrapper, so pushing here never clashes with a child page's own
+     @section('content') — see partials/cwrapper/cwrapper-default.blade.php. --}}
+@push('content')
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible">
             {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
     @endif
     @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible">
             {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
     @endif
+@endpush
 
-    @yield('content')
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-@stack('scripts')
-</body>
-</html>
+{{-- CSP has no 'unsafe-inline' on script-src, so inline onchange/onclick
+     attributes are silently blocked — see public/js/society-ui.js. --}}
+@push('js')
+    <script src="{{ asset('js/society-ui.js') }}"></script>
+@endpush

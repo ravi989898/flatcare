@@ -105,15 +105,32 @@ class TenantRoleSeeder extends Seeder
             'super_admin' => fn ($p) => true,
             'admin' => fn ($p) => true,
 
-            // Committee Member: view/create/edit on maintenance, visitor,
+            // Committee Member, and the Chairman/Vice Chairman/Secretary
+            // office-bearer positions (see the migration that added them to
+            // role_definitions): view/create/edit on maintenance, visitor,
             // complaint, announcement, event; view-only on directory/users.
-            'committee_member' => fn ($p) => (
+            // All four share one grant set for now - split them out here
+            // if an office bearer ever needs something Committee Member
+            // doesn't.
+            'committee_member' => $committeeGrant = fn ($p) => (
                     in_array($p->module, ['maintenance', 'visitor', 'complaint', 'announcement', 'event'], true)
                     && in_array($p->name, [
                         "{$p->module}.view", "{$p->module}.create", "{$p->module}.edit",
                     ], true)
                 )
                 || in_array($p->name, ['directory.view', 'user.view'], true),
+            'chairman' => $committeeGrant,
+            'vice_chairman' => $committeeGrant,
+            'secretary' => $committeeGrant,
+
+            // Treasurer: full run of the payment module (raising bills,
+            // recording payments), plus the same view-only access to
+            // maintenance/directory/users as Committee Member.
+            'treasurer' => fn ($p) => in_array($p->name, [
+                'payment.view', 'payment.create', 'payment.edit', 'payment.delete',
+                'maintenance.view',
+                'directory.view', 'user.view',
+            ], true),
 
             // Resident: view own-facing modules, plus raising complaints,
             // pre-approving visitors and voting in elections.

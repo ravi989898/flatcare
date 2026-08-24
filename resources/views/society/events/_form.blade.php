@@ -5,7 +5,7 @@
 
 <div class="card stat-card">
     <div class="card-body p-4">
-        <div class="row g-3">
+        <div class="row">
             <div class="col-md-8">
                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
                 <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ $old('title') }}" required>
@@ -13,7 +13,7 @@
             </div>
             <div class="col-md-4">
                 <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
-                <select name="category" id="category" class="form-select @error('category') is-invalid @enderror" required>
+                <select name="category" id="category" class="custom-select @error('category') is-invalid @enderror" required>
                     @foreach (\App\Models\Tenant\Event::CATEGORIES as $category)
                         <option value="{{ $category }}" {{ $old('category', 'other') === $category ? 'selected' : '' }}>{{ ucfirst($category) }}</option>
                     @endforeach

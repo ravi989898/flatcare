@@ -2,9 +2,11 @@
 
 @section('title', 'Edit Event')
 
-@section('content')
-    <h1 class="h3 mb-4">Edit Event</h1>
+@section('content_header')
+    <h1>Edit Event</h1>
+@stop
 
+@section('content')
     <form action="{{ route('society.events.update', $event->id) }}" method="POST">
         @csrf
         @method('PUT')

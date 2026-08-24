@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Helpers\MenuBuilder;
 use App\Models\PlatformSetting;
+use App\Models\TrialInquiry;
 use Illuminate\Support\ServiceProvider;
 
 class AdminMenuServiceProvider extends ServiceProvider
@@ -108,6 +109,15 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'text' => 'Audit Logs',
                 'route' => 'admin.audit_logs.index',
                 'icon' => 'fas fa-fw fa-history',
+            ];
+
+            $newInquiries = TrialInquiry::new()->count();
+
+            $menu[] = [
+                'text' => 'Inquiries',
+                'route' => 'admin.inquiries.index',
+                'icon' => 'fas fa-fw fa-inbox',
+                ...($newInquiries > 0 ? ['label' => $newInquiries, 'label_color' => 'danger'] : []),
             ];
 
             // Settings — super-admin-only configuration screens.

@@ -6,8 +6,8 @@
     $categoryBadge = ['cultural' => 'info', 'sports' => 'success', 'meeting' => 'secondary', 'festival' => 'warning', 'other' => 'dark'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Events</h1>
             <p class="text-muted mb-0">Society events and activities</p>
@@ -16,7 +16,9 @@
             <i class="bi bi-plus-lg"></i> New Event
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="mb-3">
         <div class="btn-group">
             <a href="{{ route('society.events.index') }}" class="btn btn-sm {{ $tab === 'upcoming' ? 'btn-brand' : 'btn-outline-secondary' }}">Upcoming</a>

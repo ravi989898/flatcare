@@ -2,8 +2,8 @@
 
 @section('title', 'Water Readings')
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Water Readings</h1>
             <p class="text-muted mb-0">Monthly meter readings and the maintenance bills generated from them</p>
@@ -12,7 +12,9 @@
             <i class="bi bi-plus-lg"></i> Add Reading
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="card stat-card">
         <div class="card-body p-0">
             @if ($readings->count() > 0)

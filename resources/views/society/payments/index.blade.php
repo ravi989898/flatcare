@@ -6,8 +6,8 @@
     $statusBadge = ['unpaid' => 'secondary', 'partially_paid' => 'warning', 'paid' => 'success', 'overdue' => 'danger'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Payments</h1>
             <p class="text-muted mb-0">Maintenance dues and collections</p>
@@ -16,8 +16,10 @@
             <i class="bi bi-plus-lg"></i> Raise Bill
         </a>
     </div>
+@stop
 
-    <div class="row g-3 mb-4">
+@section('content')
+    <div class="row mb-4">
         <div class="col-md-4">
             <div class="card stat-card h-100">
                 <div class="card-body d-flex align-items-center gap-3">
@@ -55,10 +57,10 @@
 
     <div class="card stat-card mb-3">
         <div class="card-body">
-            <form action="{{ route('society.payments.index') }}" method="GET" class="row g-2 align-items-end">
+            <form action="{{ route('society.payments.index') }}" method="GET" class="row align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="custom-select">
                         <option value="">All</option>
                         @foreach (\App\Models\Tenant\MaintenanceBill::STATUSES as $status)
                             <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
@@ -67,7 +69,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Flat</label>
-                    <select name="flat_id" class="form-select">
+                    <select name="flat_id" class="custom-select">
                         <option value="">All Flats</option>
                         @foreach ($flats as $flat)
                             <option value="{{ $flat->id }}" {{ request('flat_id') == $flat->id ? 'selected' : '' }}>{{ $flat->display_label }}</option>
@@ -112,7 +114,12 @@
                                     <td class="text-muted small">{{ $bill->due_date->format('d M Y') }}</td>
                                     <td><span class="badge bg-{{ $statusBadge[$bill->status] }}">{{ ucfirst(str_replace('_', ' ', $bill->status)) }}</span></td>
                                     <td class="text-end">
-                                        <a href="{{ route('society.payments.show', $bill->id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                                        <div class="btn-group">
+                                            <a href="{{ route('society.payments.show', $bill->id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                                            <a href="{{ route('society.payments.invoice', $bill->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-receipt"></i> Invoice
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

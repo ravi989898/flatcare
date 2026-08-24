@@ -6,8 +6,8 @@
     $categoryBadge = ['general' => 'secondary', 'maintenance' => 'info', 'event' => 'success', 'urgent' => 'danger', 'other' => 'dark'];
 @endphp
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+@section('content_header')
+    <div class="d-flex align-items-center justify-content-between">
         <div>
             <h1 class="h3 mb-1">Announcements</h1>
             <p class="text-muted mb-0">Society-wide notices board</p>
@@ -16,7 +16,9 @@
             <i class="bi bi-plus-lg"></i> New Announcement
         </a>
     </div>
+@stop
 
+@section('content')
     <div class="mb-3">
         <div class="btn-group">
             <a href="{{ route('society.announcements.index') }}" class="btn btn-sm {{ !$status ? 'btn-brand' : 'btn-outline-secondary' }}">Published</a>

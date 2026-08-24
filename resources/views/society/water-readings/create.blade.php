@@ -2,30 +2,28 @@
 
 @section('title', 'Add Water Reading')
 
-@section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h1 class="h3 mb-1">Add Water Reading</h1>
-            @if ($block)
-                <p class="text-muted mb-0">
-                    {{ $block->name }} — enter this month's meter reading per flat. The bill is calculated automatically:
-                    units &times; ₹{{ number_format($society->water_unit_rate ?? 0, 2) }}/unit + ₹{{ number_format($society->fixed_maintenance ?? 0, 2) }} fixed maintenance.
-                </p>
-            @else
-                <p class="text-muted mb-0">Choose a block to enter this month's meter readings for its flats.</p>
-            @endif
-        </div>
-    </div>
+@section('content_header')
+    <h1 class="h3 mb-1">Add Water Reading</h1>
+    @if ($block)
+        <p class="text-muted mb-0">
+            {{ $block->name }} — enter this month's meter reading per flat. The bill is calculated automatically:
+            units &times; ₹{{ number_format($society->water_unit_rate ?? 0, 2) }}/unit + ₹{{ number_format($society->fixed_maintenance ?? 0, 2) }} fixed maintenance.
+        </p>
+    @else
+        <p class="text-muted mb-0">Choose a block to enter this month's meter readings for its flats.</p>
+    @endif
+@stop
 
+@section('content')
     <div class="card stat-card mb-3">
         <div class="card-body">
-            <form action="{{ route('society.water-readings.create') }}" method="GET" class="row g-2 align-items-end">
+            <form action="{{ route('society.water-readings.create') }}" method="GET" class="row align-items-end">
                 @if ($block)
                     <input type="hidden" name="block_id" value="{{ $block->id }}">
                 @endif
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Billing Month</label>
-                    <input type="month" name="month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
+                    <input type="month" name="month" class="form-control js-auto-submit" value="{{ $month->format('Y-m') }}">
                 </div>
             </form>
         </div>
@@ -41,7 +39,7 @@
     @if (!$block)
         {{-- Step 1: pick a block --}}
         @if ($blocks->count() > 0)
-            <div class="row g-3">
+            <div class="row">
                 @foreach ($blocks as $b)
                     <div class="col-md-3 col-sm-4 col-6">
                         <a href="{{ route('society.water-readings.create', ['month' => $month->format('Y-m'), 'block_id' => $b->id]) }}"
