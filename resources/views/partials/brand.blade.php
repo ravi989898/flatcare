@@ -10,7 +10,10 @@
     $logoUrl = \App\Models\PlatformSetting::current()->logoUrl();
 @endphp
 @if ($logoUrl)
-    <img src="{{ $logoUrl }}" alt="FlatCare" style="height: {{ $height ?? '28px' }}; width: auto;" class="{{ $imgClass ?? '' }}">
+    <span class="d-inline-flex align-items-center gap-2">
+        <img src="{{ $logoUrl }}" alt="{{ config('app.name', 'FlatCare') }}" style="height: {{ $height ?? '44px' }}; width: auto;" class="{{ $imgClass ?? '' }}">
+        <span>{{ config('app.name', 'FlatCare') }}</span>
+    </span>
 @else
     <i class="bi bi-house-heart-fill"></i> FlatCare
 @endif

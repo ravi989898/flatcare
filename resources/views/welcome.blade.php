@@ -260,7 +260,7 @@
                         <span style="background:#f0b429; color:#1c3f2b;">DC</span>
                     </div>
                     <div class="small text-muted-2">
-                        <span class="stars">★★★★★</span> Loved by <strong class="text-ink">500+</strong> property teams
+                        <span class="stars">★★★★★</span> Loved by <strong class="text-ink">20+</strong> property teams
                     </div>
                 </div>
             </div>
@@ -337,19 +337,6 @@
         </div>
     </div>
 </header>
-
-<section class="trust-bar py-4">
-    <div class="container">
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-4 gap-lg-5">
-            <span class="small text-muted-2 fw-semibold text-uppercase" style="letter-spacing:.08em; font-size:.72rem;">Trusted by teams at</span>
-            <span class="trust-mark"><i class="bi bi-building me-1"></i>Skyline Homes</span>
-            <span class="trust-mark"><i class="bi bi-buildings me-1"></i>Meridian Estates</span>
-            <span class="trust-mark"><i class="bi bi-house-heart me-1"></i>Harborview</span>
-            <span class="trust-mark"><i class="bi bi-hospital me-1"></i>Greenfield Co-op</span>
-            <span class="trust-mark"><i class="bi bi-bank me-1"></i>Cedar Residences</span>
-        </div>
-    </div>
-</section>
 
 <section id="features" class="py-5 py-lg-6 my-4">
     <div class="container">
@@ -458,11 +445,11 @@
         <div class="stats-band p-5 p-lg-6">
             <div class="row g-4 text-center position-relative">
                 <div class="col-6 col-lg-3">
-                    <div class="stat-num">500+</div>
+                    <div class="stat-num">20+</div>
                     <div class="small opacity-75 mt-1">Properties managed</div>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <div class="stat-num">24k+</div>
+                    <div class="stat-num">3k+</div>
                     <div class="small opacity-75 mt-1">Requests resolved</div>
                 </div>
                 <div class="col-6 col-lg-3">
@@ -487,8 +474,8 @@
         <div class="row g-4">
             @foreach ([
                 ['quote' => 'FlatCare cut our maintenance response time in half. Tenants actually notice the difference.', 'name' => 'Aarav Mehta', 'role' => 'Property Manager, 40 units'],
-                ['quote' => 'Rent collection used to be our biggest headache. Now it basically runs itself.', 'name' => 'Sara Lim', 'role' => 'Landlord, 12 units'],
-                ['quote' => 'Simple enough for tenants, powerful enough for our whole ops team.', 'name' => 'Daniel Cruz', 'role' => 'Operations Lead, Skyline Homes'],
+                ['quote' => 'Rent collection used to be our biggest headache. Now it basically runs itself.', 'name' => 'Sneha Kapoor', 'role' => 'Landlord, 12 units'],
+                ['quote' => 'Simple enough for tenants, powerful enough for our whole ops team.', 'name' => 'Rohan Verma', 'role' => 'Operations Lead, Skyline Homes'],
             ] as $t)
                 <div class="col-lg-4">
                     <div class="card card-feature h-100 p-4">
