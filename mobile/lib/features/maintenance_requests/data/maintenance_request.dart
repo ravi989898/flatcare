@@ -48,8 +48,10 @@ class MaintenanceRequest {
 
   static const categories = [
     'plumbing', 'electrical', 'carpentry', 'painting',
-    'cleaning', 'security', 'lift', 'common_area', 'other',
+    'cleaning', 'security', 'lift', 'common_area', 'civil_work', 'other',
   ];
 
   static const priorities = ['low', 'medium', 'high', 'urgent'];
+
+  bool get isOpen => status == 'open' || status == 'in_progress';
 }

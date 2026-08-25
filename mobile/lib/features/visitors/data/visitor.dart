@@ -8,6 +8,8 @@ class Visitor {
     required this.status,
     this.checkInAt,
     this.checkOutAt,
+    this.expectedAt,
+    this.passCode,
     this.notes,
   });
 
@@ -21,6 +23,8 @@ class Visitor {
       status: json['status'] as String,
       checkInAt: json['check_in_at'] as String?,
       checkOutAt: json['check_out_at'] as String?,
+      expectedAt: json['expected_at'] as String?,
+      passCode: json['pass_code'] as String?,
       notes: json['notes'] as String?,
     );
   }
@@ -33,5 +37,11 @@ class Visitor {
   final String status;
   final String? checkInAt;
   final String? checkOutAt;
+  final String? expectedAt;
+  final String? passCode;
   final String? notes;
+
+  static const purposes = ['guest', 'delivery', 'cab', 'service', 'other'];
+
+  bool get isPending => status == 'pending';
 }

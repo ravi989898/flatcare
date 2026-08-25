@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Announcement;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +42,7 @@ class AnnouncementController extends Controller
         return view('society.announcements.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, NotificationService $notifications): RedirectResponse
     {
         $validated = $this->validateAnnouncement($request);
 
@@ -51,6 +52,13 @@ class AnnouncementController extends Controller
             'published_at' => now(),
             'posted_by_user_id' => Auth::guard('society')->id(),
         ]);
+
+        $notifications->notifyAllResidents(
+            'new_notice',
+            $announcement->title,
+            \Illuminate\Support\Str::limit($announcement->body, 120),
+            ['announcement_id' => $announcement->id],
+        );
 
         return redirect()
             ->route('society.announcements.show', $announcement->id)

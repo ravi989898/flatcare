@@ -24,7 +24,11 @@ class VisitorResource extends JsonResource
             'status' => $this->status,
             'check_in_at' => $this->check_in_at?->toIso8601String(),
             'check_out_at' => $this->check_out_at?->toIso8601String(),
+            'expected_at' => $this->expected_at?->toIso8601String(),
+            'pass_code' => $this->pass_code,
             'notes' => $this->notes,
+            'flat' => $this->whenLoaded('flat', fn () => new FlatResource($this->flat)),
+            'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
 }

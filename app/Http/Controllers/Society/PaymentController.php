@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\Payment;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -71,7 +72,7 @@ class PaymentController extends Controller
      * "all" is chosen — sparing the admin from creating the same monthly
      * bill flat-by-flat.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, NotificationService $notifications): RedirectResponse
     {
         $validated = $request->validate([
             'flat_id' => ['required', Rule::in(array_merge(['all'], Flat::pluck('id')->all()))],
@@ -86,7 +87,7 @@ class PaymentController extends Controller
             : collect([$validated['flat_id']]);
 
         foreach ($flatIds as $flatId) {
-            MaintenanceBill::create([
+            $bill = MaintenanceBill::create([
                 'flat_id' => $flatId,
                 'title' => $validated['title'],
                 'amount' => $validated['amount'],
@@ -94,6 +95,14 @@ class PaymentController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'created_by_user_id' => Auth::guard('society')->id(),
             ]);
+
+            $notifications->notifyFlats(
+                [$flatId],
+                'maintenance_due',
+                "{$validated['title']} due on " . \Illuminate\Support\Carbon::parse($validated['due_date'])->format('d M Y'),
+                "₹" . number_format($validated['amount'], 2),
+                ['bill_id' => $bill->id],
+            );
         }
 
         $count = $flatIds->count();

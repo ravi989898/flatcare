@@ -5,10 +5,16 @@ use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
 use App\Http\Controllers\Api\V1\Resident\BillController;
+use App\Http\Controllers\Api\V1\Resident\CommitteeMemberController;
 use App\Http\Controllers\Api\V1\Resident\ComplaintController;
+use App\Http\Controllers\Api\V1\Resident\DocumentController;
+use App\Http\Controllers\Api\V1\Resident\EmergencyContactController;
 use App\Http\Controllers\Api\V1\Resident\FamilyMemberController;
 use App\Http\Controllers\Api\V1\Resident\MaintenanceRequestController;
+use App\Http\Controllers\Api\V1\Resident\NotificationController;
+use App\Http\Controllers\Api\V1\Resident\PollController;
 use App\Http\Controllers\Api\V1\Resident\ProfileController;
+use App\Http\Controllers\Api\V1\Resident\ServiceProviderController;
 use App\Http\Controllers\Api\V1\Resident\VehicleController;
 use App\Http\Controllers\Api\V1\Resident\VisitorController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +46,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store');
             Route::put('/vehicles/{id}', [VehicleController::class, 'update'])->name('vehicles.update');
             Route::delete('/vehicles/{id}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+
+            Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
         });
 
         Route::prefix('maintenance-requests')->name('maintenance_requests.')->group(function () {
@@ -61,6 +69,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::prefix('visitors')->name('visitors.')->group(function () {
             Route::get('/', [VisitorController::class, 'index'])->name('index');
+            Route::post('/', [VisitorController::class, 'store'])->name('store');
             Route::get('/{id}', [VisitorController::class, 'show'])->name('show');
         });
 
@@ -77,6 +86,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::prefix('directory')->name('directory.')->group(function () {
             Route::get('/', [DirectoryController::class, 'index'])->name('index');
             Route::get('/{userId}', [DirectoryController::class, 'show'])->name('show');
+        });
+
+        Route::prefix('documents')->name('documents.')->group(function () {
+            Route::get('/', [DocumentController::class, 'index'])->name('index');
+            Route::get('/{id}', [DocumentController::class, 'show'])->name('show');
+        });
+
+        Route::get('/emergency-contacts', [EmergencyContactController::class, 'index'])->name('emergency_contacts.index');
+
+        Route::get('/committee-members', [CommitteeMemberController::class, 'index'])->name('committee_members.index');
+        Route::get('/service-providers', [ServiceProviderController::class, 'index'])->name('service_providers.index');
+
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread_count');
+            Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('mark_all_read');
+            Route::post('/{id}/read', [NotificationController::class, 'markRead'])->name('mark_read');
+        });
+
+        Route::prefix('polls')->name('polls.')->group(function () {
+            Route::get('/', [PollController::class, 'index'])->name('index');
+            Route::get('/{id}', [PollController::class, 'show'])->name('show');
+            Route::post('/{id}/vote', [PollController::class, 'vote'])->name('vote');
         });
     });
 });

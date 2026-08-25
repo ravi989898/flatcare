@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Event;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +37,7 @@ class EventController extends Controller
         return view('society.events.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, NotificationService $notifications): RedirectResponse
     {
         $validated = $this->validateEvent($request);
 
@@ -45,6 +46,13 @@ class EventController extends Controller
             'status' => 'published',
             'posted_by_user_id' => Auth::guard('society')->id(),
         ]);
+
+        $notifications->notifyAllResidents(
+            'event_reminder',
+            $event->title,
+            $event->location ? "At {$event->location}" : null,
+            ['event_id' => $event->id],
+        );
 
         return redirect()
             ->route('society.events.show', $event->id)

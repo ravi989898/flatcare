@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../auth/providers/auth_provider.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/photo_avatar.dart';
+import '../../auth/providers/auth_provider.dart';
 
+/// Redesigned to match the mockup: a gradient header card (avatar, name,
+/// unit, phone) followed by a flat menu list (Edit Profile, Change
+/// Password, Notification Settings, Language, Help & Support, About Us),
+/// rather than the earlier Card-with-ListTiles contact-info layout.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -13,6 +20,7 @@ class ProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F3F7),
       appBar: AppBar(title: const Text('Profile')),
       body: AsyncView(
         value: auth,
@@ -20,65 +28,87 @@ class ProfileScreen extends ConsumerWidget {
         builder: (context, state) {
           if (state == null) return const SizedBox.shrink();
           final user = state.user;
+          final unit = user.primaryResidency?.flat.displayLabel;
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 28),
+              _ProfileHeaderCard(
+                name: user.name,
+                unit: unit,
+                society: state.society.name,
+                phone: user.phone,
+                photoUrl: user.profilePhotoUrl,
+              ),
+              const SizedBox(height: 20),
+              _ProfileMenuTile(icon: Icons.edit_outlined, label: 'Edit Profile', onTap: () => context.push('/profile/edit')),
+              _ProfileMenuTile(
+                icon: Icons.lock_outline,
+                label: 'Change Password',
+                onTap: () => context.push('/profile/change-password'),
+              ),
+              _ProfileMenuTile(
+                icon: Icons.notifications_none,
+                label: 'Notification Settings',
+                onTap: () => context.push('/profile/notification-settings'),
+              ),
+              _ProfileMenuTile(icon: Icons.language_outlined, label: 'Language', onTap: () => context.push('/profile/language')),
+              _ProfileMenuTile(
+                icon: Icons.help_outline,
+                label: 'Help & Support',
+                onTap: () => context.push('/profile/help-support'),
+              ),
+              _ProfileMenuTile(icon: Icons.info_outline, label: 'About Us', onTap: () => context.push('/profile/about')),
+              _ProfileMenuTile(icon: Icons.dark_mode_outlined, label: 'Theme', onTap: () => context.push('/profile/theme')),
+              _ProfileMenuTile(
+                icon: Icons.privacy_tip_outlined,
+                label: 'Privacy Policy',
+                onTap: () => context.push('/profile/privacy-policy'),
+              ),
+              _ProfileMenuTile(icon: Icons.gavel_outlined, label: 'Terms & Conditions', onTap: () => context.push('/profile/terms')),
+              _ProfileMenuTile(
+                icon: Icons.star_outline,
+                label: 'Rate Us',
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Rate FlatCare'),
+                    content: const Text('Thanks for using FlatCare! The app isn\'t published to an app store yet — check back once it is.'),
+                    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(user.name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-              Text(
-                state.society.name,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
+              _ProfileMenuTile(
+                icon: Icons.share_outlined,
+                label: 'Share App',
+                onTap: () => Share.share('Manage your society life with FlatCare — ask your society admin for an account.'),
               ),
-              const SizedBox(height: 24),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(leading: const Icon(Icons.email_outlined), title: Text(user.email)),
-                    if (user.phone != null)
-                      ListTile(leading: const Icon(Icons.phone_outlined), title: Text(user.phone!)),
-                    if (user.primaryResidency != null)
-                      ListTile(
-                        leading: const Icon(Icons.apartment_outlined),
-                        title: Text(user.primaryResidency!.flat.displayLabel),
-                        subtitle: Text(user.primaryResidency!.residentType),
-                      ),
-                  ],
-                ),
+              _ProfileMenuTile(
+                icon: Icons.cleaning_services_outlined,
+                label: 'Clear Cache',
+                onTap: () async {
+                  await DefaultCacheManager().emptyCache();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache cleared.')));
+                  }
+                },
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit profile'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/profile/edit'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.family_restroom_outlined),
-                title: const Text('Family members'),
-                trailing: const Icon(Icons.chevron_right),
+              const Divider(height: 32),
+              _ProfileMenuTile(
+                icon: Icons.family_restroom_outlined,
+                label: 'Family Members',
                 onTap: () => context.push('/profile/family-members'),
               ),
-              ListTile(
-                leading: const Icon(Icons.directions_car_outlined),
-                title: const Text('Vehicles'),
-                trailing: const Icon(Icons.chevron_right),
+              _ProfileMenuTile(
+                icon: Icons.directions_car_outlined,
+                label: 'Vehicles',
                 onTap: () => context.push('/profile/vehicles'),
               ),
               const Divider(height: 32),
-              ListTile(
-                leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
-                title: Text('Sign out', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              _ProfileMenuTile(
+                icon: Icons.logout,
+                label: 'Sign Out',
+                color: Theme.of(context).colorScheme.error,
                 onTap: () async {
                   final confirmed = await showDialog<bool>(
                     context: context,
@@ -98,6 +128,64 @@ class ProfileScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  const _ProfileHeaderCard({required this.name, this.unit, required this.society, this.phone, this.photoUrl});
+
+  final String name;
+  final String? unit;
+  final String society;
+  final String? phone;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        children: [
+          PhotoAvatar(url: photoUrl, name: name, radius: 36),
+          const SizedBox(height: 12),
+          Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text([if (unit != null) unit!, society].join(', '), style: const TextStyle(color: Colors.black54)),
+          if (phone != null) ...[
+            const SizedBox(height: 2),
+            Text(phone!, style: const TextStyle(color: Colors.black54)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileMenuTile extends StatelessWidget {
+  const _ProfileMenuTile({required this.icon, required this.label, required this.onTap, this.color});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }

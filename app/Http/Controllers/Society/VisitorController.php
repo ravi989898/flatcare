@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Society;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\Visitor;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +53,7 @@ class VisitorController extends Controller
     /**
      * Log a new visitor entry (check-in).
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, NotificationService $notifications): RedirectResponse
     {
         $validated = $request->validate([
             'flat_id' => 'required|exists:flats,id',
@@ -69,6 +70,13 @@ class VisitorController extends Controller
             'check_in_at' => now(),
             'checked_in_by' => Auth::guard('society')->id(),
         ]);
+
+        $notifications->notifyFlats(
+            [$validated['flat_id']],
+            'visitor_arrived',
+            "{$validated['visitor_name']} has arrived",
+            ucfirst($validated['purpose']),
+        );
 
         return redirect()
             ->route('society.visitors.index')

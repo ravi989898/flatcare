@@ -7,6 +7,7 @@ use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceRequest;
 use App\Models\Tenant\User;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,7 +102,7 @@ class MaintenanceController extends Controller
      * Update a request's status, priority, and/or assignment. Every change
      * is appended to the request's history trail.
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(Request $request, int $id, NotificationService $notifications): RedirectResponse
     {
         $maintenanceRequest = MaintenanceRequest::findOrFail($id);
 
@@ -128,6 +129,16 @@ class MaintenanceController extends Controller
                 $statusChanged ? "status_changed_to_{$validated['status']}" : 'note_added',
                 $validated['note'] ?? null,
                 Auth::guard('society')->id(),
+            );
+        }
+
+        if ($statusChanged && $maintenanceRequest->flat_id) {
+            $notifications->notifyFlats(
+                [$maintenanceRequest->flat_id],
+                'request_status',
+                "Service request #{$maintenanceRequest->id} is now {$validated['status']}",
+                $maintenanceRequest->title,
+                ['maintenance_request_id' => $maintenanceRequest->id],
             );
         }
 

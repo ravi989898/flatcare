@@ -28,6 +28,7 @@ class StatusChip extends StatelessWidget {
     'high': Colors.deepOrange,
     'medium': Colors.orange,
     'low': Colors.blueGrey,
+    'draft': Colors.grey,
   };
 
   @override

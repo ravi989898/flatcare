@@ -39,6 +39,10 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 8],
             ['key' => 'payments', 'label' => 'Payments', 'route_name' => 'society.payments.index', 'icon' => 'bi-credit-card', 'display_order' => 9],
             ['key' => 'water-readings', 'label' => 'Water Readings', 'route_name' => 'society.water-readings.index', 'icon' => 'bi-droplet', 'display_order' => 10],
+            ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 11],
+            ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 12],
+            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 13],
+            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 14],
         ];
 
         foreach ($menuItems as $item) {
@@ -60,7 +64,7 @@ class RoleMenuSettingSeeder extends Seeder
         $visibleKeysByRole = [
             'super_admin' => $allKeys,
             'admin' => $allKeys,
-            'committee_member' => ['dashboard', 'maintenance', 'visitors', 'complaints', 'directory', 'announcements', 'events'],
+            'committee_member' => ['dashboard', 'maintenance', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
             'resident' => $allKeys, // resident permissions already cover every module, just their own-facing view
             'security' => ['dashboard', 'visitors', 'directory'],
         ];

@@ -53,6 +53,28 @@
                     </dl>
                 </div>
             </div>
+
+            <div class="card stat-card mt-3">
+                <div class="card-header bg-white"><strong>Committee Membership</strong></div>
+                <div class="card-body">
+                    <p class="text-muted small">Set a title (e.g. Chairman, Secretary, Treasurer) to list this resident under Committee Members in the mobile app. Leave blank to remove them from that list.</p>
+                    <form action="{{ route('society.directory.committee.update', $resident->id) }}" method="POST" class="row g-2 align-items-end">
+                        @csrf
+                        @method('PUT')
+                        <div class="col-sm-7">
+                            <label class="form-label small text-muted">Position</label>
+                            <input type="text" name="committee_position" class="form-control" placeholder="e.g. Chairman" value="{{ old('committee_position', $resident->committee_position) }}">
+                        </div>
+                        <div class="col-sm-3">
+                            <label class="form-label small text-muted">Order</label>
+                            <input type="number" name="committee_order" min="0" class="form-control" value="{{ old('committee_order', $resident->committee_order) }}">
+                        </div>
+                        <div class="col-sm-2">
+                            <button type="submit" class="btn btn-brand w-100">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <div class="col-lg-5">
