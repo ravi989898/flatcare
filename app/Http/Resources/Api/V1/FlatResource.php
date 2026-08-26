@@ -20,6 +20,8 @@ class FlatResource extends JsonResource
             'flat_number' => $this->flat_number,
             'floor_number' => $this->floor_number,
             'flat_type' => $this->flat_type,
+            'area_sqft' => $this->area_sqft !== null ? (float) $this->area_sqft : null,
+            'owner_name' => $this->owner_name,
             'display_label' => $this->display_label,
             'block' => [
                 'id' => $this->block?->id,

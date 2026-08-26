@@ -19,6 +19,24 @@ class AppTheme {
     colors: [brandTeal, brandBlue],
   );
 
+  /// Off-white background behind white cards on the colorful gradient-header
+  /// screens (bills list/detail) — shared so every such screen matches.
+  static const pageBackground = Color(0xFFEEF1FA);
+
+  /// Status → color, shared by the bills list and detail screens so a bill's
+  /// amount/badge reads the same color everywhere it appears.
+  static const statusDue = Color(0xFFE0245E);
+  static const statusPaid = Color(0xFF2AB930);
+  static const statusPending = Color(0xFFF5A623);
+
+  static Color billStatusColor(String status) {
+    return switch (status) {
+      'paid' => statusPaid,
+      'overdue' => statusDue,
+      _ => statusPending,
+    };
+  }
+
   static const seedColor = brandBlue;
 
   static ThemeData light() {

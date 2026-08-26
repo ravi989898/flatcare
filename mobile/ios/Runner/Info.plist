@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Lets Razorpay's checkout detect installed UPI apps for the intent
+	     flow (per Razorpay's iOS UPI Intent integration doc) — without this,
+	     iOS silently shows none of them as payment options. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tez</string>
+		<string>phonepe</string>
+		<string>paytmmp</string>
+	</array>
 </dict>
 </plist>

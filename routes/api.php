@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
 use App\Http\Controllers\Api\V1\Resident\BillController;
+use App\Http\Controllers\Api\V1\Resident\BillPaymentController;
 use App\Http\Controllers\Api\V1\Resident\CommitteeMemberController;
 use App\Http\Controllers\Api\V1\Resident\ComplaintController;
 use App\Http\Controllers\Api\V1\Resident\DocumentController;
@@ -59,6 +60,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::prefix('bills')->name('bills.')->group(function () {
             Route::get('/', [BillController::class, 'index'])->name('index');
             Route::get('/{id}', [BillController::class, 'show'])->name('show');
+            Route::get('/{id}/receipt', [BillController::class, 'receipt'])->middleware('throttle:20,1')->name('receipt');
+
+            Route::post('/{id}/pay/order', [BillPaymentController::class, 'createOrder'])->middleware('throttle:10,1')->name('pay.order');
+            Route::post('/{id}/pay/verify', [BillPaymentController::class, 'verify'])->middleware('throttle:10,1')->name('pay.verify');
         });
 
         Route::prefix('complaints')->name('complaints.')->group(function () {

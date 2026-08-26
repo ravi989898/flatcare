@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
@@ -63,6 +66,20 @@ class ApiClient {
     return _unwrap(() => _dio.delete(path));
   }
 
+  /// For binary responses (the receipt PDF) — the other methods above all
+  /// assume a JSON {success, message, data} body, which a PDF isn't.
+  Future<Uint8List> downloadBytes(String path) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(response.data ?? const []);
+    } on DioException catch (error) {
+      throw _toApiExceptionFromBytes(error);
+    }
+  }
+
   Future<Map<String, dynamic>> _unwrap(Future<Response> Function() request) async {
     try {
       final response = await request();
@@ -97,5 +114,29 @@ class ApiClient {
     }
 
     return ApiException(message: 'Something went wrong. Please try again.', statusCode: statusCode);
+  }
+
+  /// A failed downloadBytes() request still arrives with responseType.bytes
+  /// applied to the error body too — so error.response?.data is raw bytes,
+  /// not the pre-decoded Map _toApiException() expects. Decode it by hand
+  /// before falling back to the same mapping.
+  ApiException _toApiExceptionFromBytes(DioException error) {
+    final data = error.response?.data;
+
+    if (data is List<int>) {
+      try {
+        final decoded = jsonDecode(utf8.decode(data));
+        if (decoded is Map) {
+          return ApiException(
+            message: decoded['message'] as String? ?? 'Something went wrong. Please try again.',
+            statusCode: error.response?.statusCode,
+          );
+        }
+      } catch (_) {
+        // Not decodable JSON — fall through to the generic mapping below.
+      }
+    }
+
+    return _toApiException(error);
   }
 }

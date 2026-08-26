@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Explicit even though most plugins' merged manifests already imply it —
+         needed for every API call this app makes, Razorpay checkout included. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="flatcare_mobile"
         android:name="${applicationName}"
@@ -40,6 +43,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11+ package visibility: without this, Razorpay's checkout
+             can't see which UPI apps (GPay, PhonePe, etc.) are installed on
+             the phone, so it can't offer them as options. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="upi"/>
         </intent>
     </queries>
 </manifest>
