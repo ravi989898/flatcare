@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Module;
 use App\Models\Society;
+use App\Models\SocietyDatabase;
 use App\Models\SocietyModule;
 use App\Models\SuperAdmin;
 use App\Services\TenantService;
@@ -63,6 +64,11 @@ class SocietyController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateSociety($request);
+        $manualDb = $this->validateManualDbFields($request, hasExistingDatabase: false);
+
+        if ($manualDb === false) {
+            return back()->withErrors(['db_name' => 'Database Name, User, and Password must all be provided together.'])->withInput();
+        }
 
         $society = DB::connection('main')->transaction(function () use ($validated, $request) {
             $slug = $this->uniqueSlug($validated['name']);
@@ -92,9 +98,15 @@ class SocietyController extends Controller
             return $society;
         });
 
-        $provisioned = $this->tenantService->createSocietyDatabase($society)
-            && $this->tenantService->runTenantMigrations($society->id)
-            && $this->tenantService->seedTenantDatabase($society->id);
+        if ($manualDb) {
+            $this->tenantService->registerManualDatabase($society, $manualDb['db_name'], $manualDb['db_user'], $manualDb['db_password']);
+            $provisioned = $this->tenantService->runTenantMigrations($society->id)
+                && $this->tenantService->seedTenantDatabase($society->id);
+        } else {
+            $provisioned = $this->tenantService->createSocietyDatabase($society)
+                && $this->tenantService->runTenantMigrations($society->id)
+                && $this->tenantService->seedTenantDatabase($society->id);
+        }
 
         AuditLog::log(
             $this->currentSuperAdmin(),
@@ -148,9 +160,18 @@ class SocietyController extends Controller
     {
         $society = Society::findOrFail($id);
         $validated = $this->validateSociety($request, $society->id);
+        $manualDb = $this->validateManualDbFields($request, hasExistingDatabase: $society->database !== null);
+
+        if ($manualDb === false) {
+            return back()->withErrors(['db_name' => 'Database Name and User are required (Password too, unless one is already on file).'])->withInput();
+        }
 
         $before = $society->toArray();
         $society->update($validated);
+
+        if ($manualDb) {
+            $this->tenantService->registerManualDatabase($society, $manualDb['db_name'], $manualDb['db_user'], $manualDb['db_password']);
+        }
 
         AuditLog::log(
             $this->currentSuperAdmin(),
@@ -167,7 +188,9 @@ class SocietyController extends Controller
 
         return redirect()
             ->route('admin.societies.show', $society->id)
-            ->with('success', 'Society details updated successfully.');
+            ->with('success', $manualDb
+                ? 'Society details updated. Database credentials saved — use "Retry Provisioning" on the society page to migrate it.'
+                : 'Society details updated successfully.');
     }
 
     /**
@@ -243,7 +266,15 @@ class SocietyController extends Controller
     {
         $society = Society::findOrFail($id);
 
-        $provisioned = $this->tenantService->createSocietyDatabase($society)
+        // A database row already means the database itself exists — either
+        // this app created it before (even if migrations then failed), or
+        // its credentials were entered by hand via the edit form. Either
+        // way, re-running createSocietyDatabase() here would try to CREATE
+        // DATABASE a second, differently-named database and orphan the
+        // existing row, so just re-attempt migrations against what's there.
+        $hasDatabase = SocietyDatabase::where('society_id', $society->id)->exists();
+
+        $provisioned = ($hasDatabase || $this->tenantService->createSocietyDatabase($society))
             && $this->tenantService->runTenantMigrations($society->id)
             && $this->tenantService->seedTenantDatabase($society->id);
 
@@ -290,6 +321,40 @@ class SocietyController extends Controller
             'admin_email' => 'nullable|email|max:255',
             'admin_phone' => 'nullable|string|max:20',
         ]);
+    }
+
+    /**
+     * Reads the optional manual db_name/db_user/db_password fields (used
+     * when the hosting environment doesn't let the app CREATE DATABASE
+     * itself, so the super admin creates the tenant database by hand and
+     * pastes its credentials in here instead).
+     *
+     * Returns null if none of the three were provided (the normal
+     * auto-provisioning path), an array of the three values if a usable set
+     * was provided, or false if the set was incomplete and the caller
+     * should reject the request. $hasExistingDatabase allows the password
+     * to be left blank (kept as-is) when editing a society that already has
+     * database credentials on file.
+     */
+    private function validateManualDbFields(Request $request, bool $hasExistingDatabase): array|false|null
+    {
+        $dbName = trim((string) $request->input('db_name'));
+        $dbUser = trim((string) $request->input('db_user'));
+        $dbPassword = trim((string) $request->input('db_password'));
+
+        if ($dbName === '' && $dbUser === '' && $dbPassword === '') {
+            return null;
+        }
+
+        if ($dbName === '' || $dbUser === '' || ($dbPassword === '' && !$hasExistingDatabase)) {
+            return false;
+        }
+
+        return [
+            'db_name' => $dbName,
+            'db_user' => $dbUser,
+            'db_password' => $dbPassword === '' ? null : $dbPassword,
+        ];
     }
 
     /**

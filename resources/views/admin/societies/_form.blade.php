@@ -155,6 +155,27 @@
             </div>
         </div>
 
+        <hr>
+        <h5>Database Connection <span class="text-muted font-weight-normal">(optional)</span></h5>
+        <p class="text-muted">Leave blank to let the app create the tenant database automatically. If your hosting doesn't allow that (shared cPanel plans usually don't), create the database yourself and paste its credentials here instead — the app will use it as-is.</p>
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="db_name">Database Name</label>
+                <input type="text" class="form-control @error('db_name') is-invalid @enderror" id="db_name" name="db_name" value="{{ old('db_name', $society?->database?->db_name ?? '') }}" autocomplete="off">
+                @error('db_name')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group col-md-4">
+                <label for="db_user">Database User</label>
+                <input type="text" class="form-control @error('db_user') is-invalid @enderror" id="db_user" name="db_user" value="{{ old('db_user', $society?->database?->db_user ?? '') }}" autocomplete="off">
+                @error('db_user')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group col-md-4">
+                <label for="db_password">Database Password</label>
+                <input type="password" class="form-control @error('db_password') is-invalid @enderror" id="db_password" name="db_password" value="" autocomplete="new-password" placeholder="{{ $society?->database ? 'Leave blank to keep the current password' : '' }}">
+                @error('db_password')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+        </div>
+
         @isset($modules)
             <hr>
             <h5>Modules</h5>

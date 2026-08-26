@@ -197,6 +197,48 @@ class TenantService
     }
 
     /**
+     * Register a tenant database whose credentials point at a database the
+     * super admin created by hand (e.g. via cPanel, on hosts that don't
+     * grant the app's DB user CREATE DATABASE privilege) instead of one
+     * this app created itself via createSocietyDatabase(). Skips the
+     * `CREATE DATABASE` statement entirely — the database is assumed to
+     * already exist — and just stores the credentials so switchConnection()
+     * can use them.
+     *
+     * A blank $dbPassword keeps whatever password is already on file for
+     * this society (lets the edit form fix the db name/user without forcing
+     * the password to be retyped every time).
+     */
+    public function registerManualDatabase(Society $society, string $dbName, string $dbUser, ?string $dbPassword): SocietyDatabase
+    {
+        $existing = SocietyDatabase::where('society_id', $society->id)->first();
+
+        $record = SocietyDatabase::updateOrCreate(
+            ['society_id' => $society->id],
+            [
+                'db_host' => config('database.connections.mysql.host', '127.0.0.1'),
+                'db_port' => config('database.connections.mysql.port', 3306),
+                'db_name' => $dbName,
+                'db_user' => $dbUser,
+                'db_password' => filled($dbPassword) ? encrypt($dbPassword) : $existing?->db_password,
+                'db_charset' => 'utf8mb4',
+                'db_collation' => 'utf8mb4_unicode_ci',
+                'status' => 'created',
+                'error_message' => null,
+            ]
+        );
+
+        $society->update(['db_name' => $dbName]);
+
+        Log::info('Society database credentials registered manually', [
+            'society_id' => $society->id,
+            'database' => $dbName,
+        ]);
+
+        return $record;
+    }
+
+    /**
      * Run migrations for tenant database
      */
     public function runTenantMigrations(int $societyId): bool
