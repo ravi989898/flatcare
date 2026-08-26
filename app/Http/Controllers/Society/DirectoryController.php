@@ -111,4 +111,28 @@ class DirectoryController extends Controller
 
         return view('society.directory.show', compact('resident'));
     }
+
+    /**
+     * Set/clear a resident's Committee Members listing (mockup's Community
+     * tab) — see the committee_position/committee_order columns' migration
+     * docblock for why this is two plain fields rather than an RBAC role.
+     */
+    public function updateCommittee(Request $request, int $userId): RedirectResponse
+    {
+        $resident = User::findOrFail($userId);
+
+        $validated = $request->validate([
+            'committee_position' => 'nullable|string|max:100',
+            'committee_order' => 'nullable|integer|min:0',
+        ]);
+
+        $resident->update([
+            'committee_position' => $validated['committee_position'] ?: null,
+            'committee_order' => $validated['committee_order'] ?? 0,
+        ]);
+
+        return redirect()
+            ->route('society.directory.show', $resident->id)
+            ->with('success', 'Committee details updated.');
+    }
 }

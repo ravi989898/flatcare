@@ -30,6 +30,8 @@ class User extends Model implements AuthenticatableContract
         'country',
         'postal_code',
         'status',
+        'committee_position',
+        'committee_order',
         'blocked_reason',
         'blocked_at',
         'failed_login_attempts',
@@ -206,5 +208,15 @@ class User extends Model implements AuthenticatableContract
         return $query->whereHas('roles', function ($q) {
             $q->where('name', 'admin');
         });
+    }
+
+    /**
+     * Scope: residents with a committee title set (see the
+     * committee_position/committee_order columns' migration docblock),
+     * ordered so e.g. Chairman lists before Secretary.
+     */
+    public function scopeCommitteeMembers($query)
+    {
+        return $query->whereNotNull('committee_position')->orderBy('committee_order');
     }
 }

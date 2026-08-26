@@ -9,7 +9,9 @@ class Payment extends Model
 {
     protected $connection = 'society';
 
-    public const METHODS = ['cash', 'bank_transfer', 'upi', 'cheque', 'other'];
+    // 'online' = collected via Razorpay (see RazorpayService) — every other
+    // method is still a manual entry an admin typed in themselves.
+    public const METHODS = ['cash', 'bank_transfer', 'upi', 'cheque', 'other', 'online'];
 
     protected $fillable = [
         'bill_id',

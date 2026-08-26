@@ -222,6 +222,9 @@
                 <li class="nav-item"><a class="nav-link px-3" href="#testimonials">Testimonials</a></li>
             </ul>
             <div class="d-flex gap-2">
+                <a href="{{ asset('downloads/flatcare-app.apk') }}" download class="btn btn-outline-brand">
+                    <i class="bi bi-download"></i> Download App
+                </a>
                 @auth
                     @if (auth()->user()->isAdmin())
                         <a href="{{ route('admin.dashboard') }}" class="btn btn-brand rounded-pill px-4">Go to Dashboard</a>
@@ -337,6 +340,28 @@
         </div>
     </div>
 </header>
+
+<section class="py-5">
+    <div class="container">
+        <div class="cta-band text-white p-4 p-lg-5 d-flex flex-wrap align-items-center justify-content-between gap-4">
+            <div>
+                <h3 class="fw-bold mb-2"><i class="bi bi-phone"></i> Get the FlatCare resident app</h3>
+                <p class="mb-0 opacity-75">
+                    Pay maintenance, raise requests and stay updated — right from your phone.
+                    Android only for now, test build.
+                </p>
+            </div>
+            <div class="text-lg-end">
+                <a href="{{ asset('downloads/flatcare-app.apk') }}" download class="btn btn-light btn-lg px-4 fw-semibold">
+                    <i class="bi bi-download"></i> Download for Android
+                </a>
+                <p class="small mb-0 mt-2 opacity-75">
+                    After downloading, open the file and allow "install from unknown sources" if asked.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section id="features" class="py-5 py-lg-6 my-4">
     <div class="container">

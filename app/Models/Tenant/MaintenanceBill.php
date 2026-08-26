@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Models\Society;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -84,5 +85,39 @@ class MaintenanceBill extends Model
         }
 
         return 'unpaid';
+    }
+
+    /**
+     * A bill generated from a water reading is genuinely two line items —
+     * the society's fixed maintenance rate plus metered water usage (see
+     * WaterReadingController::store(), which computes the bill's amount the
+     * same way). A manually-raised bill has no such components, so it falls
+     * back to a single line matching its title and total. Shared between
+     * BillResource (JSON) and the PDF receipt view, so both surfaces show
+     * the identical breakdown.
+     *
+     * @return array<int, array{label: string, amount: float}>
+     */
+    public function breakdownLines(?Society $society): array
+    {
+        if ($this->waterReading && $society) {
+            $fixed = (float) $society->fixed_maintenance;
+            $units = (float) $this->waterReading->units;
+            $waterCharge = round($units * (float) $society->water_unit_rate, 2);
+
+            $lines = [];
+            if ($fixed > 0) {
+                $lines[] = ['label' => 'Fixed Maintenance', 'amount' => $fixed];
+            }
+            if ($society->water_unit_rate > 0) {
+                $lines[] = ['label' => "Water Charges ({$units} units)", 'amount' => $waterCharge];
+            }
+
+            if ($lines !== []) {
+                return $lines;
+            }
+        }
+
+        return [['label' => $this->title, 'amount' => (float) $this->amount]];
     }
 }

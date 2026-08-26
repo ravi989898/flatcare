@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    /*
+    | Resident online-payment gateway. Test-mode keys for now — going live
+    | later is only ever a matter of swapping these two env values for the
+    | account's live-mode keys, never a code change (see RazorpayService).
+    */
+    'razorpay' => [
+        'key' => env('RAZORPAY_KEY_ID'),
+        'secret' => env('RAZORPAY_KEY_SECRET'),
+    ],
+
 ];

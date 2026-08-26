@@ -17,10 +17,14 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Society\AnnouncementController;
 use App\Http\Controllers\Society\ComplaintController;
 use App\Http\Controllers\Society\DirectoryController;
+use App\Http\Controllers\Society\DocumentController;
 use App\Http\Controllers\Society\ElectionController;
+use App\Http\Controllers\Society\EmergencyContactController;
 use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\MaintenanceController;
 use App\Http\Controllers\Society\PaymentController;
+use App\Http\Controllers\Society\PollController;
+use App\Http\Controllers\Society\ServiceProviderController;
 use App\Http\Controllers\Society\WaterReadingController;
 use App\Http\Controllers\Society\SocietyAuthController;
 use App\Http\Controllers\Society\SocietyDashboardController;
@@ -221,6 +225,36 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/create', [DirectoryController::class, 'create'])->name('create');
             Route::post('/', [DirectoryController::class, 'store'])->name('store');
             Route::get('/{userId}', [DirectoryController::class, 'show'])->name('show');
+            Route::put('/{userId}/committee', [DirectoryController::class, 'updateCommittee'])->name('committee.update');
+        });
+
+        Route::prefix('documents')->name('documents.')->group(function () {
+            Route::get('/', [DocumentController::class, 'index'])->name('index');
+            Route::post('/', [DocumentController::class, 'store'])->name('store');
+            Route::delete('/{id}', [DocumentController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('emergency-contacts')->name('emergency-contacts.')->group(function () {
+            Route::get('/', [EmergencyContactController::class, 'index'])->name('index');
+            Route::post('/', [EmergencyContactController::class, 'store'])->name('store');
+            Route::put('/{id}', [EmergencyContactController::class, 'update'])->name('update');
+            Route::delete('/{id}', [EmergencyContactController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('service-providers')->name('service-providers.')->group(function () {
+            Route::get('/', [ServiceProviderController::class, 'index'])->name('index');
+            Route::post('/', [ServiceProviderController::class, 'store'])->name('store');
+            Route::put('/{id}', [ServiceProviderController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ServiceProviderController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('polls')->name('polls.')->group(function () {
+            Route::get('/', [PollController::class, 'index'])->name('index');
+            Route::get('/create', [PollController::class, 'create'])->name('create');
+            Route::post('/', [PollController::class, 'store'])->name('store');
+            Route::get('/{id}', [PollController::class, 'show'])->name('show');
+            Route::post('/{id}/status', [PollController::class, 'updateStatus'])->name('status');
+            Route::delete('/{id}', [PollController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('announcements')->name('announcements.')->group(function () {

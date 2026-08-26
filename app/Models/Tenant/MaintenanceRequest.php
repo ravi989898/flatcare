@@ -17,7 +17,7 @@ class MaintenanceRequest extends Model
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
     public const CATEGORIES = [
         'plumbing', 'electrical', 'carpentry', 'painting',
-        'cleaning', 'security', 'lift', 'common_area', 'other',
+        'cleaning', 'security', 'lift', 'common_area', 'civil_work', 'other',
     ];
 
     protected $fillable = [
