@@ -116,7 +116,9 @@ SSL is on, by setting the `API_BASE_URL` **repository variable**).
 ### How the "Download App" button works
 
 The landing page buttons link to
-`config('flatcare.apk_url') ?? asset('downloads/flatcare-app.apk')`.
+`config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk'` (root-relative
+so the link keeps the page's own https — a hardcoded `http://` link on an
+https page is a mixed-content download and browsers block it).
 
 **Default (current) — serve the APK from the server.** Build the release
 APK and upload it to:

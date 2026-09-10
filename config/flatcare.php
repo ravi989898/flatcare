@@ -14,7 +14,10 @@ return [
     |
     | Set MOBILE_APK_URL in .env to point somewhere else instead — e.g. a
     | GitHub Release asset on a PUBLIC repo, or a CDN. When it is empty the
-    | blade falls back to asset('downloads/flatcare-app.apk').
+    | blade falls back to the root-relative "/downloads/flatcare-app.apk",
+    | which inherits the page's own scheme — so it stays https on an https
+    | page (a hardcoded http:// link there is a mixed-content download that
+    | browsers block) without depending on APP_URL / APP_ENV being right.
     |
     */
 
