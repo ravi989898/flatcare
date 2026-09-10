@@ -118,6 +118,31 @@ flutter build apk --dart-define=API_BASE_URL=http://flatcare.dineflowpro.com/api
 falls back to the emulator-only `10.0.2.2` address and can't reach the live
 server at all.
 
+### Publishing the APK for download
+
+The landing page's "Download App" buttons link to
+`config('flatcare.apk_url')`, which defaults to the **latest GitHub Release
+asset**:
+
+```
+https://github.com/ravi989898/flatcare/releases/latest/download/flatcare-app.apk
+```
+
+The APK (~150 MB) is deliberately **not** committed — GitHub rejects files
+over 100 MB, and it does not belong in `public/` (which is git-ignored at
+`/public/downloads` anyway). To publish a build:
+
+1. Build the release APK (command above).
+2. On GitHub → Releases → *Draft a new release*, create a tag (e.g.
+   `app-v1.0.0`), and upload the file as an asset **named exactly
+   `flatcare-app.apk`**.
+3. Publish the release. The landing page link resolves to it immediately —
+   no code change or redeploy needed.
+
+For every later build, publish a new release with the same asset name;
+`releases/latest/download/…` always points at the newest one. If you host
+the APK somewhere else, set `MOBILE_APK_URL` in the production `.env`.
+
 ## 6. After go-live
 
 - Confirm a fresh society signup actually provisions its database (tests the
