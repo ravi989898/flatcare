@@ -222,7 +222,7 @@
                 <li class="nav-item"><a class="nav-link px-3" href="#testimonials">Testimonials</a></li>
             </ul>
             <div class="d-flex gap-2">
-                <a href="{{ config('flatcare.apk_url') }}" class="btn btn-outline-brand">
+                <a href="{{ config('flatcare.apk_url') ?? asset('downloads/flatcare-app.apk') }}" class="btn btn-outline-brand">
                     <i class="bi bi-download"></i> Download App
                 </a>
                 @auth
@@ -352,7 +352,7 @@
                 </p>
             </div>
             <div class="text-lg-end">
-                <a href="{{ config('flatcare.apk_url') }}" class="btn btn-light btn-lg px-4 fw-semibold">
+                <a href="{{ config('flatcare.apk_url') ?? asset('downloads/flatcare-app.apk') }}" class="btn btn-light btn-lg px-4 fw-semibold">
                     <i class="bi bi-download"></i> Download for Android
                 </a>
                 <p class="small mb-0 mt-2 opacity-75">

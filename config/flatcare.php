@@ -4,23 +4,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Resident mobile app (Android APK)
+    | Resident mobile app (Android APK) download link
     |--------------------------------------------------------------------------
     |
-    | The APK is ~150 MB — too large to keep in the git repo (GitHub caps
-    | files at 100 MB) or to ship inside public/. It is published as a
-    | GitHub Release asset instead, and the landing page links straight to
-    | it. "releases/latest/download/<asset>" always resolves to the newest
-    | release, so publishing a new build never needs a code change — just
-    | upload the new APK to a fresh release using the same asset name.
+    | By default the landing page serves the APK straight from the server at
+    | public/downloads/flatcare-app.apk — upload the file there (it is
+    | git-ignored, so it never goes through the repo). A release build is
+    | ~19 MB, small enough to keep on the server without trouble.
     |
-    | Override with MOBILE_APK_URL in .env if the app is hosted elsewhere.
+    | Set MOBILE_APK_URL in .env to point somewhere else instead — e.g. a
+    | GitHub Release asset on a PUBLIC repo, or a CDN. When it is empty the
+    | blade falls back to asset('downloads/flatcare-app.apk').
     |
     */
 
-    'apk_url' => env(
-        'MOBILE_APK_URL',
-        'https://github.com/raviahir2802-hash/flatcare/releases/latest/download/flatcare-app.apk'
-    ),
+    'apk_url' => env('MOBILE_APK_URL') ?: null,
 
 ];

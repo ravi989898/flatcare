@@ -3,7 +3,9 @@
 /public/build
 /public/hot
 /public/storage
-/public/downloads
+/public/downloads/*
+!/public/downloads/.gitkeep
+!/public/downloads/README.md
 /_release
 /storage/*.key
 /storage/pail

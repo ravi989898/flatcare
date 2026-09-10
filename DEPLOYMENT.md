@@ -115,64 +115,47 @@ SSL is on, by setting the `API_BASE_URL` **repository variable**).
 
 ### How the "Download App" button works
 
-The landing page buttons link to `config('flatcare.apk_url')`, which
-defaults to the **latest GitHub Release asset** on the public repo:
+The landing page buttons link to
+`config('flatcare.apk_url') ?? asset('downloads/flatcare-app.apk')`.
+
+**Default (current) — serve the APK from the server.** Build the release
+APK and upload it to:
 
 ```
-https://github.com/raviahir2802-hash/flatcare/releases/latest/download/flatcare-app.apk
+public/downloads/flatcare-app.apk
 ```
 
-The APK is **never committed** (a debug build is ~150 MB; even a release
-build is over GitHub's 100 MB file limit) and does **not** go in `public/`.
-It is built and attached to a Release by GitHub Actions
-([.github/workflows/release-apk.yml](.github/workflows/release-apk.yml)).
-`releases/latest/download/…` always resolves to the newest release, so
-shipping an update never touches the server or the code.
+by FTP / cPanel File Manager. That folder is committed (so `git pull`
+creates it) but its contents are git-ignored, so the APK never goes through
+the repo — see [public/downloads/README.md](public/downloads/README.md).
+Once the file is there the download works with no deploy step. Ship an
+update by overwriting that one file.
 
-> The workflow must live on a **public** repo (`raviahir2802-hash/flatcare`)
-> — release assets on a private repo cannot be downloaded anonymously.
-
-### One-time setup
-
-1. **Create an upload keystore** (do this once, keep it forever — losing it
-   means no installed app can ever be updated):
-
-   ```bash
-   keytool -genkey -v -keystore upload-keystore.jks -storetype JKS \
-     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-   ```
-
-2. **Add four GitHub Actions secrets** (repo → Settings → Secrets and
-   variables → Actions):
-
-   | Secret | Value |
-   |---|---|
-   | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` output |
-   | `ANDROID_KEYSTORE_PASSWORD` | the store password from step 1 |
-   | `ANDROID_KEY_ALIAS` | `upload` |
-   | `ANDROID_KEY_PASSWORD` | the key password from step 1 |
-
-3. *(optional)* Add an `API_BASE_URL` repository **variable** to override the
-   default `http://flatcare.dineflowpro.com/api/v1` (e.g. once on HTTPS).
-
-For local release builds, copy
-[mobile/android/key.properties.example](mobile/android/key.properties.example)
-to `key.properties` and drop `upload-keystore.jks` in `mobile/android/app/`.
-Both are git-ignored. Without them, a local `flutter build apk --release`
-falls back to the debug signing key (fine for testing, never for a build you
-hand to users).
-
-### Shipping an app update
+Build it with:
 
 ```bash
-# bump `version:` in mobile/pubspec.yaml, then:
-git tag app-v1.0.1
-git push origin app-v1.0.1
+cd mobile
+flutter build apk --release --split-per-abi \
+  --dart-define=API_BASE_URL=http://flatcare.dineflowpro.com/api/v1
+# upload build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+# to the server as public/downloads/flatcare-app.apk  (~19 MB, fits every
+# phone since ~2019)
 ```
 
-Actions builds, signs, and publishes the release in a few minutes; the
-landing page picks it up automatically. You can also trigger a build by
-hand from the repo's **Actions** tab (`workflow_dispatch`, type a version).
+(switch the flag to `https://` once SSL is on — a wrong/missing value makes
+release builds fall back to the emulator-only `10.0.2.2` and never reach the
+server.)
+
+**Alternative — GitHub Releases (only if the repo is public).** Set
+`MOBILE_APK_URL` in the production `.env` to
+`https://github.com/<owner>/flatcare/releases/latest/download/flatcare-app.apk`
+and publish the APK as a release asset named `flatcare-app.apk`. Release
+assets on a **private** repo cannot be downloaded anonymously, which is why
+this is not the default. [.github/workflows/release-apk.yml](.github/workflows/release-apk.yml)
+can build, sign and publish that release automatically on an `app-v*` tag —
+it needs a one-time upload keystore and four `ANDROID_*` Actions secrets
+(see the workflow header and
+[mobile/android/key.properties.example](mobile/android/key.properties.example)).
 
 If you ever host the APK somewhere else, set `MOBILE_APK_URL` in the
 production `.env`.
