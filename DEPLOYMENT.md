@@ -108,40 +108,76 @@ Linux hosting: `chmod -R 775` + correct ownership).
 
 The Flutter app's API base URL is a build-time flag, not a `.env` value —
 see [mobile/lib/core/config/app_config.dart](mobile/lib/core/config/app_config.dart).
-The release build must be built with:
+A release build with the wrong (or missing) flag silently falls back to the
+emulator-only `10.0.2.2` address and can't reach the live server at all, so
+it is baked into the release pipeline below (switch it to `https://` once
+SSL is on, by setting the `API_BASE_URL` **repository variable**).
 
-```bash
-flutter build apk --dart-define=API_BASE_URL=http://flatcare.dineflowpro.com/api/v1
-```
+### How the "Download App" button works
 
-(switch to `https://` once SSL is on) — otherwise a release build silently
-falls back to the emulator-only `10.0.2.2` address and can't reach the live
-server at all.
-
-### Publishing the APK for download
-
-The landing page's "Download App" buttons link to
-`config('flatcare.apk_url')`, which defaults to the **latest GitHub Release
-asset**:
+The landing page buttons link to `config('flatcare.apk_url')`, which
+defaults to the **latest GitHub Release asset** on the public repo:
 
 ```
 https://github.com/ravi989898/flatcare/releases/latest/download/flatcare-app.apk
 ```
 
-The APK (~150 MB) is deliberately **not** committed — GitHub rejects files
-over 100 MB, and it does not belong in `public/` (which is git-ignored at
-`/public/downloads` anyway). To publish a build:
+The APK is **never committed** (a debug build is ~150 MB; even a release
+build is over GitHub's 100 MB file limit) and does **not** go in `public/`.
+It is built and attached to a Release by GitHub Actions
+([.github/workflows/release-apk.yml](.github/workflows/release-apk.yml)).
+`releases/latest/download/…` always resolves to the newest release, so
+shipping an update never touches the server or the code.
 
-1. Build the release APK (command above).
-2. On GitHub → Releases → *Draft a new release*, create a tag (e.g.
-   `app-v1.0.0`), and upload the file as an asset **named exactly
-   `flatcare-app.apk`**.
-3. Publish the release. The landing page link resolves to it immediately —
-   no code change or redeploy needed.
+> The workflow must live on the **public** `ravi989898/flatcare` repo —
+> release assets on a private repo cannot be downloaded anonymously. Push
+> `main` and this workflow there, even if code also lives on a private
+> `upstream`.
 
-For every later build, publish a new release with the same asset name;
-`releases/latest/download/…` always points at the newest one. If you host
-the APK somewhere else, set `MOBILE_APK_URL` in the production `.env`.
+### One-time setup
+
+1. **Create an upload keystore** (do this once, keep it forever — losing it
+   means no installed app can ever be updated):
+
+   ```bash
+   keytool -genkey -v -keystore upload-keystore.jks -storetype JKS \
+     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+
+2. **Add four GitHub Actions secrets** (repo → Settings → Secrets and
+   variables → Actions):
+
+   | Secret | Value |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` output |
+   | `ANDROID_KEYSTORE_PASSWORD` | the store password from step 1 |
+   | `ANDROID_KEY_ALIAS` | `upload` |
+   | `ANDROID_KEY_PASSWORD` | the key password from step 1 |
+
+3. *(optional)* Add an `API_BASE_URL` repository **variable** to override the
+   default `http://flatcare.dineflowpro.com/api/v1` (e.g. once on HTTPS).
+
+For local release builds, copy
+[mobile/android/key.properties.example](mobile/android/key.properties.example)
+to `key.properties` and drop `upload-keystore.jks` in `mobile/android/app/`.
+Both are git-ignored. Without them, a local `flutter build apk --release`
+falls back to the debug signing key (fine for testing, never for a build you
+hand to users).
+
+### Shipping an app update
+
+```bash
+# bump `version:` in mobile/pubspec.yaml, then:
+git tag app-v1.0.1
+git push origin app-v1.0.1
+```
+
+Actions builds, signs, and publishes the release in a few minutes; the
+landing page picks it up automatically. You can also trigger a build by
+hand from the repo's **Actions** tab (`workflow_dispatch`, type a version).
+
+If you ever host the APK somewhere else, set `MOBILE_APK_URL` in the
+production `.env`.
 
 ## 6. After go-live
 

@@ -1,0 +1,107 @@
+name: Build & publish Android APK
+
+# Builds the resident app and attaches it to a GitHub Release, so the landing
+# page's "Download App" button (config/flatcare.apk_url ->
+# releases/latest/download/flatcare-app.apk) always serves the newest build.
+#
+# Release the app WITHOUT touching the server:
+#   1. bump `version:` in mobile/pubspec.yaml
+#   2. git tag app-v1.0.1 && git push origin app-v1.0.1
+# ...and this workflow does the rest. `workflow_dispatch` also lets you build
+# from the Actions tab by typing a version.
+#
+# This must run on the PUBLIC repo (ravi989898/flatcare) — release assets on a
+# private repo cannot be downloaded anonymously.
+
+on:
+  push:
+    tags:
+      - 'app-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name, e.g. 1.0.1'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.4'
+          channel: stable
+          cache: true
+
+      - name: Resolve version name
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "name=${GITHUB_REF_NAME#app-v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "tag=app-v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write signing keystore
+        working-directory: mobile/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set — see DEPLOYMENT.md § 'Publishing the APK'"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
+          cat > key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=${KEYSTORE_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          keyPassword=${KEY_PASSWORD}
+          EOF
+
+      - name: Build APKs
+        working-directory: mobile
+        run: |
+          flutter pub get
+          flutter build apk --release --split-per-abi \
+            --build-name="${{ steps.v.outputs.name }}" \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'http://flatcare.dineflowpro.com/api/v1' }}"
+
+      - name: Stage release assets
+        working-directory: mobile/build/app/outputs/flutter-apk
+        run: |
+          # Primary download = 64-bit build (every Android phone since ~2019).
+          cp app-arm64-v8a-release.apk "$GITHUB_WORKSPACE/flatcare-app.apk"
+          # Kept for genuinely old 32-bit devices.
+          cp app-armeabi-v7a-release.apk "$GITHUB_WORKSPACE/flatcare-app-arm32.apk"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: FlatCare app ${{ steps.v.outputs.name }}
+          body: |
+            Resident Android app, built from `${{ github.sha }}`.
+
+            - **flatcare-app.apk** — install this on any modern phone.
+            - flatcare-app-arm32.apk — only for old 32-bit devices.
+          files: |
+            flatcare-app.apk
+            flatcare-app-arm32.apk
+          fail_on_unmatched_files: true
