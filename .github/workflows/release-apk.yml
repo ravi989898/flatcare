@@ -10,8 +10,8 @@ name: Build & publish Android APK
 # ...and this workflow does the rest. `workflow_dispatch` also lets you build
 # from the Actions tab by typing a version.
 #
-# This must run on the PUBLIC repo (ravi989898/flatcare) — release assets on a
-# private repo cannot be downloaded anonymously.
+# This must run on a PUBLIC repo (raviahir2802-hash/flatcare) — release assets
+# on a private repo cannot be downloaded anonymously.
 
 on:
   push:

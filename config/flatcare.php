@@ -20,7 +20,7 @@ return [
 
     'apk_url' => env(
         'MOBILE_APK_URL',
-        'https://github.com/ravi989898/flatcare/releases/latest/download/flatcare-app.apk'
+        'https://github.com/raviahir2802-hash/flatcare/releases/latest/download/flatcare-app.apk'
     ),
 
 ];

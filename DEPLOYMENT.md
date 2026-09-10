@@ -119,7 +119,7 @@ The landing page buttons link to `config('flatcare.apk_url')`, which
 defaults to the **latest GitHub Release asset** on the public repo:
 
 ```
-https://github.com/ravi989898/flatcare/releases/latest/download/flatcare-app.apk
+https://github.com/raviahir2802-hash/flatcare/releases/latest/download/flatcare-app.apk
 ```
 
 The APK is **never committed** (a debug build is ~150 MB; even a release
@@ -129,10 +129,8 @@ It is built and attached to a Release by GitHub Actions
 `releases/latest/download/…` always resolves to the newest release, so
 shipping an update never touches the server or the code.
 
-> The workflow must live on the **public** `ravi989898/flatcare` repo —
-> release assets on a private repo cannot be downloaded anonymously. Push
-> `main` and this workflow there, even if code also lives on a private
-> `upstream`.
+> The workflow must live on a **public** repo (`raviahir2802-hash/flatcare`)
+> — release assets on a private repo cannot be downloaded anonymously.
 
 ### One-time setup
 
