@@ -3,7 +3,7 @@
          needed for every API call this app makes, Razorpay checkout included. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="flatcare_mobile"
+        android:label="FlatCare"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
