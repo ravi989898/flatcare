@@ -23,4 +23,21 @@ return [
 
     'apk_url' => env('MOBILE_APK_URL') ?: null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Resident app OTP login
+    |--------------------------------------------------------------------------
+    |
+    | No SMS gateway is wired up yet (see App\Services\Api\OtpService) — every
+    | phone number's OTP is this fixed code until a paid provider (MSG91,
+    | Twilio Verify, etc.) is added. Override OTP_DEFAULT_CODE per
+    | environment if you ever need it to be something other than "0000"
+    | before that happens; nothing about the request/verify endpoints needs
+    | to change when a real provider is added — only OtpService::send() and
+    | ::verify() do.
+    |
+    */
+
+    'otp_default_code' => env('OTP_DEFAULT_CODE', '0000'),
+
 ];

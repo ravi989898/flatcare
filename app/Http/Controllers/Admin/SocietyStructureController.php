@@ -233,6 +233,7 @@ class SocietyStructureController extends Controller
 
         $flat->update([
             'flat_number' => $validated['flat_number'],
+            'mobile_number' => $validated['mobile_number'] ?: null,
             'floor_number' => $this->deriveFloorNumber($validated['flat_number']),
         ]);
 
@@ -289,6 +290,10 @@ class SocietyStructureController extends Controller
     {
         return $request->validate([
             'flat_number' => 'required|string|max:255|unique:society.flats,flat_number' . ($ignoreId ? ",{$ignoreId}" : ''),
+            // The resident app's OTP login is keyed on this, so it must stay
+            // unique - two flats sharing a number would let either resident
+            // sign in as the other.
+            'mobile_number' => 'nullable|string|max:20|unique:society.flats,mobile_number' . ($ignoreId ? ",{$ignoreId}" : ''),
         ]);
     }
 }

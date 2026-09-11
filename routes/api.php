@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
@@ -28,6 +29,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1')->name('forgot_password');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('reset_password');
+
+        // Resident app login: mobile number + OTP instead of email/password.
+        Route::post('/otp/request', [OtpAuthController::class, 'request'])->middleware('throttle:5,1')->name('otp.request');
+        Route::post('/otp/verify', [OtpAuthController::class, 'verify'])->middleware('throttle:10,1')->name('otp.verify');
     });
 
     Route::middleware('api.auth')->group(function () {
