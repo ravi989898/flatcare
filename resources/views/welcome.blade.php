@@ -347,6 +347,19 @@
     </div>
 </header>
 
+<section class="py-5 my-2">
+    <div class="container">
+        <div class="text-center mb-5 mx-auto" style="max-width:640px;">
+            <span class="section-eyebrow">Care for a Better Living</span>
+            <h2 class="section-title mb-3">A better place to call home</h2>
+            <p class="text-muted-2 fs-5">Residents, maintenance, payments and announcements — everything a happy community needs, in one friendly app.</p>
+        </div>
+        <img src="{{ asset('images/marketing/community-hero.jpg') }}"
+             alt="A family checking maintenance requests, payments and announcements on the FlatCare app outside their society"
+             class="img-fluid rounded-4 shadow-lg w-100" loading="lazy" width="1600" height="666">
+    </div>
+</section>
+
 <section class="py-5">
     <div class="container">
         <div class="cta-band text-white p-4 p-lg-5 d-flex flex-wrap align-items-center justify-content-between gap-4">
@@ -431,6 +444,31 @@
                     <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>Real-time maintenance status</span></li>
                     <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>Automated rent reminders</span></li>
                     <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>One inbox for every tenant conversation</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 my-2">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <img src="{{ asset('images/marketing/family-gate.jpg') }}"
+                     alt="A family greeted by their society's security guard at the gate"
+                     class="img-fluid rounded-4 shadow-lg w-100" loading="lazy" width="1200" height="800">
+            </div>
+            <div class="col-lg-6">
+                <span class="section-eyebrow">Care for a Better Living</span>
+                <h2 class="section-title mb-3">Happier residents, calmer committees</h2>
+                <p class="text-muted-2 fs-5 mb-4">
+                    When maintenance, payments and announcements just work, residents stop chasing the
+                    committee — and start enjoying the place they live in.
+                </p>
+                <ul class="list-unstyled d-flex flex-column gap-3">
+                    <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>Every notice reaches every resident, instantly</span></li>
+                    <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>Security, visitors and facilities, all tracked in one place</span></li>
+                    <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-brand mt-1"></i><span>A friendlier way to manage a happier community</span></li>
                 </ul>
             </div>
         </div>
