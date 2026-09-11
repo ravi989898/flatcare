@@ -77,16 +77,85 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Current App Icon</h3>
+                </div>
+                <div class="card-body text-center">
+                    @if ($settings->iconUrl())
+                        <img src="{{ $settings->iconUrl() }}" alt="Current app icon" style="max-width: 140px; max-height: 140px;" class="img-fluid mb-3 rounded">
+                        <p class="text-muted small mb-0">Used as the browser tab icon everywhere — the public site, this admin panel and the sign-in pages.</p>
+                    @else
+                        <div class="py-4">
+                            <i class="fas fa-icons fa-4x text-muted"></i>
+                            <p class="text-muted small mt-3 mb-0">No custom icon set — using the default FlatCare app icon.</p>
+                        </div>
+                    @endif
+                </div>
+                @if ($settings->iconUrl())
+                    <div class="card-footer">
+                        <form action="{{ route('admin.settings.branding.icon.destroy') }}" method="POST" onsubmit="return confirm('Remove the current app icon and revert to the default?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-block">
+                                <i class="fas fa-trash"></i> Remove Icon
+                            </button>
+                        </form>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Upload New App Icon</h3>
+                </div>
+                <form action="{{ route('admin.settings.branding.icon.update') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="icon">Icon File <span class="text-danger">*</span></label>
+                            <div class="custom-file">
+                                <input type="file" name="icon" id="icon" accept=".png,.jpg,.jpeg,.webp"
+                                    class="custom-file-input @error('icon') is-invalid @enderror" required>
+                                <label class="custom-file-label" for="icon">Choose file…</label>
+                                @error('icon')
+                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <small class="form-text text-muted">
+                                PNG, JPG or WEBP. Max 2MB. Use a square image — it's automatically cropped to a
+                                square and resized to every size a browser tab or home-screen icon needs.
+                                Browsers cache favicons aggressively, so it can take a hard refresh (or a new
+                                tab) to see the change.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload &amp; Apply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @stop
 
 @section('js')
     <script>
         // Bootstrap 4 custom-file input doesn't show the chosen filename by default.
-        document.getElementById('logo')?.addEventListener('change', function (e) {
-            const label = e.target.nextElementSibling;
-            if (label) {
-                label.textContent = e.target.files.length ? e.target.files[0].name : 'Choose file…';
-            }
+        ['logo', 'icon'].forEach(function (id) {
+            document.getElementById(id)?.addEventListener('change', function (e) {
+                const label = e.target.nextElementSibling;
+                if (label) {
+                    label.textContent = e.target.files.length ? e.target.files[0].name : 'Choose file…';
+                }
+            });
         });
     </script>
 @stop

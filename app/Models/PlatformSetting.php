@@ -13,6 +13,7 @@ class PlatformSetting extends Model
 
     protected $fillable = [
         'logo_path',
+        'icon_path',
         'updated_by_super_admin_id',
     ];
 
@@ -41,6 +42,17 @@ class PlatformSetting extends Model
     public function logoUrl(): ?string
     {
         return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+    }
+
+    /**
+     * Public URL for the source image behind the generated favicon files —
+     * shown only as a preview in the branding settings page. The favicon
+     * itself is always served from the static public/favicon* files (see
+     * FaviconGenerator), never from this URL directly.
+     */
+    public function iconUrl(): ?string
+    {
+        return $this->icon_path ? Storage::disk('public')->url($this->icon_path) : null;
     }
 
     public static function forgetCache(): void

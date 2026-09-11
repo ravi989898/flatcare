@@ -164,6 +164,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::get('/branding', [PlatformSettingController::class, 'edit'])->name('branding.edit');
         Route::post('/branding', [PlatformSettingController::class, 'update'])->name('branding.update');
         Route::delete('/branding', [PlatformSettingController::class, 'destroy'])->name('branding.destroy');
+        Route::post('/branding/icon', [PlatformSettingController::class, 'updateIcon'])->name('branding.icon.update');
+        Route::delete('/branding/icon', [PlatformSettingController::class, 'destroyIcon'])->name('branding.icon.destroy');
 
         // Role catalog (used to provision new societies + sync into existing ones)
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
