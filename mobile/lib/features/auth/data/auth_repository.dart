@@ -47,6 +47,35 @@ class AuthRepository {
     );
   }
 
+  /// Step 1 of OTP login — throws ApiException (with a friendly message)
+  /// if the number isn't registered to any flat yet, which the mobile
+  /// number screen shows as an alert rather than moving on to the OTP step.
+  Future<void> requestOtp(String mobileNumber) =>
+      _client.post('/auth/otp/request', data: {'mobile_number': mobileNumber});
+
+  /// Step 2 of OTP login.
+  Future<LoginResult> verifyOtp({
+    required String mobileNumber,
+    required String otp,
+    String? deviceId,
+    String? devicePlatform,
+  }) async {
+    final response = await _client.post('/auth/otp/verify', data: {
+      'mobile_number': mobileNumber,
+      'otp': otp,
+      if (deviceId != null) 'device_id': deviceId,
+      if (devicePlatform != null) 'device_platform': devicePlatform,
+    });
+
+    final data = response['data'] as Map<String, dynamic>;
+
+    return LoginResult(
+      token: data['token'] as String,
+      society: Society.fromJson(data['society'] as Map<String, dynamic>),
+      user: UserProfile.fromJson(data['user'] as Map<String, dynamic>),
+    );
+  }
+
   Future<MeResult> me() async {
     final response = await _client.get('/me');
     final data = response['data'] as Map<String, dynamic>;

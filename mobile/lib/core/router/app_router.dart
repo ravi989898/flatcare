@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../features/announcements/screens/announcement_detail_screen.dart';
 import '../../features/announcements/screens/announcement_list_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/auth/screens/email_login_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/otp_screen.dart';
 import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/bills/screens/bill_detail_screen.dart';
@@ -66,7 +68,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoading = auth.isLoading && !auth.hasValue;
 
       final path = state.matchedLocation;
-      final isAuthRoute = path == '/login' || path == '/forgot-password' || path == '/reset-password';
+      final isAuthRoute = path == '/login' ||
+          path == '/login/otp' ||
+          path == '/login/email' ||
+          path == '/forgot-password' ||
+          path == '/reset-password';
 
       if (isLoading) return null; // stay on splash until session resolves
 
@@ -78,7 +84,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+        routes: [
+          GoRoute(
+            path: 'otp',
+            builder: (context, state) => OtpScreen(mobileNumber: state.extra as String? ?? ''),
+          ),
+          GoRoute(path: 'email', builder: (context, state) => const EmailLoginScreen()),
+        ],
+      ),
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
       GoRoute(
         path: '/reset-password',

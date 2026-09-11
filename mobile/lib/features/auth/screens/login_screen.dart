@@ -6,12 +6,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_logo.dart';
-import '../providers/auth_provider.dart';
+import '../data/auth_repository.dart';
 
-/// Redesigned to match the FlatCare mockup: a light welcome screen (logo +
-/// tagline, no navy banner) leading straight into the sign-in form, with a
-/// Remember Me + Forgot Password row and a Sign Up link — rather than the
-/// earlier gradient-banner-over-white-card layout.
+/// Step 1 of the resident app's primary login: mobile number only. A super
+/// admin sets a flat's mobile_number (see Admin\SocietyStructureController)
+/// and whoever verifies that number on the next screen is signed in as that
+/// flat's resident — see OtpAuthController on the backend. Email/password
+/// still works for accounts that have one (context.push('/login/email')
+/// below) but isn't the default any more.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -21,33 +23,39 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _rememberMe = true;
+  final _mobileController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _mobileController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final mobileNumber = _mobileController.text.trim();
+
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(authControllerProvider.notifier).login(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
-      // On success, go_router's redirect (watching authControllerProvider)
-      // takes over and navigates to /home — nothing to do here.
+      await ref.read(authRepositoryProvider).requestOtp(mobileNumber);
+      if (!mounted) return;
+      context.push('/login/otp', extra: mobileNumber);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      // A plain alert rather than a snackbar - this specific message ("not
+      // registered, contact your admin") is easy to miss in a snackbar that
+      // auto-dismisses, and it's the one error residents are expected to
+      // actually hit before their flat has a number set.
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Mobile number not found'),
+          content: Text(e.message),
+          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -59,7 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Need an account?'),
         content: const Text(
-          'FlatCare accounts are set up by your society admin. Contact your society office to get your login details.',
+          'FlatCare accounts are set up by your society admin. Contact your society office to get your flat registered.',
         ),
         actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
       ),
@@ -98,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 36),
                 const Text('Welcome Back!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                const Text('Please login to continue', style: TextStyle(color: Colors.black54)),
+                const Text('Enter your mobile number to continue', style: TextStyle(color: Colors.black54)),
                 const SizedBox(height: 24),
                 Form(
                   key: _formKey,
@@ -106,59 +114,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
+                        controller: _mobileController,
+                        keyboardType: TextInputType.phone,
+                        autofillHints: const [AutofillHints.telephoneNumber],
                         decoration: InputDecoration(
-                          labelText: 'Email / Mobile Number',
-                          prefixIcon: const Icon(Icons.person_outline, color: AppTheme.brandBlue),
+                          labelText: 'Mobile Number',
+                          prefixIcon: const Icon(Icons.phone_android_outlined, color: AppTheme.brandBlue),
                           filled: true,
                           fillColor: const Color(0xFFF6F7FC),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'Enter your email';
-                          if (!value.contains('@')) return 'Enter a valid email';
+                          if (value == null || value.trim().isEmpty) return 'Enter your mobile number';
+                          if (value.trim().length < 10) return 'Enter a valid mobile number';
                           return null;
                         },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        autofillHints: const [AutofillHints.password],
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.brandBlue),
-                          filled: true,
-                          fillColor: const Color(0xFFF6F7FC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          ),
-                        ),
-                        validator: (value) => (value == null || value.isEmpty) ? 'Enter your password' : null,
                         onFieldSubmitted: (_) => _submit(),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Checkbox(value: _rememberMe, onChanged: (value) => setState(() => _rememberMe = value ?? true)),
-                              const Text('Remember Me', style: TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () => context.push('/forgot-password'),
-                            child: const Text('Forgot Password?'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       DecoratedBox(
                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: AppTheme.brandGradient),
                         child: ElevatedButton(
@@ -175,13 +148,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : const Text('Login', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                              : const Text('Send OTP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => context.push('/login/email'),
+                          child: const Text('Login with email instead'),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
                 Center(
                   child: RichText(
                     text: TextSpan(

@@ -45,6 +45,18 @@ class AuthController extends AsyncNotifier<AuthState?> {
     }
   }
 
+  Future<void> loginWithOtp({required String mobileNumber, required String otp}) async {
+    state = const AsyncLoading();
+    try {
+      final result = await ref.read(authRepositoryProvider).verifyOtp(mobileNumber: mobileNumber, otp: otp);
+      await ref.read(tokenStorageProvider).save(result.token);
+      state = AsyncData(AuthState(society: result.society, user: result.user));
+    } catch (e, stackTrace) {
+      state = AsyncError(e, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<void> logout() async {
     try {
       await ref.read(authRepositoryProvider).logout();
