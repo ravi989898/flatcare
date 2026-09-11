@@ -10,10 +10,8 @@
     $logoUrl = \App\Models\PlatformSetting::current()->logoUrl();
 @endphp
 @if ($logoUrl)
-    <span class="d-inline-flex align-items-center gap-2">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name', 'FlatCare') }}" style="height: {{ $height ?? '44px' }}; width: auto;" class="{{ $imgClass ?? '' }}">
-        <span>{{ config('app.name', 'FlatCare') }}</span>
-    </span>
+    {{-- The uploaded mark already carries the FlatCare wordmark, so no text is repeated beside it. --}}
+    <img src="{{ $logoUrl }}" alt="{{ config('app.name', 'FlatCare') }}" style="height: {{ $height ?? '44px' }}; width: auto;" class="{{ $imgClass ?? '' }}">
 @else
     <i class="bi bi-house-heart-fill"></i> FlatCare
 @endif
