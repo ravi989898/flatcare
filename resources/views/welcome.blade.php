@@ -601,7 +601,8 @@
             </div>
             <div class="col-lg-4">
                 <h6 class="footer-brand-text">Stay in touch</h6>
-                <p class="small mb-0">hello@flatcare.test</p>
+                <p class="small mb-1">support@flatcare.in</p>
+                <p class="small mb-0">9664653896, 9712423633</p>
             </div>
         </div>
         <hr class="border-secondary my-4">

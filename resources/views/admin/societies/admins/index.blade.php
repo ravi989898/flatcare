@@ -85,13 +85,6 @@
                                             </button>
                                         </form>
                                     @endif
-                                    <form action="{{ route('admin.societies.admins.destroy', [$society->id, $admin->id]) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this admin?')">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
                                 </td>
                             </tr>
                         @endforeach

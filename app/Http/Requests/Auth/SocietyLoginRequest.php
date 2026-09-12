@@ -21,6 +21,15 @@ use Illuminate\Validation\ValidationException;
  */
 class SocietyLoginRequest extends FormRequest
 {
+    /**
+     * Pin failed-validation redirects to the society login page explicitly,
+     * rather than trusting url()->previous() (FormRequest's default) — that
+     * falls back to whatever page the session last recorded as "previous",
+     * which can be stale (e.g. the super-admin /login page) if the browser
+     * served this page from cache instead of a fresh navigation.
+     */
+    protected $redirectRoute = 'society.login';
+
     public function authorize(): bool
     {
         return true;
