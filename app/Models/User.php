@@ -60,6 +60,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return in_array($this->role, ['admin', 'super_admin'], true);
     }
 
+    /**
+     * Admins and super admins are provisioned directly (seeded or created by
+     * another admin), not through the public sign-up flow, so they should
+     * never get stuck behind the "verify your email" screen.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return $this->isAdmin() || parent::hasVerifiedEmail();
+    }
+
     public function isLocked(): bool
     {
         return $this->locked_until !== null && $this->locked_until->isFuture();
