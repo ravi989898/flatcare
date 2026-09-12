@@ -601,8 +601,19 @@
             </div>
             <div class="col-lg-4">
                 <h6 class="footer-brand-text">Stay in touch</h6>
-                <p class="small mb-1">support@flatcare.in</p>
-                <p class="small mb-0">9664653896, 9712423633</p>
+                <p class="small mb-1">
+                    <a href="mailto:support@flatcare.in" class="text-reset text-decoration-none">
+                        <i class="bi bi-envelope-fill me-1"></i> support@flatcare.in
+                    </a>
+                </p>
+                <p class="small mb-0">
+                    <a href="https://wa.me/919664653896" target="_blank" rel="noopener" class="text-reset text-decoration-none me-3">
+                        <i class="bi bi-whatsapp me-1"></i> 9664653896
+                    </a>
+                    <a href="https://wa.me/919712423633" target="_blank" rel="noopener" class="text-reset text-decoration-none">
+                        <i class="bi bi-whatsapp me-1"></i> 9712423633
+                    </a>
+                </p>
             </div>
         </div>
         <hr class="border-secondary my-4">
