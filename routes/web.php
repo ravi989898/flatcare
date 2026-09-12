@@ -8,13 +8,16 @@ use App\Http\Controllers\Admin\PlatformSettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SocietyAdminController;
 use App\Http\Controllers\Admin\SocietyController;
+use App\Http\Controllers\Admin\SocietySecurityController;
 use App\Http\Controllers\Admin\SocietyStructureController;
 use App\Http\Controllers\Admin\SocietyUserController;
 use App\Http\Controllers\Admin\TrialInquiryController as AdminTrialInquiryController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\TrialInquiryController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Society\AdminController as SocietyPortalAdminController;
 use App\Http\Controllers\Society\AnnouncementController;
+use App\Http\Controllers\Society\BlockController;
 use App\Http\Controllers\Society\ComplaintController;
 use App\Http\Controllers\Society\DirectoryController;
 use App\Http\Controllers\Society\DocumentController;
@@ -24,6 +27,7 @@ use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\MaintenanceController;
 use App\Http\Controllers\Society\PaymentController;
 use App\Http\Controllers\Society\PollController;
+use App\Http\Controllers\Society\SecurityGuardController as SocietyPortalSecurityGuardController;
 use App\Http\Controllers\Society\ServiceProviderController;
 use App\Http\Controllers\Society\WaterReadingController;
 use App\Http\Controllers\Society\SocietyAuthController;
@@ -127,6 +131,22 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/societies/{id}/admins/{adminId}/activate', [SocietyAdminController::class, 'activate'])->name('societies.admins.activate');
     Route::post('/societies/{id}/admins/{adminId}/deactivate', [SocietyAdminController::class, 'deactivate'])->name('societies.admins.deactivate');
     Route::delete('/societies/{id}/admins/{adminId}', [SocietyAdminController::class, 'destroy'])->name('societies.admins.destroy');
+
+    // "Forgot password" for a society admin — Super Admin sets it directly
+    // since there's no self-service reset flow across tenant databases.
+    Route::get('/societies/{id}/reset-password', [SocietyAdminController::class, 'resetPasswordIndex'])->name('societies.reset_password');
+    Route::post('/societies/{id}/admins/{adminId}/reset-password', [SocietyAdminController::class, 'resetPassword'])->name('societies.admins.reset_password');
+
+    // Society security guard management — no delete, guards who have left
+    // are marked Inactive so history is kept.
+    Route::get('/societies/{id}/security', [SocietySecurityController::class, 'index'])->name('societies.security.index');
+    Route::get('/societies/{id}/security/create', [SocietySecurityController::class, 'create'])->name('societies.security.create');
+    Route::post('/societies/{id}/security', [SocietySecurityController::class, 'store'])->name('societies.security.store');
+    Route::get('/societies/{id}/security/{guardId}/edit', [SocietySecurityController::class, 'edit'])->name('societies.security.edit');
+    Route::put('/societies/{id}/security/{guardId}', [SocietySecurityController::class, 'update'])->name('societies.security.update');
+    Route::post('/societies/{id}/security/{guardId}/activate', [SocietySecurityController::class, 'activate'])->name('societies.security.activate');
+    Route::post('/societies/{id}/security/{guardId}/deactivate', [SocietySecurityController::class, 'deactivate'])->name('societies.security.deactivate');
+    Route::get('/societies/{id}/security-history', [SocietySecurityController::class, 'history'])->name('societies.security.history');
 
     Route::get('/societies/{id}/users', [SocietyUserController::class, 'index'])->name('societies.users.index');
     Route::post('/societies/{id}/users/{userId}/role', [SocietyUserController::class, 'updateRole'])->name('societies.users.role');
@@ -234,6 +254,48 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/', [DocumentController::class, 'index'])->name('index');
             Route::post('/', [DocumentController::class, 'store'])->name('store');
             Route::delete('/{id}', [DocumentController::class, 'destroy'])->name('destroy');
+        });
+
+        // Society Admin's own view of its admin accounts, structure and
+        // security roster - the same capabilities Super Admin has from the
+        // master panel (admin.societies.admins/blocks/security), scoped to
+        // whichever tenant this session is signed into.
+        Route::prefix('admins')->name('admins.')->group(function () {
+            Route::get('/', [SocietyPortalAdminController::class, 'index'])->name('index');
+            Route::get('/create', [SocietyPortalAdminController::class, 'create'])->name('create');
+            Route::post('/', [SocietyPortalAdminController::class, 'store'])->name('store');
+            Route::get('/{adminId}/edit', [SocietyPortalAdminController::class, 'edit'])->name('edit');
+            Route::put('/{adminId}', [SocietyPortalAdminController::class, 'update'])->name('update');
+            Route::post('/{adminId}/activate', [SocietyPortalAdminController::class, 'activate'])->name('activate');
+            Route::post('/{adminId}/deactivate', [SocietyPortalAdminController::class, 'deactivate'])->name('deactivate');
+        });
+
+        Route::prefix('blocks')->name('blocks.')->group(function () {
+            Route::get('/', [BlockController::class, 'blocksIndex'])->name('index');
+            Route::get('/create', [BlockController::class, 'blocksCreate'])->name('create');
+            Route::post('/', [BlockController::class, 'blocksStore'])->name('store');
+            Route::get('/{blockId}/edit', [BlockController::class, 'blocksEdit'])->name('edit');
+            Route::put('/{blockId}', [BlockController::class, 'blocksUpdate'])->name('update');
+            Route::delete('/{blockId}', [BlockController::class, 'blocksDestroy'])->name('destroy');
+
+            Route::get('/{blockId}/flats', [BlockController::class, 'flatsIndex'])->name('flats.index');
+            Route::get('/{blockId}/flats/create', [BlockController::class, 'flatsCreate'])->name('flats.create');
+            Route::post('/{blockId}/flats', [BlockController::class, 'flatsStore'])->name('flats.store');
+            Route::get('/{blockId}/flats/{flatId}/edit', [BlockController::class, 'flatsEdit'])->name('flats.edit');
+            Route::put('/{blockId}/flats/{flatId}', [BlockController::class, 'flatsUpdate'])->name('flats.update');
+            Route::post('/{blockId}/flats/{flatId}/toggle-status', [BlockController::class, 'flatsToggleStatus'])->name('flats.toggle_status');
+            Route::delete('/{blockId}/flats/{flatId}', [BlockController::class, 'flatsDestroy'])->name('flats.destroy');
+        });
+
+        Route::prefix('security')->name('security.')->group(function () {
+            Route::get('/', [SocietyPortalSecurityGuardController::class, 'index'])->name('index');
+            Route::get('/create', [SocietyPortalSecurityGuardController::class, 'create'])->name('create');
+            Route::post('/', [SocietyPortalSecurityGuardController::class, 'store'])->name('store');
+            Route::get('/{guardId}/edit', [SocietyPortalSecurityGuardController::class, 'edit'])->name('edit');
+            Route::put('/{guardId}', [SocietyPortalSecurityGuardController::class, 'update'])->name('update');
+            Route::post('/{guardId}/activate', [SocietyPortalSecurityGuardController::class, 'activate'])->name('activate');
+            Route::post('/{guardId}/deactivate', [SocietyPortalSecurityGuardController::class, 'deactivate'])->name('deactivate');
+            Route::get('/history', [SocietyPortalSecurityGuardController::class, 'history'])->name('history');
         });
 
         Route::prefix('emergency-contacts')->name('emergency-contacts.')->group(function () {

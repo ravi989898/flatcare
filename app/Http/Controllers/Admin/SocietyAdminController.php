@@ -217,6 +217,55 @@ class SocietyAdminController extends Controller
     }
 
     /**
+     * List this society's admin accounts so the Super Admin can reset one
+     * directly — for when a Society Admin is locked out and has no way to
+     * receive a self-service reset link (login spans every tenant database,
+     * so there's no single "forgot password" page to send one from).
+     */
+    public function resetPasswordIndex(Request $request, int $societyId)
+    {
+        $society = Society::findOrFail($societyId);
+
+        $this->tenantService->switchConnection($societyId);
+
+        $admins = User::whereHas('roles', function ($query) {
+                $query->where('name', 'admin');
+            })
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.societies.reset_password', compact('society', 'admins'));
+    }
+
+    /**
+     * Force-set a society admin's password. Distinct from update() above:
+     * this only ever touches the password, so the Super Admin doesn't need
+     * to re-enter (or risk overwriting) the admin's name/email/role/status.
+     */
+    public function resetPassword(Request $request, int $societyId, int $adminId)
+    {
+        $society = Society::findOrFail($societyId);
+
+        $this->tenantService->switchConnection($societyId);
+
+        $validated = $request->validate([
+            'password' => 'required|min:10|confirmed',
+        ]);
+
+        DB::connection('society')
+            ->table('users')
+            ->where('id', $adminId)
+            ->update([
+                'password' => Hash::make($validated['password']),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()
+            ->route('admin.societies.reset_password', $societyId)
+            ->with('success', 'Password reset successfully');
+    }
+
+    /**
      * Delete admin
      */
     public function destroy(Request $request, int $societyId, int $adminId)

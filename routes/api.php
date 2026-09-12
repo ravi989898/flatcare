@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Resident\MaintenanceRequestController;
 use App\Http\Controllers\Api\V1\Resident\NotificationController;
 use App\Http\Controllers\Api\V1\Resident\PollController;
 use App\Http\Controllers\Api\V1\Resident\ProfileController;
+use App\Http\Controllers\Api\V1\Resident\SecurityGuardController;
 use App\Http\Controllers\Api\V1\Resident\ServiceProviderController;
 use App\Http\Controllers\Api\V1\Resident\VehicleController;
 use App\Http\Controllers\Api\V1\Resident\VisitorController;
@@ -104,6 +105,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::get('/emergency-contacts', [EmergencyContactController::class, 'index'])->name('emergency_contacts.index');
+        Route::get('/security-guard', [SecurityGuardController::class, 'index'])->name('security_guard.index');
 
         Route::get('/committee-members', [CommitteeMemberController::class, 'index'])->name('committee_members.index');
         Route::get('/service-providers', [ServiceProviderController::class, 'index'])->name('service_providers.index');

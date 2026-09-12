@@ -96,13 +96,9 @@
                                     <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-sm btn-secondary">
                                         <i class="fas fa-building"></i> Blocks
                                     </a>
-                                    <form action="{{ route('admin.societies.destroy', $society->id) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Archive this society?')">
-                                            <i class="fas fa-archive"></i>
-                                        </button>
-                                    </form>
+                                    <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-user-shield"></i> Security
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach
