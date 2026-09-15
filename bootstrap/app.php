@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetSocietyContext;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'society.context' => SetSocietyContext::class,
             'api.auth' => AuthenticateApiToken::class,
+            'role' => EnsureUserHasRole::class,
         ]);
 
         $middleware->trustProxies(at: '*'); // safe default for local/WAMP; tighten to your LB's IPs in production

@@ -60,4 +60,10 @@ class UserProfile {
 
   Residency? get primaryResidency =>
       flats.isEmpty ? null : flats.firstWhere((f) => f.isPrimary, orElse: () => flats.first);
+
+  /// True for a security guard logging in with the gate-security app
+  /// (OtpAuthController::findOrCreateGuardUser assigns the 'security' role
+  /// on first login) — the router uses this to send them to the Gatekeeper
+  /// home instead of the resident one.
+  bool get isGatekeeper => roles.contains('security');
 }

@@ -4,6 +4,7 @@ namespace App\Services\Api;
 
 use App\Models\Society;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\User as TenantUser;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Hash;
@@ -80,6 +81,31 @@ class TenantAccountLocator
 
             if ($flat) {
                 return ['society' => $society, 'flat' => $flat];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find the society + roster entry for a security guard app OTP login
+     * (see OtpAuthController) - a guard's phone on the SecurityGuard roster
+     * (App\Http\Controllers\Society\SecurityGuardController::store), not a
+     * user account, since a guard may not have logged in before. Only an
+     * active guard can log in - one a society admin deactivated shouldn't
+     * still be able to get into the gate app.
+     *
+     * @return array{society: Society, guard: SecurityGuard}|null
+     */
+    public function findSecurityGuardByMobileNumber(string $mobileNumber): ?array
+    {
+        foreach ($this->activeSocieties() as $society) {
+            $this->tenantService->setTenant($society);
+
+            $guard = SecurityGuard::where('phone', $mobileNumber)->where('status', 'active')->first();
+
+            if ($guard) {
+                return ['society' => $society, 'guard' => $guard];
             }
         }
 

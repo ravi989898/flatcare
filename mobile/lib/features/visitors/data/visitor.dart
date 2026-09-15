@@ -1,3 +1,5 @@
+import '../../../core/models/flat.dart';
+
 class Visitor {
   Visitor({
     required this.id,
@@ -11,9 +13,13 @@ class Visitor {
     this.expectedAt,
     this.passCode,
     this.notes,
+    this.photoUrl,
+    this.flat,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
+    final flatJson = json['flat'] as Map<String, dynamic>?;
+
     return Visitor(
       id: json['id'] as int,
       visitorName: json['visitor_name'] as String,
@@ -26,6 +32,8 @@ class Visitor {
       expectedAt: json['expected_at'] as String?,
       passCode: json['pass_code'] as String?,
       notes: json['notes'] as String?,
+      photoUrl: json['photo_url'] as String?,
+      flat: flatJson != null ? Flat.fromJson(flatJson) : null,
     );
   }
 
@@ -40,8 +48,15 @@ class Visitor {
   final String? expectedAt;
   final String? passCode;
   final String? notes;
+  // Set only for a gate-app walk-in check-in with a photo attached
+  // (Api\V1\Guard\VisitorController::store) — camera-only on the app side.
+  final String? photoUrl;
+  // Only present on the gate-security app's society-wide list (a resident's
+  // own visitor list doesn't need it — they already know it's their flat).
+  final Flat? flat;
 
   static const purposes = ['guest', 'delivery', 'cab', 'service', 'other'];
 
   bool get isPending => status == 'pending';
+  bool get isCheckedIn => status == 'checked_in';
 }

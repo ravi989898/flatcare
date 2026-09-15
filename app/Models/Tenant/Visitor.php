@@ -31,6 +31,7 @@ class Visitor extends Model
         'checked_out_by',
         'invited_by_user_id',
         'notes',
+        'photo_path',
     ];
 
     protected $casts = [

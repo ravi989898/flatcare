@@ -5,6 +5,10 @@ use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
+use App\Http\Controllers\Api\V1\Guard\DutyController as GuardDutyController;
+use App\Http\Controllers\Api\V1\Guard\FlatController as GuardFlatController;
+use App\Http\Controllers\Api\V1\Guard\VehicleController as GuardVehicleController;
+use App\Http\Controllers\Api\V1\Guard\VisitorController as GuardVisitorController;
 use App\Http\Controllers\Api\V1\Resident\BillController;
 use App\Http\Controllers\Api\V1\Resident\BillPaymentController;
 use App\Http\Controllers\Api\V1\Resident\CommitteeMemberController;
@@ -121,6 +125,27 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [PollController::class, 'index'])->name('index');
             Route::get('/{id}', [PollController::class, 'show'])->name('show');
             Route::post('/{id}/vote', [PollController::class, 'vote'])->name('vote');
+        });
+
+        // Gate-security app — a resident's token can't reach these even
+        // though it's otherwise valid, thanks to the 'security' role check.
+        Route::prefix('guard')->name('guard.')->middleware('role:security')->group(function () {
+            Route::prefix('duty')->name('duty.')->group(function () {
+                Route::get('/', [GuardDutyController::class, 'show'])->name('show');
+                Route::post('/start', [GuardDutyController::class, 'start'])->name('start');
+                Route::post('/end', [GuardDutyController::class, 'end'])->name('end');
+            });
+
+            Route::prefix('visitors')->name('visitors.')->group(function () {
+                Route::get('/', [GuardVisitorController::class, 'index'])->name('index');
+                Route::post('/', [GuardVisitorController::class, 'store'])->name('store');
+                Route::get('/{id}', [GuardVisitorController::class, 'show'])->name('show');
+                Route::post('/{id}/check-in', [GuardVisitorController::class, 'checkIn'])->name('check_in');
+                Route::post('/{id}/check-out', [GuardVisitorController::class, 'checkOut'])->name('check_out');
+            });
+
+            Route::get('/flats', [GuardFlatController::class, 'index'])->name('flats.index');
+            Route::get('/vehicles', [GuardVehicleController::class, 'index'])->name('vehicles.index');
         });
     });
 });

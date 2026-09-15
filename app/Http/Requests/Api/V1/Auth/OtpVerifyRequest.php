@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\Auth;
 
 use App\Models\Society;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\SecurityGuard;
 use App\Services\Api\OtpService;
 use App\Services\Api\TenantAccountLocator;
 use Illuminate\Auth\Events\Lockout;
@@ -13,10 +14,11 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Resident app OTP login. Same rate-limiting shape as LoginRequest, but
- * resolves a Flat by mobile_number instead of a User by email - the OTP
- * controller is the one that finds-or-creates the actual resident account
- * once this confirms the number and code check out.
+ * Resident/gate-security app OTP login. Same rate-limiting shape as
+ * LoginRequest, but resolves a Flat or a SecurityGuard by mobile_number
+ * instead of a User by email - the OTP controller is the one that
+ * finds-or-creates the actual account once this confirms the number and
+ * code check out.
  */
 class OtpVerifyRequest extends FormRequest
 {
@@ -39,7 +41,7 @@ class OtpVerifyRequest extends FormRequest
     }
 
     /**
-     * @return array{society: Society, flat: Flat}
+     * @return array{society: Society, flat: Flat|null, guard: SecurityGuard|null}
      *
      * @throws ValidationException
      */
@@ -57,7 +59,16 @@ class OtpVerifyRequest extends FormRequest
             ]);
         }
 
-        $found = $locator->findFlatByMobileNumber($mobileNumber);
+        // A resident's flat takes precedence over a guard roster entry on
+        // the off chance the same number was ever registered as both.
+        $residentFound = $locator->findFlatByMobileNumber($mobileNumber);
+        $guardFound = $residentFound ? null : $locator->findSecurityGuardByMobileNumber($mobileNumber);
+
+        $found = match (true) {
+            (bool) $residentFound => ['society' => $residentFound['society'], 'flat' => $residentFound['flat'], 'guard' => null],
+            (bool) $guardFound => ['society' => $guardFound['society'], 'flat' => null, 'guard' => $guardFound['guard']],
+            default => null,
+        };
 
         if (!$found) {
             RateLimiter::hit($this->throttleKey(), decaySeconds: 60);

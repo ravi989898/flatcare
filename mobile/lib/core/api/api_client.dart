@@ -58,6 +58,25 @@ class ApiClient {
     return _unwrap(() => _dio.post(path, data: data));
   }
 
+  /// multipart/form-data POST — for the one request shape `post()` can't
+  /// carry, a file alongside the other fields (e.g. a visitor's gate photo
+  /// on GuardVisitorRepository.checkInWalkIn). `fields` go through
+  /// unchanged; `filePath` becomes a MultipartFile under `fileField` when
+  /// given, letting the file stay optional at the call site.
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required Map<String, dynamic> fields,
+    String? filePath,
+    String fileField = 'photo',
+  }) async {
+    final formData = FormData.fromMap({
+      ...fields,
+      if (filePath != null) fileField: await MultipartFile.fromFile(filePath),
+    });
+
+    return _unwrap(() => _dio.post(path, data: formData));
+  }
+
   Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? data}) async {
     return _unwrap(() => _dio.put(path, data: data));
   }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 /// same way instead of each screen rolling its own toStringAsFixed calls.
 final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 final _dateFormat = DateFormat('dd MMM yyyy');
+final _dateTimeFormat = DateFormat('dd MMM, hh:mm a');
 
 String formatCurrency(num amount) => _currencyFormat.format(amount);
 
@@ -18,4 +19,16 @@ String formatDate(String? isoDate) {
   if (parsed == null) return isoDate;
 
   return _dateFormat.format(parsed);
+}
+
+/// Same as formatDate but with a time-of-day, for timestamps where *when*
+/// matters as much as which day (a visitor's check-in/check-out time on the
+/// gate register).
+String formatDateTime(String? isoDateTime) {
+  if (isoDateTime == null || isoDateTime.isEmpty) return '-';
+
+  final parsed = DateTime.tryParse(isoDateTime);
+  if (parsed == null) return isoDateTime;
+
+  return _dateTimeFormat.format(parsed.toLocal());
 }

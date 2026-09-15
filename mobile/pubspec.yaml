@@ -71,6 +71,16 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
+  # Without these, Android has no adaptive-icon XML to work from and most
+  # launchers (Pixel, One UI, MIUI, ...) fall back to masking the legacy
+  # square PNG inside their own icon shape, which shows up as a white ring
+  # around the icon once installed. adaptive_icon_foreground is the same
+  # artwork pre-scaled into Android's ~66% safe zone (see
+  # assets/icon/app_icon_foreground.png) so the launcher's own mask never
+  # clips it, and adaptive_icon_background fills the rest of the shape with
+  # the brand's dark green instead of white.
+  adaptive_icon_background: "#1c3f2b"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

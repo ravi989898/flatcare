@@ -22,6 +22,13 @@ import '../../features/documents/screens/document_list_screen.dart';
 import '../../features/emergency_contacts/screens/emergency_contacts_screen.dart';
 import '../../features/events/screens/event_detail_screen.dart';
 import '../../features/events/screens/event_list_screen.dart';
+import '../../features/gatekeeper/data/guard_vehicle.dart';
+import '../../features/gatekeeper/screens/gatekeeper_home_screen.dart';
+import '../../features/gatekeeper/screens/gatekeeper_profile_screen.dart';
+import '../../features/gatekeeper/screens/gatekeeper_vehicle_detail_screen.dart';
+import '../../features/gatekeeper/screens/gatekeeper_vehicle_list_screen.dart';
+import '../../features/gatekeeper/screens/gatekeeper_visitor_checkin_screen.dart';
+import '../../features/gatekeeper/screens/gatekeeper_visitor_list_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/my_properties_screen.dart';
 import '../../features/maintenance_requests/screens/maintenance_request_detail_screen.dart';
@@ -76,8 +83,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoading) return null; // stay on splash until session resolves
 
+      final isGatekeeper = auth.valueOrNull?.user.isGatekeeper ?? false;
+      final homePath = isGatekeeper ? '/gatekeeper' : '/home';
+
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && (isAuthRoute || path == '/')) return '/home';
+      if (isLoggedIn && (isAuthRoute || path == '/')) return homePath;
       if (!isLoggedIn && path == '/') return '/login';
 
       return null;
@@ -102,6 +112,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/my-properties', builder: (context, state) => const MyPropertiesScreen()),
+
+      // Gate-security app — shown instead of the resident /home tree when
+      // UserProfile.isGatekeeper is true (see the redirect above). Reuses
+      // /directory and /emergency-contacts as-is since both are already
+      // society-wide with no flat-scoping.
+      GoRoute(path: '/gatekeeper', builder: (context, state) => const GatekeeperHomeScreen()),
+      GoRoute(
+        path: '/gatekeeper/visitors',
+        builder: (context, state) => GatekeeperVisitorListScreen(initialStatus: state.extra as String?),
+        routes: [
+          GoRoute(path: 'check-in', builder: (context, state) => const GatekeeperVisitorCheckinScreen()),
+        ],
+      ),
+      GoRoute(
+        path: '/gatekeeper/vehicles',
+        builder: (context, state) => const GatekeeperVehicleListScreen(),
+        routes: [
+          GoRoute(
+            path: 'detail',
+            builder: (context, state) => GatekeeperVehicleDetailScreen(vehicle: state.extra as GuardVehicle),
+          ),
+        ],
+      ),
+      GoRoute(path: '/gatekeeper/profile', builder: (context, state) => const GatekeeperProfileScreen()),
 
       GoRoute(
         path: '/maintenance-requests',

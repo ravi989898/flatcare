@@ -27,6 +27,7 @@ class VisitorResource extends JsonResource
             'expected_at' => $this->expected_at?->toIso8601String(),
             'pass_code' => $this->pass_code,
             'notes' => $this->notes,
+            'photo_url' => $this->photo_path ? asset('storage/'.$this->photo_path) : null,
             'flat' => $this->whenLoaded('flat', fn () => new FlatResource($this->flat)),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
