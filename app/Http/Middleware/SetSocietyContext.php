@@ -8,6 +8,7 @@ use App\Services\TenantService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -43,7 +44,14 @@ class SetSocietyContext
                 ->with('error', 'Please sign in to continue.');
         }
 
-        $society = Society::find($societyId);
+        // Cached under the same key TenantService::getCurrentSociety() uses,
+        // so TenantService::clearTenantCache() invalidates both together
+        // whenever a society's profile is edited.
+        $society = Cache::remember(
+            "society.{$societyId}",
+            now()->addHours(24),
+            fn () => Society::find($societyId)
+        );
 
         if (!$society || !$this->tenantService->validateSocietyAccessPeriod($society)) {
             $request->session()->forget('tenant_society_id');
@@ -109,19 +117,25 @@ class SetSocietyContext
     {
         $roleName = $tenantUser?->roles()->orderByDesc('priority')->value('name');
 
-        $items = MenuItem::query()
-            ->when($roleName, function ($query) use ($roleName) {
-                $query->whereHas('roles', function ($q) use ($roleName) {
-                    $q->where('name', $roleName)->where('role_menu_item.is_visible', true);
-                });
-            }, fn ($query) => $query->whereRaw('1 = 0'))
-            ->orderBy('display_order')
-            ->get();
+        // Menu visibility only changes via Settings -> Menu Settings
+        // (MenuSettingController::update(), which busts this same key), so
+        // it's safe to cache per role rather than re-querying two tables on
+        // every society-portal request.
+        return Cache::remember(
+            'society.menu_items.role.' . ($roleName ?? '__none__'),
+            now()->addHours(24),
+            function () use ($roleName) {
+                $items = MenuItem::query()
+                    ->when($roleName, function ($query) use ($roleName) {
+                        $query->whereHas('roles', function ($q) use ($roleName) {
+                            $q->where('name', $roleName)->where('role_menu_item.is_visible', true);
+                        });
+                    }, fn ($query) => $query->whereRaw('1 = 0'))
+                    ->orderBy('display_order')
+                    ->get();
 
-        if ($items->isEmpty()) {
-            $items = MenuItem::where('key', 'dashboard')->get();
-        }
-
-        return $items;
+                return $items->isEmpty() ? MenuItem::where('key', 'dashboard')->get() : $items;
+            }
+        );
     }
 }
