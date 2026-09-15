@@ -33,7 +33,12 @@ class SocietyUserController extends Controller
 
         $this->tenantService->switchConnection($societyId);
 
-        $users = User::with(['roles', 'residencies' => fn ($query) => $query->where('status', 'active')->with('flat.block')])
+        // Admin-role accounts are managed on their own dedicated screen
+        // (Admin\SocietyAdminController) and have no flat/residency of their
+        // own, so excluding them here keeps this page to actual residents
+        // instead of also listing the society's admin accounts.
+        $users = User::whereDoesntHave('roles', fn ($query) => $query->where('name', 'admin'))
+            ->with(['roles', 'residencies' => fn ($query) => $query->where('status', 'active')->with('flat.block')])
             ->orderBy('name')
             ->get();
 
