@@ -23,18 +23,26 @@
     <meta name="twitter:description" content="Manage maintenance billing, payments, visitors, complaints, announcements and elections for your housing society — all in one simple platform.">
     <meta name="twitter:image" content="{{ asset('images/marketing/community-hero.jpg') }}">
 
-    {{-- Structured data so Google can show a rich result for the brand --}}
+    {{--
+        Structured data so Google can show a rich result for the brand.
+        The literal "@context"/"@type" keys below are escaped as "@@..." —
+        Laravel 11's Context facade added a real @context Blade directive
+        (opens a block, needs a matching @endcontext), so an unescaped
+        "@context" here gets compiled as that directive instead of staying
+        literal JSON, which breaks the whole page with a ParseError at
+        render time. "@@" is Blade's escape for a literal "@word".
+    --}}
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@@context": "https://schema.org",
+        "@@type": "SoftwareApplication",
         "name": "{{ config('app.name', 'FlatCare') }}",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "url": "{{ url('/') }}",
         "description": "FlatCare is smart apartment & society management software for housing societies and apartments — manage maintenance billing, payments, visitors, complaints, announcements, elections and more from one simple platform.",
         "offers": {
-            "@type": "Offer",
+            "@@type": "Offer",
             "category": "SaaS"
         }
     }
