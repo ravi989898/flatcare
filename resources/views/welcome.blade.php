@@ -3,9 +3,42 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'FlatCare') }} — Effortless Property Care</title>
-    <meta name="description" content="FlatCare helps landlords and tenants manage maintenance, payments and communication in one simple place.">
+    <title>{{ config('app.name', 'FlatCare') }} — Smart Apartment & Society Management Software</title>
+    <meta name="description" content="FlatCare is smart apartment & society management software for housing societies and apartments — manage maintenance billing, payments, visitors, complaints, announcements, elections and more from one simple platform.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {{-- Open Graph / Facebook, WhatsApp --}}
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:site_name" content="{{ config('app.name', 'FlatCare') }}">
+    <meta property="og:title" content="{{ config('app.name', 'FlatCare') }} — Smart Apartment & Society Management Software">
+    <meta property="og:description" content="Manage maintenance billing, payments, visitors, complaints, announcements and elections for your housing society — all in one simple platform.">
+    <meta property="og:image" content="{{ asset('images/marketing/community-hero.jpg') }}">
+
+    {{-- Twitter Card --}}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ config('app.name', 'FlatCare') }} — Smart Apartment & Society Management Software">
+    <meta name="twitter:description" content="Manage maintenance billing, payments, visitors, complaints, announcements and elections for your housing society — all in one simple platform.">
+    <meta name="twitter:image" content="{{ asset('images/marketing/community-hero.jpg') }}">
+
+    {{-- Structured data so Google can show a rich result for the brand --}}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "{{ config('app.name', 'FlatCare') }}",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "{{ url('/') }}",
+        "description": "FlatCare is smart apartment & society management software for housing societies and apartments — manage maintenance billing, payments, visitors, complaints, announcements, elections and more from one simple platform.",
+        "offers": {
+            "@type": "Offer",
+            "category": "SaaS"
+        }
+    }
+    </script>
 
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">

@@ -40,6 +40,18 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Sitemap for search engines — currently just the marketing homepage since
+// every other route sits behind auth and shouldn't be indexed.
+Route::get('/sitemap.xml', function () {
+    $urls = [
+        ['loc' => url('/'), 'changefreq' => 'weekly', 'priority' => '1.0'],
+    ];
+
+    return response()
+        ->view('sitemap', ['urls' => $urls])
+        ->header('Content-Type', 'application/xml');
+})->name('sitemap');
+
 // "Start free trial" on the landing page — captures a lead for Super Admin
 // to follow up with (Admin > Inquiries). It does not create an account.
 Route::post('/trial-inquiries', [TrialInquiryController::class, 'store'])
