@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSocietyUserRequest;
+use App\Http\Requests\Admin\UpdateSocietyUserRequest;
 use App\Models\Society;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
@@ -78,7 +79,7 @@ class SocietyUserController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $validated['email'] ?: $this->placeholderEmail($validated['phone']),
             'phone' => $validated['phone'],
             'password' => Hash::make(Str::password(20)),
             'country' => 'India',
@@ -101,5 +102,77 @@ class SocietyUserController extends Controller
         return redirect()
             ->route('admin.societies.users.index', $society->id)
             ->with('success', "{$user->name} added successfully.");
+    }
+
+    public function edit(int $societyId, int $userId): View
+    {
+        $society = Society::findOrFail($societyId);
+
+        $this->tenantService->switchConnection($societyId);
+
+        $user = User::findOrFail($userId);
+        $residency = $user->residencies()->orderByDesc('is_primary')->first();
+        $blocks = Block::active()->orderBy('name')->get();
+        $flats = Flat::active()->with('block')->orderBy('flat_number')->get();
+
+        return view('admin.societies.users.edit', compact('society', 'user', 'residency', 'blocks', 'flats'));
+    }
+
+    /**
+     * Update a resident's own fields plus their flat assignment. Users
+     * created before flat assignment was tracked here (or edited by hand)
+     * may have no FlatResident row yet, in which case one is created rather
+     * than updated.
+     */
+    public function update(UpdateSocietyUserRequest $request, int $societyId, int $userId): RedirectResponse
+    {
+        $society = Society::findOrFail($societyId);
+
+        $this->tenantService->switchConnection($societyId);
+
+        $user = User::findOrFail($userId);
+        $validated = $request->validated();
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?: $this->placeholderEmail($validated['phone']),
+            'phone' => $validated['phone'],
+        ]);
+
+        $residency = $user->residencies()->orderByDesc('is_primary')->first();
+
+        $residencyData = [
+            'flat_id' => $validated['flat_id'],
+            'resident_type' => $validated['resident_type'],
+            'is_primary' => $request->boolean('is_primary'),
+        ];
+
+        if ($residency) {
+            $residency->update($residencyData);
+        } else {
+            FlatResident::create([
+                ...$residencyData,
+                'user_id' => $user->id,
+                'moved_in_date' => now(),
+                'status' => 'active',
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.societies.users.index', $society->id)
+            ->with('success', "{$user->name} updated successfully.");
+    }
+
+    /**
+     * users.email has a DB-level unique, non-nullable constraint, but the
+     * resident app's OTP login is keyed on the flat's mobile_number (see
+     * Api\V1\Auth\OtpAuthController), not this user record's email at all —
+     * so email is optional in this form. Deterministic on phone (already
+     * required + unique here) rather than random, so re-submitting the same
+     * form twice can't collide.
+     */
+    private function placeholderEmail(string $phone): string
+    {
+        return "resident-{$phone}@placeholder.flatcare.local";
     }
 }
