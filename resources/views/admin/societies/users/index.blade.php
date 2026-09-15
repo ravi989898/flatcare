@@ -8,6 +8,9 @@
             <h1>{{ $society->name }} - Residents</h1>
         </div>
         <div class="col-sm-6 text-right">
+            <a href="{{ route('admin.societies.users.create', $society->id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Resident
+            </a>
             <a href="{{ route('admin.societies.show', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
@@ -36,34 +39,18 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
-                            <th style="width: 260px;">Role</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($blockUsers as $user)
                             @php
                                 $residency = $user->residencies->firstWhere('is_primary', true) ?? $user->residencies->first();
-                                $currentRoleId = $user->roles->first()?->id;
                             @endphp
                             <tr>
                                 <td>{{ $residency?->flat?->flat_number ?? '—' }}</td>
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>{{ $user->phone }}</td>
-                                <td>
-                                    <form action="{{ route('admin.societies.users.role', [$society->id, $user->id]) }}" method="POST" class="form-inline" novalidate>
-                                        @csrf
-                                        <select name="role_id" class="custom-select custom-select-sm mr-1" style="max-width: 170px;">
-                                            <option value="">— No Role —</option>
-                                            @foreach ($roles as $role)
-                                                <option value="{{ $role->id }}" {{ $currentRoleId === $role->id ? 'selected' : '' }}>
-                                                    {{ $role->display_name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                    </form>
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>

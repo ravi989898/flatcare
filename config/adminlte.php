@@ -427,6 +427,19 @@ return [
                 ],
             ],
         ],
+        'BlockFlatFilter' => [
+            // Loaded globally for the same reason as 'Validation' above —
+            // any page can add a Block -> Flat cascading select pair (see
+            // admin.societies.users.create) with no extra include.
+            'active' => true,
+            'files' => [
+                [
+                    'type' => 'js',
+                    'asset' => true,
+                    'location' => 'js/block-flat-filter.js',
+                ],
+            ],
+        ],
         'Sweetalert2' => [
             'active' => false,
             'files' => [

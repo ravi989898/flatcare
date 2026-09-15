@@ -3,25 +3,26 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UpdateUserRoleRequest;
+use App\Http\Requests\Admin\StoreSocietyUserRequest;
 use App\Models\Society;
+use App\Models\Tenant\Block;
+use App\Models\Tenant\Flat;
+use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
 use App\Services\TenantService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
- * Every registered user in one society, grouped by Block -> Flat, with a
- * role-assignment dropdown per row (Settings -> Roles is where the role
- * catalog itself is managed; this is where Super Admin actually hands a
- * role to a specific resident - Chairman, Secretary, Treasurer, Vice
- * Chairman, Committee Member, or any custom role added later). The role
- * list on screen is read live from this society's own `roles` table, so a
- * role added to the catalog and synced in (see Admin\RoleController::sync())
- * shows up here with no code change.
+ * Every resident in one society, grouped by Block -> Flat, plus the ability
+ * for Super Admin to onboard one directly (mirrors what a Society Admin can
+ * do for their own society via Society\DirectoryController::store()).
+ * Admin-role accounts are excluded here and managed on their own dedicated
+ * screen instead (Admin\SocietyAdminController).
  */
 class SocietyUserController extends Controller
 {
@@ -33,10 +34,6 @@ class SocietyUserController extends Controller
 
         $this->tenantService->switchConnection($societyId);
 
-        // Admin-role accounts are managed on their own dedicated screen
-        // (Admin\SocietyAdminController) and have no flat/residency of their
-        // own, so excluding them here keeps this page to actual residents
-        // instead of also listing the society's admin accounts.
         $users = User::whereDoesntHave('roles', fn ($query) => $query->where('name', 'admin'))
             ->with(['roles', 'residencies' => fn ($query) => $query->where('status', 'active')->with('flat.block')])
             ->orderBy('name')
@@ -44,44 +41,65 @@ class SocietyUserController extends Controller
 
         // Group by the user's primary active flat's block - falls back to
         // their first active residency if none is marked primary, and to
-        // "Unassigned" for users with no flat at all (e.g. a committee
-        // member who isn't also a resident).
+        // "Unassigned" for users with no flat at all.
         $grouped = $users->groupBy(function (User $user) {
             $residency = $user->residencies->firstWhere('is_primary', true) ?? $user->residencies->first();
 
             return $residency?->flat?->block?->name ?? 'Unassigned';
         })->sortKeys();
 
-        $roles = Role::where('name', '!=', 'super_admin')->orderByDesc('priority')->get();
+        return view('admin.societies.users.index', compact('society', 'grouped'));
+    }
 
-        return view('admin.societies.users.index', compact('society', 'grouped', 'roles'));
+    public function create(int $societyId): View
+    {
+        $society = Society::findOrFail($societyId);
+
+        $this->tenantService->switchConnection($societyId);
+
+        $blocks = Block::active()->orderBy('name')->get();
+        $flats = Flat::active()->with('block')->orderBy('flat_number')->get();
+
+        return view('admin.societies.users.create', compact('society', 'blocks', 'flats'));
     }
 
     /**
-     * Assign (or clear) one role for one user. Delete-then-insert rather
-     * than update() so it works whether the user currently has zero or one
-     * role row - a plain update() silently does nothing for a user who has
-     * never had a role assigned yet.
+     * Onboard a new resident: create their tenant account, assign the
+     * 'user' role, and link them to a flat. Mirrors
+     * Society\DirectoryController::store() — see that method's docblock.
      */
-    public function updateRole(UpdateUserRoleRequest $request, int $societyId, int $userId): RedirectResponse
+    public function store(StoreSocietyUserRequest $request, int $societyId): RedirectResponse
     {
+        $society = Society::findOrFail($societyId);
+
         $this->tenantService->switchConnection($societyId);
 
         $validated = $request->validated();
 
-        DB::connection('society')->table('role_user')->where('user_id', $userId)->delete();
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => Hash::make(Str::password(20)),
+            'country' => 'India',
+            'status' => 'active',
+        ]);
 
-        if ($validated['role_id'] ?? null) {
-            DB::connection('society')->table('role_user')->insert([
-                'user_id' => $userId,
-                'role_id' => $validated['role_id'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        if ($residentRole = Role::where('name', 'resident')->first()) {
+            $user->assignRole($residentRole);
         }
 
+        FlatResident::create([
+            'flat_id' => $validated['flat_id'],
+            'user_id' => $user->id,
+            'resident_type' => $validated['resident_type'],
+            'moved_in_date' => now(),
+            'status' => 'active',
+            'is_primary' => $request->boolean('is_primary'),
+        ]);
+
         return redirect()
-            ->route('admin.societies.users.index', $societyId)
-            ->with('success', 'Role updated successfully.');
+            ->route('admin.societies.users.index', $society->id)
+            ->with('success', "{$user->name} added successfully.");
     }
 }
