@@ -163,6 +163,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/societies/{id}/users', [SocietyUserController::class, 'index'])->name('societies.users.index');
     Route::get('/societies/{id}/users/create', [SocietyUserController::class, 'create'])->name('societies.users.create');
     Route::post('/societies/{id}/users', [SocietyUserController::class, 'store'])->name('societies.users.store');
+    Route::get('/societies/{id}/users/{userId}/edit', [SocietyUserController::class, 'edit'])->name('societies.users.edit');
+    Route::put('/societies/{id}/users/{userId}', [SocietyUserController::class, 'update'])->name('societies.users.update');
 
     // Society structure: Blocks, then the Flats inside each block.
     Route::get('/societies/{id}/blocks', [SocietyStructureController::class, 'blocksIndex'])->name('societies.blocks.index');

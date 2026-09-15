@@ -36,7 +36,7 @@ class StoreSocietyUserRequest extends FormRequest
             'resident_type' => ['required', 'in:owner,tenant,occupant'],
             'is_primary' => ['boolean'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:society.users,email'],
+            'email' => ['nullable', 'email', 'unique:society.users,email'],
             'phone' => ['required', 'string', 'max:20', 'unique:society.users,phone'],
         ];
     }

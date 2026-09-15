@@ -39,6 +39,7 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
+                            <th style="width: 100px;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,8 +50,13 @@
                             <tr>
                                 <td>{{ $residency?->flat?->flat_number ?? '—' }}</td>
                                 <td>{{ $user->name }}</td>
-                                <td>{{ $user->email }}</td>
+                                <td>{{ str_ends_with($user->email, '@placeholder.flatcare.local') ? '—' : $user->email }}</td>
                                 <td>{{ $user->phone }}</td>
+                                <td>
+                                    <a href="{{ route('admin.societies.users.edit', [$society->id, $user->id]) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
