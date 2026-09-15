@@ -19,35 +19,47 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('role_definitions', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique(); // matches the tenant `roles.name` value, e.g. 'admin', 'resident'
-            $table->string('display_name');
-            $table->text('description')->nullable();
-            $table->boolean('is_system_role')->default(false); // the 5 seeded roles; cannot be deleted or renamed
-            $table->integer('priority')->default(0);
-            $table->timestamps();
-        });
+        // Guarded with hasTable() so this migration can be safely re-run to
+        // finish the job if a prior attempt was interrupted partway through
+        // (table creation isn't transactional in MySQL, so an environment
+        // issue partway through this method can otherwise leave some of
+        // these three tables created and others missing, with no way to
+        // resume since a plain Schema::create() on an existing table fails).
+        if (!Schema::hasTable('role_definitions')) {
+            Schema::create('role_definitions', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique(); // matches the tenant `roles.name` value, e.g. 'admin', 'resident'
+                $table->string('display_name');
+                $table->text('description')->nullable();
+                $table->boolean('is_system_role')->default(false); // the 5 seeded roles; cannot be deleted or renamed
+                $table->integer('priority')->default(0);
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('menu_items', function (Blueprint $table) {
-            $table->id();
-            $table->string('key')->unique(); // e.g. 'maintenance'
-            $table->string('label');
-            $table->string('route_name'); // society.* route this item links to
-            $table->string('icon')->nullable(); // bootstrap-icons class, e.g. 'bi-tools'
-            $table->integer('display_order')->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('menu_items')) {
+            Schema::create('menu_items', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique(); // e.g. 'maintenance'
+                $table->string('label');
+                $table->string('route_name'); // society.* route this item links to
+                $table->string('icon')->nullable(); // bootstrap-icons class, e.g. 'bi-tools'
+                $table->integer('display_order')->default(0);
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('role_menu_item', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('role_definition_id')->constrained('role_definitions')->cascadeOnDelete();
-            $table->foreignId('menu_item_id')->constrained('menu_items')->cascadeOnDelete();
-            $table->boolean('is_visible')->default(true);
-            $table->timestamps();
+        if (!Schema::hasTable('role_menu_item')) {
+            Schema::create('role_menu_item', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('role_definition_id')->constrained('role_definitions')->cascadeOnDelete();
+                $table->foreignId('menu_item_id')->constrained('menu_items')->cascadeOnDelete();
+                $table->boolean('is_visible')->default(true);
+                $table->timestamps();
 
-            $table->unique(['role_definition_id', 'menu_item_id']);
-        });
+                $table->unique(['role_definition_id', 'menu_item_id']);
+            });
+        }
     }
 
     public function down(): void
