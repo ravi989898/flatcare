@@ -17,8 +17,9 @@ once the file is in place the download just works — no deploy.
 Build a fresh APK with:
 
     cd mobile
-    flutter build apk --release --dart-define=API_BASE_URL=http://flatcare.dineflowpro.com/api/v1
-    # -> build/app/outputs/flutter-apk/app-release.apk  (rename to flatcare-app.apk)
+    flutter build apk --release --split-per-abi --dart-define=API_BASE_URL=https://flatcare.in/api/v1
+    # -> build/app/outputs/flutter-apk/app-arm64-v8a-release.apk  (rename to flatcare-app.apk)
 
-To shrink it (~53 MB universal -> ~19 MB), add `--split-per-abi` and upload
-`app-arm64-v8a-release.apk` instead (covers every phone since ~2019).
+`--split-per-abi` shrinks it from a ~53 MB universal APK to ~19 MB;
+`app-arm64-v8a-release.apk` covers every phone since ~2019, so that's the one
+to upload.

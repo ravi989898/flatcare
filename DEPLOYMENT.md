@@ -1,4 +1,4 @@
-# Deploying FlatCare to http://flatcare.dineflowpro.com/
+# Deploying FlatCare to https://flatcare.in/
 
 This is a plain Laravel app (no subdomain-per-society tenancy — the society
 portal resolves its tenant from the session, not the hostname), so a single
@@ -43,7 +43,7 @@ APP_ENV=production
 APP_KEY=                      # fill in via `php artisan key:generate` on the server, see below
 APP_DEBUG=false
 APP_TIMEZONE=UTC
-APP_URL=http://flatcare.dineflowpro.com
+APP_URL=https://flatcare.in
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -72,9 +72,9 @@ RAZORPAY_KEY_ID=<live key id>
 RAZORPAY_KEY_SECRET=<live key secret>
 ```
 
-If you get SSL working (recommended — this app takes real payments via
-Razorpay), change `APP_URL` to `https://flatcare.dineflowpro.com` and add an
-http→https redirect in `.htaccess`.
+SSL is already active on flatcare.in (recommended anyway — this app takes
+real payments via Razorpay); make sure `.htaccess` has an http→https
+redirect if it doesn't already.
 
 ### Important: the multi-tenant database privilege
 
@@ -138,15 +138,14 @@ Build it with:
 ```bash
 cd mobile
 flutter build apk --release --split-per-abi \
-  --dart-define=API_BASE_URL=http://flatcare.dineflowpro.com/api/v1
+  --dart-define=API_BASE_URL=https://flatcare.in/api/v1
 # upload build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 # to the server as public/downloads/flatcare-app.apk  (~19 MB, fits every
 # phone since ~2019)
 ```
 
-(switch the flag to `https://` once SSL is on — a wrong/missing value makes
-release builds fall back to the emulator-only `10.0.2.2` and never reach the
-server.)
+(a wrong/missing value makes release builds fall back to the emulator-only
+`10.0.2.2` and never reach the server.)
 
 **Alternative — GitHub Releases (only if the repo is public).** Set
 `MOBILE_APK_URL` in the production `.env` to
