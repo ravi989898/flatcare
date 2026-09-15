@@ -67,6 +67,10 @@ class SocietyController extends Controller
         $validated = $request->societyFields();
         $manualDb = $request->manualDbFields();
 
+        if ($manualDb && $this->dbNameTaken($manualDb['db_name'])) {
+            return back()->withErrors(['db_name' => "Database Name \"{$manualDb['db_name']}\" is already in use by another society."])->withInput();
+        }
+
         $society = DB::connection('main')->transaction(function () use ($validated, $request) {
             $slug = $this->uniqueSlug($validated['name']);
 
@@ -158,6 +162,10 @@ class SocietyController extends Controller
         $society = Society::findOrFail($id);
         $validated = $request->societyFields();
         $manualDb = $request->manualDbFields();
+
+        if ($manualDb && $this->dbNameTaken($manualDb['db_name'], ignoreId: $society->id)) {
+            return back()->withErrors(['db_name' => "Database Name \"{$manualDb['db_name']}\" is already in use by another society."])->withInput();
+        }
 
         $before = $society->toArray();
         $society->update($validated);
@@ -276,6 +284,20 @@ class SocietyController extends Controller
         }
 
         return back()->with('success', 'Society database provisioned successfully.');
+    }
+
+    /**
+     * Whether a manually-entered db_name collides with another society's.
+     * `societies.db_name` has a DB-level unique constraint, so this check
+     * avoids a 500 when two societies are given the same tenant database
+     * name.
+     */
+    private function dbNameTaken(string $dbName, ?int $ignoreId = null): bool
+    {
+        return Society::withTrashed()
+            ->where('db_name', $dbName)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
     }
 
     /**
