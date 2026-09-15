@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreComplaintRequest;
+use App\Http\Requests\Society\UpdateComplaintRequest;
 use App\Models\Tenant\Complaint;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\User;
@@ -58,18 +60,9 @@ class ComplaintController extends Controller
     /**
      * Log a new complaint.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreComplaintRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'flat_id' => 'nullable|exists:flats,id',
-            'category' => 'required|in:' . implode(',', Complaint::CATEGORIES),
-            'subject' => 'required|string|max:255',
-            'description' => 'required|string',
-            'against' => 'nullable|string|max:255',
-            'priority' => 'required|in:' . implode(',', Complaint::PRIORITIES),
-            'raised_by_name' => 'required|string|max:255',
-            'raised_by_phone' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validated();
 
         $complaint = Complaint::create([
             ...$validated,
@@ -97,16 +90,11 @@ class ComplaintController extends Controller
     /**
      * Update a complaint's status, priority, and/or assignment.
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(UpdateComplaintRequest $request, int $id): RedirectResponse
     {
         $complaint = Complaint::findOrFail($id);
 
-        $validated = $request->validate([
-            'status' => 'required|in:' . implode(',', Complaint::STATUSES),
-            'priority' => 'required|in:' . implode(',', Complaint::PRIORITIES),
-            'assigned_to_user_id' => 'nullable|exists:users,id',
-            'note' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $statusChanged = $validated['status'] !== $complaint->status;
 

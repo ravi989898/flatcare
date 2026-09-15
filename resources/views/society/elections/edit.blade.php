@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.elections.update', $election->id) }}" method="POST">
+    <form action="{{ route('society.elections.update', $election->id) }}" method="POST" novalidate>
         @csrf
         @method('PUT')
         @include('society.elections._form', ['election' => $election])

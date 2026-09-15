@@ -113,7 +113,7 @@
                     <div class="card-header bg-white"><strong>Add Candidate</strong></div>
                     <div class="card-body">
                         @if ($eligibleCandidates->count() > 0)
-                            <form action="{{ route('society.elections.candidates.store', $election->id) }}" method="POST">
+                            <form action="{{ route('society.elections.candidates.store', $election->id) }}" method="POST" novalidate>
                                 @csrf
                                 <div class="mb-3">
                                     <label for="user_id" class="form-label">Resident</label>
@@ -126,7 +126,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="manifesto" class="form-label">Manifesto</label>
-                                    <textarea name="manifesto" id="manifesto" rows="3" class="form-control" placeholder="Optional"></textarea>
+                                    <textarea name="manifesto" id="manifesto" rows="3" maxlength="2000" class="form-control" placeholder="Optional"></textarea>
                                 </div>
                                 <button type="submit" class="btn btn-brand w-100"><i class="bi bi-person-plus"></i> Add Candidate</button>
                             </form>
@@ -144,7 +144,7 @@
                         @if ($election->candidates->count() === 0)
                             <p class="text-muted mb-0 small">No candidates to vote for yet.</p>
                         @elseif ($eligibleVoters->count() > 0)
-                            <form action="{{ route('society.elections.vote', $election->id) }}" method="POST">
+                            <form action="{{ route('society.elections.vote', $election->id) }}" method="POST" novalidate>
                                 @csrf
                                 <div class="mb-3">
                                     <label for="voter_user_id" class="form-label">Voter</label>

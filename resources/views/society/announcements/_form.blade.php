@@ -7,7 +7,7 @@
         <div class="row">
             <div class="col-md-8">
                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ $old('title') }}" required>
+                <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ $old('title') }}" maxlength="255" required>
                 @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-4">

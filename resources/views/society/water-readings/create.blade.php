@@ -69,7 +69,7 @@
             </a>
         </div>
 
-        <form action="{{ route('society.water-readings.store') }}" method="POST">
+        <form action="{{ route('society.water-readings.store') }}" method="POST" novalidate>
             @csrf
             <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
             <input type="hidden" name="block_id" value="{{ $block->id }}">

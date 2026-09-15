@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTrialInquiryRequest;
 use App\Models\TrialInquiry;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 /**
  * Public "Start free trial" form on the landing page. This does not create
@@ -13,17 +13,9 @@ use Illuminate\Http\Request;
  */
 class TrialInquiryController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTrialInquiryRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'society_name' => ['required', 'string', 'max:255'],
-            'contact_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:30'],
-            'address' => ['required', 'string', 'max:500'],
-        ]);
-
-        TrialInquiry::create($validated);
+        TrialInquiry::create($request->validated());
 
         return back()->with('trial_inquiry_sent', true);
     }

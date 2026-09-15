@@ -51,7 +51,7 @@
                                 <td>{{ $user->email }}</td>
                                 <td>{{ $user->phone }}</td>
                                 <td>
-                                    <form action="{{ route('admin.societies.users.role', [$society->id, $user->id]) }}" method="POST" class="form-inline">
+                                    <form action="{{ route('admin.societies.users.role', [$society->id, $user->id]) }}" method="POST" class="form-inline" novalidate>
                                         @csrf
                                         <select name="role_id" class="custom-select custom-select-sm mr-1" style="max-width: 170px;">
                                             <option value="">— No Role —</option>

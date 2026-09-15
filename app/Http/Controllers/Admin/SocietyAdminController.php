@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ResetSocietyAdminPasswordRequest;
+use App\Http\Requests\Admin\StoreSocietyAdminRequest;
+use App\Http\Requests\Admin\UpdateSocietyAdminRequest;
 use App\Models\Society;
 use App\Models\Tenant\User;
 use App\Services\TenantService;
@@ -31,8 +34,8 @@ class SocietyAdminController extends Controller
 
         // Get admin users
         $admins = User::whereHas('roles', function ($query) {
-                $query->where('name', 'admin');
-            })
+            $query->where('name', 'admin');
+        })
             ->with('roles')
             ->paginate(10);
 
@@ -61,7 +64,7 @@ class SocietyAdminController extends Controller
     /**
      * Store new society admin
      */
-    public function store(Request $request, int $societyId)
+    public function store(StoreSocietyAdminRequest $request, int $societyId)
     {
         $society = Society::findOrFail($societyId);
 
@@ -70,13 +73,7 @@ class SocietyAdminController extends Controller
         // whichever tenant a previous request happened to leave connected.
         $this->tenantService->switchConnection($societyId);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:society.users,email',
-            'phone' => 'required|digits:10|unique:society.users,phone',
-            'password' => 'required|min:10|confirmed',
-            'role' => 'required|exists:society.roles,id',
-        ]);
+        $validated = $request->validated();
 
         // Create user
         $user = DB::connection('society')
@@ -132,7 +129,7 @@ class SocietyAdminController extends Controller
     /**
      * Update society admin
      */
-    public function update(Request $request, int $societyId, int $adminId)
+    public function update(UpdateSocietyAdminRequest $request, int $societyId, int $adminId)
     {
         $society = Society::findOrFail($societyId);
 
@@ -140,13 +137,7 @@ class SocietyAdminController extends Controller
         // checks below run against this society's users table.
         $this->tenantService->switchConnection($societyId);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:society.users,email,' . $adminId,
-            'phone' => 'required|digits:10|unique:society.users,phone,' . $adminId,
-            'password' => 'nullable|min:10|confirmed',
-            'role' => 'required|exists:society.roles,id',
-        ]);
+        $validated = $request->validated();
 
         $updates = [
             'name' => $validated['name'],
@@ -229,8 +220,8 @@ class SocietyAdminController extends Controller
         $this->tenantService->switchConnection($societyId);
 
         $admins = User::whereHas('roles', function ($query) {
-                $query->where('name', 'admin');
-            })
+            $query->where('name', 'admin');
+        })
             ->orderBy('name')
             ->get();
 
@@ -242,15 +233,13 @@ class SocietyAdminController extends Controller
      * this only ever touches the password, so the Super Admin doesn't need
      * to re-enter (or risk overwriting) the admin's name/email/role/status.
      */
-    public function resetPassword(Request $request, int $societyId, int $adminId)
+    public function resetPassword(ResetSocietyAdminPasswordRequest $request, int $societyId, int $adminId)
     {
         $society = Society::findOrFail($societyId);
 
         $this->tenantService->switchConnection($societyId);
 
-        $validated = $request->validate([
-            'password' => 'required|min:10|confirmed',
-        ]);
+        $validated = $request->validated();
 
         DB::connection('society')
             ->table('users')

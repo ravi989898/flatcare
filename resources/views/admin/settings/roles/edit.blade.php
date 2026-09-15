@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="card">
-        <form action="{{ route('admin.settings.roles.update', $role->id) }}" method="POST">
+        <form action="{{ route('admin.settings.roles.update', $role->id) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">

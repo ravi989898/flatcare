@@ -9,13 +9,13 @@
 @section('content')
     <div class="card stat-card">
         <div class="card-header bg-white"><strong>{{ $admin->name }}</strong></div>
-        <form action="{{ route('society.admins.update', $admin->id) }}" method="POST">
+        <form action="{{ route('society.admins.update', $admin->id) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $admin->name) }}" required>
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $admin->name) }}" maxlength="255" required>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
@@ -27,7 +27,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Phone <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('phone') is-invalid @enderror" name="phone" value="{{ old('phone', $admin->phone) }}" required>
+                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" name="phone" value="{{ old('phone', $admin->phone) }}" maxlength="10" data-validate="phone" required>
                         @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

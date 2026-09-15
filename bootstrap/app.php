@@ -5,9 +5,12 @@ use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetSocietyContext;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -32,5 +35,28 @@ return Application::configure(basePath: dirname(__DIR__))
         // $middleware->trustHosts(at: fn () => config('app.url'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Api\V1\ApiController::fail() responds {success:false, message, errors}
+        // for every hand-written failure path; without this, a thrown
+        // ValidationException/AuthenticationException instead falls through to
+        // Laravel's default {message, errors} shape, so JSON clients (the
+        // mobile app) would have to special-case two different error envelopes.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'errors' => $e->errors(),
+                ], $e->status);
+            }
+        });
+
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'errors' => null,
+                ], 401);
+            }
+        });
     })->create();

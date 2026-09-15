@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="card">
-        <form action="{{ route('admin.settings.roles.store') }}" method="POST">
+        <form action="{{ route('admin.settings.roles.store') }}" method="POST" novalidate>
             @csrf
             <div class="card-body">
                 @include('admin.settings.roles._form')

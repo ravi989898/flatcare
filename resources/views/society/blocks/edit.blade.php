@@ -9,14 +9,14 @@
 @section('content')
     <div class="card stat-card">
         <div class="card-header bg-white"><strong>{{ $block->block_number }}</strong></div>
-        <form action="{{ route('society.blocks.update', $block->id) }}" method="POST">
+        <form action="{{ route('society.blocks.update', $block->id) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">Block Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control @error('block_number') is-invalid @enderror"
-                        name="block_number" value="{{ old('block_number', $block->block_number) }}" autofocus required>
+                        name="block_number" value="{{ old('block_number', $block->block_number) }}" maxlength="255" autofocus required>
                     @error('block_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

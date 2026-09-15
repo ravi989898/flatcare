@@ -50,13 +50,14 @@
                 <div class="card-header">
                     <h3 class="card-title">Upload New Logo</h3>
                 </div>
-                <form action="{{ route('admin.settings.branding.update') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.settings.branding.update') }}" method="POST" enctype="multipart/form-data" novalidate>
                     @csrf
                     <div class="card-body">
                         <div class="form-group">
                             <label for="logo">Logo File <span class="text-danger">*</span></label>
                             <div class="custom-file">
                                 <input type="file" name="logo" id="logo" accept=".png,.jpg,.jpeg,.svg,.webp"
+                                    data-validate="file" data-allowed-ext="png,jpg,jpeg,svg,webp" data-max-size-kb="2048"
                                     class="custom-file-input @error('logo') is-invalid @enderror" required>
                                 <label class="custom-file-label" for="logo">Choose file…</label>
                                 @error('logo')
@@ -114,13 +115,14 @@
                 <div class="card-header">
                     <h3 class="card-title">Upload New App Icon</h3>
                 </div>
-                <form action="{{ route('admin.settings.branding.icon.update') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.settings.branding.icon.update') }}" method="POST" enctype="multipart/form-data" novalidate>
                     @csrf
                     <div class="card-body">
                         <div class="form-group">
                             <label for="icon">Icon File <span class="text-danger">*</span></label>
                             <div class="custom-file">
                                 <input type="file" name="icon" id="icon" accept=".png,.jpg,.jpeg,.webp"
+                                    data-validate="file" data-allowed-ext="png,jpg,jpeg,webp" data-max-size-kb="2048"
                                     class="custom-file-input @error('icon') is-invalid @enderror" required>
                                 <label class="custom-file-label" for="icon">Choose file…</label>
                                 @error('icon')

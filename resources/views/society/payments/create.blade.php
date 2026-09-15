@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.payments.store') }}" method="POST">
+    <form action="{{ route('society.payments.store') }}" method="POST" novalidate>
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
@@ -31,7 +31,7 @@
 
                     <div class="col-md-8">
                         <label for="title" class="form-label">Bill Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="e.g. August 2026 Maintenance" required>
+                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="e.g. August 2026 Maintenance" maxlength="255" required>
                         @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
@@ -42,7 +42,7 @@
 
                     <div class="col-12">
                         <label for="notes" class="form-label">Notes</label>
-                        <textarea name="notes" id="notes" rows="2" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
+                        <textarea name="notes" id="notes" rows="2" maxlength="1000" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
                         @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

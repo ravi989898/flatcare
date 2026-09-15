@@ -10,7 +10,7 @@
     <div class="card-body">
         <div class="form-group">
             <label for="name">Society Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ $old('name') }}" required>
+            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ $old('name') }}" maxlength="255" required>
             @error('name')<span class="invalid-feedback">{{ $message }}</span>@enderror
         </div>
 
@@ -28,12 +28,12 @@
             </div>
             <div class="form-group col-md-3">
                 <label for="phone">Phone <span class="text-danger">*</span></label>
-                <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ $old('phone') }}" required>
+                <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ $old('phone') }}" maxlength="20" required>
                 @error('phone')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-3">
                 <label for="alternate_phone">Alternate Phone</label>
-                <input type="text" class="form-control @error('alternate_phone') is-invalid @enderror" id="alternate_phone" name="alternate_phone" value="{{ $old('alternate_phone') }}">
+                <input type="text" class="form-control @error('alternate_phone') is-invalid @enderror" id="alternate_phone" name="alternate_phone" value="{{ $old('alternate_phone') }}" maxlength="20">
                 @error('alternate_phone')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>
@@ -47,22 +47,22 @@
         <div class="form-row">
             <div class="form-group col-md-3">
                 <label for="city">City <span class="text-danger">*</span></label>
-                <input type="text" class="form-control @error('city') is-invalid @enderror" id="city" name="city" value="{{ $old('city') }}" required>
+                <input type="text" class="form-control @error('city') is-invalid @enderror" id="city" name="city" value="{{ $old('city') }}" maxlength="255" required>
                 @error('city')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-3">
                 <label for="state">State <span class="text-danger">*</span></label>
-                <input type="text" class="form-control @error('state') is-invalid @enderror" id="state" name="state" value="{{ $old('state') }}" required>
+                <input type="text" class="form-control @error('state') is-invalid @enderror" id="state" name="state" value="{{ $old('state') }}" maxlength="255" required>
                 @error('state')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-3">
                 <label for="country">Country</label>
-                <input type="text" class="form-control @error('country') is-invalid @enderror" id="country" name="country" value="{{ $old('country', 'India') }}">
+                <input type="text" class="form-control @error('country') is-invalid @enderror" id="country" name="country" value="{{ $old('country', 'India') }}" maxlength="255">
                 @error('country')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-3">
                 <label for="postal_code">Postal Code <span class="text-danger">*</span></label>
-                <input type="text" class="form-control @error('postal_code') is-invalid @enderror" id="postal_code" name="postal_code" value="{{ $old('postal_code') }}" required>
+                <input type="text" class="form-control @error('postal_code') is-invalid @enderror" id="postal_code" name="postal_code" value="{{ $old('postal_code') }}" maxlength="20" required>
                 @error('postal_code')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>
@@ -70,7 +70,7 @@
         <div class="form-row">
             <div class="form-group col-md-4">
                 <label for="registration_number">Registration Number</label>
-                <input type="text" class="form-control @error('registration_number') is-invalid @enderror" id="registration_number" name="registration_number" value="{{ $old('registration_number') }}">
+                <input type="text" class="form-control @error('registration_number') is-invalid @enderror" id="registration_number" name="registration_number" value="{{ $old('registration_number') }}" maxlength="255">
                 @error('registration_number')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-4">
@@ -140,17 +140,17 @@
         <div class="form-row">
             <div class="form-group col-md-4">
                 <label for="admin_name">Contact Name</label>
-                <input type="text" class="form-control @error('admin_name') is-invalid @enderror" id="admin_name" name="admin_name" value="{{ $old('admin_name') }}">
+                <input type="text" class="form-control @error('admin_name') is-invalid @enderror" id="admin_name" name="admin_name" value="{{ $old('admin_name') }}" maxlength="255">
                 @error('admin_name')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-4">
                 <label for="admin_email">Contact Email</label>
-                <input type="email" class="form-control @error('admin_email') is-invalid @enderror" id="admin_email" name="admin_email" value="{{ $old('admin_email') }}">
+                <input type="email" class="form-control @error('admin_email') is-invalid @enderror" id="admin_email" name="admin_email" value="{{ $old('admin_email') }}" maxlength="255">
                 @error('admin_email')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-4">
                 <label for="admin_phone">Contact Phone</label>
-                <input type="text" class="form-control @error('admin_phone') is-invalid @enderror" id="admin_phone" name="admin_phone" value="{{ $old('admin_phone') }}">
+                <input type="text" class="form-control @error('admin_phone') is-invalid @enderror" id="admin_phone" name="admin_phone" value="{{ $old('admin_phone') }}" maxlength="20">
                 @error('admin_phone')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>
@@ -161,17 +161,17 @@
         <div class="form-row">
             <div class="form-group col-md-4">
                 <label for="db_name">Database Name</label>
-                <input type="text" class="form-control @error('db_name') is-invalid @enderror" id="db_name" name="db_name" value="{{ old('db_name', $society?->database?->db_name ?? '') }}" autocomplete="off">
+                <input type="text" class="form-control @error('db_name') is-invalid @enderror" id="db_name" name="db_name" value="{{ old('db_name', $society?->database?->db_name ?? '') }}" maxlength="255" autocomplete="off">
                 @error('db_name')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-4">
                 <label for="db_user">Database User</label>
-                <input type="text" class="form-control @error('db_user') is-invalid @enderror" id="db_user" name="db_user" value="{{ old('db_user', $society?->database?->db_user ?? '') }}" autocomplete="off">
+                <input type="text" class="form-control @error('db_user') is-invalid @enderror" id="db_user" name="db_user" value="{{ old('db_user', $society?->database?->db_user ?? '') }}" maxlength="255" autocomplete="off">
                 @error('db_user')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
             <div class="form-group col-md-4">
                 <label for="db_password">Database Password</label>
-                <input type="password" class="form-control @error('db_password') is-invalid @enderror" id="db_password" name="db_password" value="" autocomplete="new-password" placeholder="{{ $society?->database ? 'Leave blank to keep the current password' : '' }}">
+                <input type="password" class="form-control @error('db_password') is-invalid @enderror" id="db_password" name="db_password" value="" maxlength="255" autocomplete="new-password" placeholder="{{ $society?->database ? 'Leave blank to keep the current password' : '' }}">
                 @error('db_password')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>

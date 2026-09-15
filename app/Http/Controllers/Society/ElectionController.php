@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\AddElectionCandidateRequest;
+use App\Http\Requests\Society\ElectionRequest;
+use App\Http\Requests\Society\ElectionVoteRequest;
+use App\Http\Requests\Society\UpdateElectionStatusRequest;
 use App\Models\Tenant\Election;
 use App\Models\Tenant\ElectionCandidate;
 use App\Models\Tenant\ElectionVote;
 use App\Models\Tenant\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -41,9 +44,9 @@ class ElectionController extends Controller
         return view('society.elections.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(ElectionRequest $request): RedirectResponse
     {
-        $validated = $this->validateElection($request);
+        $validated = $request->validated();
 
         $election = Election::create([
             ...$validated,
@@ -79,10 +82,10 @@ class ElectionController extends Controller
         return view('society.elections.edit', compact('election'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(ElectionRequest $request, int $id): RedirectResponse
     {
         $election = Election::findOrFail($id);
-        $validated = $this->validateElection($request);
+        $validated = $request->validated();
 
         $election->update($validated);
 
@@ -94,17 +97,15 @@ class ElectionController extends Controller
     /**
      * Move an election to its next status (or cancel it).
      */
-    public function updateStatus(Request $request, int $id): RedirectResponse
+    public function updateStatus(UpdateElectionStatusRequest $request, int $id): RedirectResponse
     {
         $election = Election::findOrFail($id);
 
-        $validated = $request->validate([
-            'status' => 'required|in:' . implode(',', Election::STATUSES),
-        ]);
+        $validated = $request->validated();
 
         $allowed = self::TRANSITIONS[$election->status] ?? [];
 
-        if (!in_array($validated['status'], $allowed, true)) {
+        if (! in_array($validated['status'], $allowed, true)) {
             return back()->with('error', "Can't move an election from \"{$election->status}\" to \"{$validated['status']}\".");
         }
 
@@ -116,18 +117,15 @@ class ElectionController extends Controller
     /**
      * Nominate a resident as a candidate.
      */
-    public function addCandidate(Request $request, int $id): RedirectResponse
+    public function addCandidate(AddElectionCandidateRequest $request, int $id): RedirectResponse
     {
         $election = Election::findOrFail($id);
 
-        if (!in_array($election->status, ['draft', 'nominations_open'], true)) {
+        if (! in_array($election->status, ['draft', 'nominations_open'], true)) {
             return back()->with('error', 'Nominations are closed for this election.');
         }
 
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'manifesto' => 'nullable|string|max:2000',
-        ]);
+        $validated = $request->validated();
 
         try {
             ElectionCandidate::create([
@@ -151,7 +149,7 @@ class ElectionController extends Controller
         $election = Election::findOrFail($id);
         $candidate = ElectionCandidate::where('election_id', $election->id)->findOrFail($candidateId);
 
-        if (!in_array($election->status, ['draft', 'nominations_open'], true)) {
+        if (! in_array($election->status, ['draft', 'nominations_open'], true)) {
             return back()->with('error', 'Candidates can only be removed before voting opens.');
         }
 
@@ -170,18 +168,15 @@ class ElectionController extends Controller
      * (e.g. at a physical polling desk) — the unique constraint on
      * election_votes still guarantees one vote per resident.
      */
-    public function vote(Request $request, int $id): RedirectResponse
+    public function vote(ElectionVoteRequest $request, int $id): RedirectResponse
     {
         $election = Election::findOrFail($id);
 
-        if (!$election->votingOpen()) {
+        if (! $election->votingOpen()) {
             return back()->with('error', 'Voting is not currently open for this election.');
         }
 
-        $validated = $request->validate([
-            'candidate_id' => 'required|exists:election_candidates,id',
-            'voter_user_id' => 'required|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         try {
             DB::connection('society')->transaction(function () use ($election, $validated) {
@@ -198,26 +193,5 @@ class ElectionController extends Controller
         }
 
         return back()->with('success', 'Vote recorded.');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function validateElection(Request $request): array
-    {
-        foreach (['description', 'nomination_start_at', 'nomination_end_at', 'voting_start_at', 'voting_end_at'] as $field) {
-            if ($request->input($field) === '') {
-                $request->merge([$field => null]);
-            }
-        }
-
-        return $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'nomination_start_at' => 'nullable|date',
-            'nomination_end_at' => 'nullable|date|after_or_equal:nomination_start_at',
-            'voting_start_at' => 'nullable|date',
-            'voting_end_at' => 'nullable|date|after_or_equal:voting_start_at',
-        ]);
     }
 }

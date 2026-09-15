@@ -9,6 +9,7 @@
         value="{{ old('name', $role?->name) }}"
         placeholder="e.g. accountant"
         pattern="[a-z][a-z0-9_]*"
+        maxlength="255"
         {{ $role?->is_system_role ? 'readonly' : '' }} required>
     @error('name')
         <span class="invalid-feedback d-block">{{ $message }}</span>
@@ -22,7 +23,7 @@
 <div class="form-group">
     <label for="display_name">Display Name <span class="text-danger">*</span></label>
     <input type="text" name="display_name" id="display_name" class="form-control @error('display_name') is-invalid @enderror"
-        value="{{ old('display_name', $role?->display_name) }}" required>
+        value="{{ old('display_name', $role?->display_name) }}" maxlength="255" required>
     @error('display_name')
         <span class="invalid-feedback d-block">{{ $message }}</span>
     @enderror
@@ -30,7 +31,7 @@
 
 <div class="form-group">
     <label for="description">Description</label>
-    <textarea name="description" id="description" rows="2" class="form-control @error('description') is-invalid @enderror">{{ old('description', $role?->description) }}</textarea>
+    <textarea name="description" id="description" rows="2" maxlength="1000" class="form-control @error('description') is-invalid @enderror">{{ old('description', $role?->description) }}</textarea>
     @error('description')
         <span class="invalid-feedback d-block">{{ $message }}</span>
     @enderror
@@ -39,7 +40,7 @@
 <div class="form-group">
     <label for="priority">Priority</label>
     <input type="number" name="priority" id="priority" class="form-control @error('priority') is-invalid @enderror"
-        value="{{ old('priority', $role?->priority ?? 0) }}" min="0" max="1000">
+        value="{{ old('priority', $role?->priority ?? 0) }}" min="0" max="1000" required>
     @error('priority')
         <span class="invalid-feedback d-block">{{ $message }}</span>
     @enderror

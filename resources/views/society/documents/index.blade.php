@@ -25,11 +25,11 @@
     <div class="card stat-card mb-3">
         <div class="card-header bg-white"><strong>Upload a Document</strong></div>
         <div class="card-body">
-            <form action="{{ route('society.documents.store') }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
+            <form action="{{ route('society.documents.store') }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end" novalidate>
                 @csrf
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Title</label>
-                    <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" required>
+                    <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" maxlength="255" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Category</label>
@@ -41,7 +41,16 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">File</label>
-                    <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" required>
+                    <input
+                        type="file"
+                        name="file"
+                        class="form-control @error('file') is-invalid @enderror"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                        data-validate="file"
+                        data-allowed-ext="pdf,doc,docx,xls,xlsx,jpg,jpeg,png"
+                        data-max-size-kb="10240"
+                        required
+                    >
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-brand w-100"><i class="bi bi-upload"></i> Upload</button>

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BlockRequest;
+use App\Http\Requests\Admin\StoreFlatsRequest;
+use App\Http\Requests\Admin\UpdateFlatRequest;
 use App\Models\Society;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Services\TenantService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -40,12 +42,12 @@ class SocietyStructureController extends Controller
         return view('admin.societies.blocks.create', compact('society'));
     }
 
-    public function blocksStore(Request $request, int $societyId): RedirectResponse
+    public function blocksStore(BlockRequest $request, int $societyId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
-        $validated = $this->validateBlock($request);
+        $validated = $request->validated();
 
         Block::create([...$validated, 'name' => $validated['block_number'], 'status' => 'active']);
 
@@ -64,13 +66,13 @@ class SocietyStructureController extends Controller
         return view('admin.societies.blocks.edit', compact('society', 'block'));
     }
 
-    public function blocksUpdate(Request $request, int $societyId, int $blockId): RedirectResponse
+    public function blocksUpdate(BlockRequest $request, int $societyId, int $blockId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
         $block = Block::findOrFail($blockId);
-        $validated = $this->validateBlock($request, $block->id);
+        $validated = $request->validated();
 
         $block->update([...$validated, 'name' => $validated['block_number']]);
 
@@ -130,16 +132,12 @@ class SocietyStructureController extends Controller
      * accepts a flat number per line (or comma-separated) so a block with
      * dozens of units doesn't need one form submission each.
      */
-    public function flatsStore(Request $request, int $societyId, int $blockId): RedirectResponse
+    public function flatsStore(StoreFlatsRequest $request, int $societyId, int $blockId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
         $block = Block::findOrFail($blockId);
-
-        $request->validate([
-            'flat_numbers' => 'required|string',
-        ]);
 
         $numbers = collect(preg_split('/[\r\n,]+/', $request->string('flat_numbers')->value()))
             ->map(fn ($number) => trim($number))
@@ -183,12 +181,12 @@ class SocietyStructureController extends Controller
 
         $block->increment('total_flats', $toCreate->count() + $restorable->count());
 
-        $message = "{$toCreate->count()} flat" . ($toCreate->count() === 1 ? '' : 's') . ' created.';
+        $message = "{$toCreate->count()} flat".($toCreate->count() === 1 ? '' : 's').' created.';
         if ($restorable->isNotEmpty()) {
-            $message .= " {$restorable->count()} previously-deleted flat" . ($restorable->count() === 1 ? '' : 's') . ' restored: ' . $restorable->keys()->implode(', ') . '.';
+            $message .= " {$restorable->count()} previously-deleted flat".($restorable->count() === 1 ? '' : 's').' restored: '.$restorable->keys()->implode(', ').'.';
         }
         if ($active->isNotEmpty()) {
-            $message .= ' Already existed, skipped: ' . $active->implode(', ') . '.';
+            $message .= ' Already existed, skipped: '.$active->implode(', ').'.';
         }
 
         return redirect()
@@ -222,14 +220,14 @@ class SocietyStructureController extends Controller
         return view('admin.societies.blocks.flats.edit', compact('society', 'block', 'flat'));
     }
 
-    public function flatsUpdate(Request $request, int $societyId, int $blockId, int $flatId): RedirectResponse
+    public function flatsUpdate(UpdateFlatRequest $request, int $societyId, int $blockId, int $flatId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
         $block = Block::findOrFail($blockId);
         $flat = Flat::where('block_id', $block->id)->findOrFail($flatId);
-        $validated = $this->validateFlat($request, $flat->id);
+        $validated = $request->validated();
 
         $flat->update([
             'flat_number' => $validated['flat_number'],
@@ -260,7 +258,7 @@ class SocietyStructureController extends Controller
 
         return redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
-            ->with('success', "Flat {$flat->flat_number} marked " . ($flat->status === 'active' ? 'active' : 'inactive') . '.');
+            ->with('success', "Flat {$flat->flat_number} marked ".($flat->status === 'active' ? 'active' : 'inactive').'.');
     }
 
     public function flatsDestroy(int $societyId, int $blockId, int $flatId): RedirectResponse
@@ -277,23 +275,5 @@ class SocietyStructureController extends Controller
         return redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
             ->with('success', 'Flat deleted successfully.');
-    }
-
-    private function validateBlock(Request $request, ?int $ignoreId = null): array
-    {
-        return $request->validate([
-            'block_number' => 'required|string|max:255|unique:society.blocks,block_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-        ]);
-    }
-
-    private function validateFlat(Request $request, ?int $ignoreId = null): array
-    {
-        return $request->validate([
-            'flat_number' => 'required|string|max:255|unique:society.flats,flat_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-            // The resident app's OTP login is keyed on this, so it must stay
-            // unique - two flats sharing a number would let either resident
-            // sign in as the other.
-            'mobile_number' => 'nullable|string|max:20|unique:society.flats,mobile_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-        ]);
     }
 }

@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.announcements.update', $announcement->id) }}" method="POST">
+    <form action="{{ route('society.announcements.update', $announcement->id) }}" method="POST" novalidate>
         @csrf
         @method('PUT')
         @include('society.announcements._form', ['announcement' => $announcement])

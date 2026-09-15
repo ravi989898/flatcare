@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\RecordPaymentRequest;
+use App\Http\Requests\Society\StoreBillRequest;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\Payment;
@@ -10,8 +12,8 @@ use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
@@ -72,15 +74,9 @@ class PaymentController extends Controller
      * "all" is chosen — sparing the admin from creating the same monthly
      * bill flat-by-flat.
      */
-    public function store(Request $request, NotificationService $notifications): RedirectResponse
+    public function store(StoreBillRequest $request, NotificationService $notifications): RedirectResponse
     {
-        $validated = $request->validate([
-            'flat_id' => ['required', Rule::in(array_merge(['all'], Flat::pluck('id')->all()))],
-            'title' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
-            'due_date' => 'required|date',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $flatIds = $validated['flat_id'] === 'all'
             ? Flat::active()->pluck('id')
@@ -99,8 +95,8 @@ class PaymentController extends Controller
             $notifications->notifyFlats(
                 [$flatId],
                 'maintenance_due',
-                "{$validated['title']} due on " . \Illuminate\Support\Carbon::parse($validated['due_date'])->format('d M Y'),
-                "₹" . number_format($validated['amount'], 2),
+                "{$validated['title']} due on ".Carbon::parse($validated['due_date'])->format('d M Y'),
+                '₹'.number_format($validated['amount'], 2),
                 ['bill_id' => $bill->id],
             );
         }
@@ -211,13 +207,13 @@ class PaymentController extends Controller
         $rupees = (int) floor($amount);
         $paise = (int) round(($amount - $rupees) * 100);
 
-        $words = $this->numberToIndianWords($rupees) . ' Rupees';
+        $words = $this->numberToIndianWords($rupees).' Rupees';
 
         if ($paise > 0) {
-            $words .= ' and ' . $this->numberToIndianWords($paise) . ' Paise';
+            $words .= ' and '.$this->numberToIndianWords($paise).' Paise';
         }
 
-        return $words . ' Only';
+        return $words.' Only';
     }
 
     private function numberToIndianWords(int $number): string
@@ -235,14 +231,14 @@ class PaymentController extends Controller
                 return $ones[$n];
             }
 
-            return trim($tens[intdiv($n, 10)] . ' ' . $ones[$n % 10]);
+            return trim($tens[intdiv($n, 10)].' '.$ones[$n % 10]);
         };
 
         $threeDigits = function (int $n) use ($twoDigits, $ones): string {
             if ($n >= 100) {
                 $rest = $twoDigits($n % 100);
 
-                return trim($ones[intdiv($n, 100)] . ' Hundred' . ($rest ? ' ' . $rest : ''));
+                return trim($ones[intdiv($n, 100)].' Hundred'.($rest ? ' '.$rest : ''));
             }
 
             return $twoDigits($n);
@@ -255,13 +251,13 @@ class PaymentController extends Controller
 
         $parts = [];
         if ($crore > 0) {
-            $parts[] = $twoDigits($crore) . ' Crore';
+            $parts[] = $twoDigits($crore).' Crore';
         }
         if ($lakh > 0) {
-            $parts[] = $twoDigits($lakh) . ' Lakh';
+            $parts[] = $twoDigits($lakh).' Lakh';
         }
         if ($thousand > 0) {
-            $parts[] = $twoDigits($thousand) . ' Thousand';
+            $parts[] = $twoDigits($thousand).' Thousand';
         }
         if ($hundred > 0) {
             $parts[] = $threeDigits($hundred);
@@ -275,17 +271,11 @@ class PaymentController extends Controller
      * into credit — a real overpayment/refund workflow is out of scope
      * here, so the ledger only ever tracks payments up to what's owed.
      */
-    public function recordPayment(Request $request, int $id): RedirectResponse
+    public function recordPayment(RecordPaymentRequest $request, int $id): RedirectResponse
     {
         $bill = MaintenanceBill::with('payments')->findOrFail($id);
 
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
-            'payment_method' => 'required|in:' . implode(',', Payment::METHODS),
-            'reference_number' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         if ($validated['amount'] > $bill->balance) {
             return back()->with('error', "That's more than the remaining balance of ₹{$bill->balance}.");

@@ -11,7 +11,7 @@
         <div class="card-header">
             <h3 class="card-title">Update Block</h3>
         </div>
-        <form action="{{ route('admin.societies.blocks.update', [$society->id, $block->id]) }}" method="POST">
+        <form action="{{ route('admin.societies.blocks.update', [$society->id, $block->id]) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">

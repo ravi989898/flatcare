@@ -18,7 +18,7 @@
         <div class="card-header">
             <h3 class="card-title">Super Admin Dashboard — Visibility by Role</h3>
         </div>
-        <form action="{{ route('admin.settings.dashboard_widgets.update') }}" method="POST">
+        <form action="{{ route('admin.settings.dashboard_widgets.update') }}" method="POST" novalidate>
             @csrf
             <div class="card-body p-0">
                 <div class="table-responsive">

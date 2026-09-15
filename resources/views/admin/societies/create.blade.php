@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('admin.societies.store') }}" method="POST">
+    <form action="{{ route('admin.societies.store') }}" method="POST" novalidate>
         @csrf
         @include('admin.societies._form', ['society' => null, 'modules' => $modules])
 

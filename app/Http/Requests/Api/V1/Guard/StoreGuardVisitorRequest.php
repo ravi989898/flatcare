@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Guard;
 
 use App\Models\Tenant\Visitor;
+use App\Rules\SafeUploadedFile;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -33,7 +34,13 @@ class StoreGuardVisitorRequest extends FormRequest
             'purpose' => ['required', 'in:'.implode(',', Visitor::PURPOSES)],
             'vehicle_number' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'photo' => ['nullable', 'image', 'max:4096'],
+            'photo' => [
+                'nullable',
+                'image',
+                'max:4096',
+                'mimes:jpg,jpeg,png,webp',
+                new SafeUploadedFile(['jpg', 'jpeg', 'png', 'webp']),
+            ],
         ];
     }
 }

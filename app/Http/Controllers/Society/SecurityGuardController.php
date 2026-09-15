@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Concerns\ManagesSecurityGuardDuty;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SecurityGuardRequest;
 use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\SecurityGuardLog;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -34,15 +34,9 @@ class SecurityGuardController extends Controller
         return view('society.security.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(SecurityGuardRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|digits:10',
-            'shift' => 'required|in:day,night',
-            'aadhar_last4' => 'nullable|digits:4',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         $photoPath = null;
         if ($request->hasFile('photo')) {
@@ -72,15 +66,9 @@ class SecurityGuardController extends Controller
         return view('society.security.edit', compact('guard'));
     }
 
-    public function update(Request $request, int $guardId): RedirectResponse
+    public function update(SecurityGuardRequest $request, int $guardId): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|digits:10',
-            'shift' => 'required|in:day,night',
-            'aadhar_last4' => 'nullable|digits:4',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         $guard = SecurityGuard::findOrFail($guardId);
 

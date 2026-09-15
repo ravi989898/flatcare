@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.complaints.store') }}" method="POST">
+    <form action="{{ route('society.complaints.store') }}" method="POST" novalidate>
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
@@ -34,12 +34,12 @@
 
                     <div class="col-md-6">
                         <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
-                        <input type="text" name="subject" id="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject') }}" placeholder="e.g. Loud music late at night" required>
+                        <input type="text" name="subject" id="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject') }}" placeholder="e.g. Loud music late at night" maxlength="255" required>
                         @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="against" class="form-label">Against</label>
-                        <input type="text" name="against" id="against" class="form-control @error('against') is-invalid @enderror" value="{{ old('against') }}" placeholder="e.g. Flat B-203, Security guard">
+                        <input type="text" name="against" id="against" class="form-control @error('against') is-invalid @enderror" value="{{ old('against') }}" placeholder="e.g. Flat B-203, Security guard" maxlength="255">
                         @error('against')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -61,12 +61,12 @@
 
                     <div class="col-md-6">
                         <label for="raised_by_name" class="form-label">Raised By <span class="text-danger">*</span></label>
-                        <input type="text" name="raised_by_name" id="raised_by_name" class="form-control @error('raised_by_name') is-invalid @enderror" value="{{ old('raised_by_name') }}" required>
+                        <input type="text" name="raised_by_name" id="raised_by_name" class="form-control @error('raised_by_name') is-invalid @enderror" value="{{ old('raised_by_name') }}" maxlength="255" required>
                         @error('raised_by_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="raised_by_phone" class="form-label">Contact Phone</label>
-                        <input type="text" name="raised_by_phone" id="raised_by_phone" class="form-control @error('raised_by_phone') is-invalid @enderror" value="{{ old('raised_by_phone') }}">
+                        <input type="text" name="raised_by_phone" id="raised_by_phone" class="form-control @error('raised_by_phone') is-invalid @enderror" value="{{ old('raised_by_phone') }}" maxlength="20">
                         @error('raised_by_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

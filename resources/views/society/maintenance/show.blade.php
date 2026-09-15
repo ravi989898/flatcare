@@ -92,7 +92,7 @@
             <div class="card stat-card">
                 <div class="card-header bg-white"><strong>Update Request</strong></div>
                 <div class="card-body p-4">
-                    <form action="{{ route('society.maintenance.update', $maintenanceRequest->id) }}" method="POST">
+                    <form action="{{ route('society.maintenance.update', $maintenanceRequest->id) }}" method="POST" novalidate>
                         @csrf
                         @method('PUT')
 
@@ -126,7 +126,7 @@
 
                         <div class="mb-3">
                             <label for="note" class="form-label">Note</label>
-                            <textarea name="note" id="note" rows="3" class="form-control" placeholder="What changed / resolution details…"></textarea>
+                            <textarea name="note" id="note" rows="3" maxlength="1000" class="form-control" placeholder="What changed / resolution details…"></textarea>
                         </div>
 
                         <button type="submit" class="btn btn-brand w-100"><i class="bi bi-check-lg"></i> Save Update</button>

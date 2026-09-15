@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.announcements.store') }}" method="POST">
+    <form action="{{ route('society.announcements.store') }}" method="POST" novalidate>
         @csrf
         @include('society.announcements._form', ['announcement' => null])
 

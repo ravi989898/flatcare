@@ -99,7 +99,7 @@
                 <div class="card stat-card">
                     <div class="card-header bg-white"><strong>Record Payment</strong></div>
                     <div class="card-body p-4">
-                        <form action="{{ route('society.payments.pay', $bill->id) }}" method="POST">
+                        <form action="{{ route('society.payments.pay', $bill->id) }}" method="POST" novalidate>
                             @csrf
                             <div class="mb-3">
                                 <label for="amount" class="form-label">Amount (₹)</label>
@@ -120,11 +120,11 @@
                             </div>
                             <div class="mb-3">
                                 <label for="reference_number" class="form-label">Reference Number</label>
-                                <input type="text" name="reference_number" id="reference_number" class="form-control" placeholder="Optional — UTR, cheque no., etc.">
+                                <input type="text" name="reference_number" id="reference_number" class="form-control" placeholder="Optional — UTR, cheque no., etc." maxlength="100">
                             </div>
                             <div class="mb-3">
                                 <label for="notes" class="form-label">Notes</label>
-                                <textarea name="notes" id="notes" rows="2" class="form-control"></textarea>
+                                <textarea name="notes" id="notes" rows="2" maxlength="500" class="form-control"></textarea>
                             </div>
                             <button type="submit" class="btn btn-brand w-100"><i class="bi bi-cash-coin"></i> Record Payment</button>
                         </form>

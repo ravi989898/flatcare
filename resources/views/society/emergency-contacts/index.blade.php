@@ -15,23 +15,23 @@
     <div class="card stat-card mb-3">
         <div class="card-header bg-white"><strong>Add a Contact</strong></div>
         <div class="card-body">
-            <form action="{{ route('society.emergency-contacts.store') }}" method="POST" class="row g-2 align-items-end">
+            <form action="{{ route('society.emergency-contacts.store') }}" method="POST" class="row g-2 align-items-end" novalidate>
                 @csrf
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Label</label>
-                    <input type="text" name="label" class="form-control" placeholder="e.g. Security" required>
+                    <input type="text" name="label" class="form-control" placeholder="e.g. Security" maxlength="100" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Type</label>
-                    <input type="text" name="type" class="form-control" placeholder="e.g. security" required>
+                    <input type="text" name="type" class="form-control" placeholder="e.g. security" maxlength="50" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Phone</label>
-                    <input type="text" name="phone" class="form-control" required>
+                    <input type="text" name="phone" class="form-control" maxlength="20" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Availability</label>
-                    <input type="text" name="availability" class="form-control" placeholder="24x7 Available">
+                    <input type="text" name="availability" class="form-control" placeholder="24x7 Available" maxlength="100">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small text-muted">Order</label>
@@ -63,12 +63,12 @@
                                 {{-- Inputs reference this form via the "form" attribute rather than
                                      nesting a <form> inside <tr>/<td>, which browsers handle
                                      inconsistently. --}}
-                                <form id="edit-contact-{{ $contact->id }}" action="{{ route('society.emergency-contacts.update', $contact->id) }}" method="POST"></form>
+                                <form id="edit-contact-{{ $contact->id }}" action="{{ route('society.emergency-contacts.update', $contact->id) }}" method="POST" novalidate></form>
                                 <tr>
-                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="label" class="form-control form-control-sm" value="{{ $contact->label }}"></td>
-                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="type" class="form-control form-control-sm" value="{{ $contact->type }}"></td>
-                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $contact->phone }}"></td>
-                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="availability" class="form-control form-control-sm" value="{{ $contact->availability }}"></td>
+                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="label" class="form-control form-control-sm" value="{{ $contact->label }}" maxlength="100"></td>
+                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="type" class="form-control form-control-sm" value="{{ $contact->type }}" maxlength="50"></td>
+                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $contact->phone }}" maxlength="20"></td>
+                                    <td><input form="edit-contact-{{ $contact->id }}" type="text" name="availability" class="form-control form-control-sm" value="{{ $contact->availability }}" maxlength="100"></td>
                                     <td class="text-end text-nowrap">
                                         @csrf
                                         @method('PUT')

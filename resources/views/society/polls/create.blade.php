@@ -12,12 +12,12 @@
 
     <div class="card stat-card">
         <div class="card-body">
-            <form action="{{ route('society.polls.store') }}" method="POST">
+            <form action="{{ route('society.polls.store') }}" method="POST" novalidate>
                 @csrf
 
                 <div class="mb-3">
                     <label class="form-label small text-muted">Question</label>
-                    <input type="text" name="question" class="form-control @error('question') is-invalid @enderror" value="{{ old('question') }}" required>
+                    <input type="text" name="question" class="form-control @error('question') is-invalid @enderror" value="{{ old('question') }}" maxlength="255" required>
                     @error('question')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
@@ -37,7 +37,7 @@
                 <div id="options-wrap">
                     @foreach ($oldOptions as $option)
                         <div class="input-group mb-2">
-                            <input type="text" name="options[]" class="form-control" value="{{ $option }}" placeholder="Option label" required>
+                            <input type="text" name="options[]" class="form-control" value="{{ $option }}" placeholder="Option label" maxlength="255" required>
                         </div>
                     @endforeach
                 </div>
@@ -45,7 +45,7 @@
                     const wrap = document.getElementById('options-wrap');
                     const row = document.createElement('div');
                     row.className = 'input-group mb-2';
-                    row.innerHTML = '<input type=&quot;text&quot; name=&quot;options[]&quot; class=&quot;form-control&quot; placeholder=&quot;Option label&quot; required>';
+                    row.innerHTML = '<input type=&quot;text&quot; name=&quot;options[]&quot; class=&quot;form-control&quot; placeholder=&quot;Option label&quot; maxlength=&quot;255&quot; required>';
                     wrap.appendChild(row);
                 ">
                     <i class="bi bi-plus-lg"></i> Add Option

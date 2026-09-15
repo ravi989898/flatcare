@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\AnnouncementRequest;
 use App\Models\Tenant\Announcement;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AnnouncementController extends Controller
@@ -42,9 +44,9 @@ class AnnouncementController extends Controller
         return view('society.announcements.create');
     }
 
-    public function store(Request $request, NotificationService $notifications): RedirectResponse
+    public function store(AnnouncementRequest $request, NotificationService $notifications): RedirectResponse
     {
-        $validated = $this->validateAnnouncement($request);
+        $validated = $request->validated();
 
         $announcement = Announcement::create([
             ...$validated,
@@ -56,7 +58,7 @@ class AnnouncementController extends Controller
         $notifications->notifyAllResidents(
             'new_notice',
             $announcement->title,
-            \Illuminate\Support\Str::limit($announcement->body, 120),
+            Str::limit($announcement->body, 120),
             ['announcement_id' => $announcement->id],
         );
 
@@ -79,10 +81,10 @@ class AnnouncementController extends Controller
         return view('society.announcements.edit', compact('announcement'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(AnnouncementRequest $request, int $id): RedirectResponse
     {
         $announcement = Announcement::findOrFail($id);
-        $validated = $this->validateAnnouncement($request);
+        $validated = $request->validated();
 
         $announcement->update($validated);
 
@@ -102,25 +104,5 @@ class AnnouncementController extends Controller
         return redirect()
             ->route('society.announcements.index')
             ->with('success', 'Announcement archived.');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function validateAnnouncement(Request $request): array
-    {
-        // A blank date input arrives as "" rather than absent; normalize so
-        // the nullable|date rule doesn't reject an intentionally empty field.
-        if ($request->input('expires_at') === '') {
-            $request->merge(['expires_at' => null]);
-        }
-
-        return $request->validate([
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'category' => 'required|in:' . implode(',', Announcement::CATEGORIES),
-            'is_pinned' => 'boolean',
-            'expires_at' => 'nullable|date|after:now',
-        ]);
     }
 }

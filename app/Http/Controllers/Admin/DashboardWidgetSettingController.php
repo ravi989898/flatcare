@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\VisibilityMapRequest;
 use App\Models\AuditLog;
 use App\Models\DashboardWidget;
 use App\Models\RoleDefinition;
 use App\Models\SuperAdmin;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -33,12 +33,9 @@ class DashboardWidgetSettingController extends Controller
         return view('admin.settings.dashboard-widgets', compact('roles', 'widgets', 'visibility'));
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(VisibilityMapRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'visibility' => 'array',
-            'visibility.*' => 'array',
-        ]);
+        $validated = $request->validated();
 
         $roles = RoleDefinition::all();
         $widgets = DashboardWidget::all();

@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.directory.store') }}" method="POST">
+    <form action="{{ route('society.directory.store') }}" method="POST" novalidate>
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
@@ -34,12 +34,12 @@
 
                     <div class="col-md-6">
                         <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
+                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" maxlength="255" required>
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" required>
+                        <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" maxlength="20" required>
                         @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 

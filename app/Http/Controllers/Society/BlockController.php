@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\BlockRequest;
+use App\Http\Requests\Society\StoreFlatsRequest;
+use App\Http\Requests\Society\UpdateFlatRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -31,9 +33,9 @@ class BlockController extends Controller
         return view('society.blocks.create');
     }
 
-    public function blocksStore(Request $request): RedirectResponse
+    public function blocksStore(BlockRequest $request): RedirectResponse
     {
-        $validated = $this->validateBlock($request);
+        $validated = $request->validated();
 
         Block::create([...$validated, 'name' => $validated['block_number'], 'status' => 'active']);
 
@@ -49,10 +51,10 @@ class BlockController extends Controller
         return view('society.blocks.edit', compact('block'));
     }
 
-    public function blocksUpdate(Request $request, int $blockId): RedirectResponse
+    public function blocksUpdate(BlockRequest $request, int $blockId): RedirectResponse
     {
         $block = Block::findOrFail($blockId);
-        $validated = $this->validateBlock($request, $block->id);
+        $validated = $request->validated();
 
         $block->update([...$validated, 'name' => $validated['block_number']]);
 
@@ -100,13 +102,9 @@ class BlockController extends Controller
      * accepts a flat number per line (or comma-separated) so a block with
      * dozens of units doesn't need one form submission each.
      */
-    public function flatsStore(Request $request, int $blockId): RedirectResponse
+    public function flatsStore(StoreFlatsRequest $request, int $blockId): RedirectResponse
     {
         $block = Block::findOrFail($blockId);
-
-        $request->validate([
-            'flat_numbers' => 'required|string',
-        ]);
 
         $numbers = collect(preg_split('/[\r\n,]+/', $request->string('flat_numbers')->value()))
             ->map(fn ($number) => trim($number))
@@ -150,12 +148,12 @@ class BlockController extends Controller
 
         $block->increment('total_flats', $toCreate->count() + $restorable->count());
 
-        $message = "{$toCreate->count()} flat" . ($toCreate->count() === 1 ? '' : 's') . ' created.';
+        $message = "{$toCreate->count()} flat".($toCreate->count() === 1 ? '' : 's').' created.';
         if ($restorable->isNotEmpty()) {
-            $message .= " {$restorable->count()} previously-deleted flat" . ($restorable->count() === 1 ? '' : 's') . ' restored: ' . $restorable->keys()->implode(', ') . '.';
+            $message .= " {$restorable->count()} previously-deleted flat".($restorable->count() === 1 ? '' : 's').' restored: '.$restorable->keys()->implode(', ').'.';
         }
         if ($active->isNotEmpty()) {
-            $message .= ' Already existed, skipped: ' . $active->implode(', ') . '.';
+            $message .= ' Already existed, skipped: '.$active->implode(', ').'.';
         }
 
         return redirect()
@@ -186,11 +184,11 @@ class BlockController extends Controller
         return view('society.blocks.flats.edit', compact('block', 'flat'));
     }
 
-    public function flatsUpdate(Request $request, int $blockId, int $flatId): RedirectResponse
+    public function flatsUpdate(UpdateFlatRequest $request, int $blockId, int $flatId): RedirectResponse
     {
         $block = Block::findOrFail($blockId);
         $flat = Flat::where('block_id', $block->id)->findOrFail($flatId);
-        $validated = $this->validateFlat($request, $flat->id);
+        $validated = $request->validated();
 
         $flat->update([
             'flat_number' => $validated['flat_number'],
@@ -218,7 +216,7 @@ class BlockController extends Controller
 
         return redirect()
             ->route('society.blocks.flats.index', $blockId)
-            ->with('success', "Flat {$flat->flat_number} marked " . ($flat->status === 'active' ? 'active' : 'inactive') . '.');
+            ->with('success', "Flat {$flat->flat_number} marked ".($flat->status === 'active' ? 'active' : 'inactive').'.');
     }
 
     public function flatsDestroy(int $blockId, int $flatId): RedirectResponse
@@ -232,20 +230,5 @@ class BlockController extends Controller
         return redirect()
             ->route('society.blocks.flats.index', $blockId)
             ->with('success', 'Flat deleted successfully.');
-    }
-
-    private function validateBlock(Request $request, ?int $ignoreId = null): array
-    {
-        return $request->validate([
-            'block_number' => 'required|string|max:255|unique:society.blocks,block_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-        ]);
-    }
-
-    private function validateFlat(Request $request, ?int $ignoreId = null): array
-    {
-        return $request->validate([
-            'flat_number' => 'required|string|max:255|unique:society.flats,flat_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'mobile_number' => 'nullable|string|max:20|unique:society.flats,mobile_number' . ($ignoreId ? ",{$ignoreId}" : ''),
-        ]);
     }
 }

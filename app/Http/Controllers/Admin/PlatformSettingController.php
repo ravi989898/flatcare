@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateIconRequest;
+use App\Http\Requests\Admin\UpdateLogoRequest;
 use App\Models\PlatformSetting;
 use App\Models\SuperAdmin;
 use App\Support\FaviconGenerator;
+use App\Support\SvgSanitizer;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -25,16 +27,25 @@ class PlatformSettingController extends Controller
      * new one is stored, so a failed upload never leaves the platform
      * without a logo.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateLogoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'logo' => 'required|image|mimes:png,jpg,jpeg,svg,webp|max:2048',
-        ]);
-
         $settings = PlatformSetting::current();
         $previousPath = $settings->logo_path;
 
-        $newPath = $request->file('logo')->store('branding', 'public');
+        $logo = $request->file('logo');
+
+        if (strtolower($logo->getClientOriginalExtension()) === 'svg') {
+            $sanitized = SvgSanitizer::sanitize((string) file_get_contents($logo->getRealPath()));
+
+            if ($sanitized === '') {
+                return back()->withErrors(['logo' => 'That SVG file could not be safely processed.']);
+            }
+
+            $newPath = 'branding/'.uniqid('logo_', true).'.svg';
+            Storage::disk('public')->put($newPath, $sanitized);
+        } else {
+            $newPath = $logo->store('branding', 'public');
+        }
 
         $settings->update([
             'logo_path' => $newPath,
@@ -83,12 +94,8 @@ class PlatformSettingController extends Controller
      * /favicon.ico request, the admin panel and auth pages too — with
      * no other page needing to change.
      */
-    public function updateIcon(Request $request): RedirectResponse
+    public function updateIcon(UpdateIconRequest $request): RedirectResponse
     {
-        $request->validate([
-            'icon' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048',
-        ]);
-
         $settings = PlatformSetting::current();
         $previousPath = $settings->icon_path;
 

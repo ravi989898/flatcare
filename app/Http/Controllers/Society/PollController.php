@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StorePollRequest;
+use App\Http\Requests\Society\UpdatePollStatusRequest;
 use App\Models\Tenant\Poll;
 use App\Models\Tenant\PollOption;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -24,15 +25,9 @@ class PollController extends Controller
         return view('society.polls.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StorePollRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'question' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'closes_at' => 'nullable|date|after:now',
-            'options' => 'required|array|min:2',
-            'options.*' => 'required|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         $poll = Poll::create([
             'question' => $validated['question'],
@@ -58,13 +53,11 @@ class PollController extends Controller
         return view('society.polls.show', compact('poll'));
     }
 
-    public function updateStatus(Request $request, int $id): RedirectResponse
+    public function updateStatus(UpdatePollStatusRequest $request, int $id): RedirectResponse
     {
         $poll = Poll::findOrFail($id);
 
-        $validated = $request->validate([
-            'status' => 'required|in:' . implode(',', Poll::STATUSES),
-        ]);
+        $validated = $request->validated();
 
         $poll->update($validated);
 

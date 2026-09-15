@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreVisitorRequest;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\Visitor;
 use App\Services\NotificationService;
@@ -53,16 +54,9 @@ class VisitorController extends Controller
     /**
      * Log a new visitor entry (check-in).
      */
-    public function store(Request $request, NotificationService $notifications): RedirectResponse
+    public function store(StoreVisitorRequest $request, NotificationService $notifications): RedirectResponse
     {
-        $validated = $request->validate([
-            'flat_id' => 'required|exists:flats,id',
-            'visitor_name' => 'required|string|max:255',
-            'visitor_phone' => 'nullable|string|max:20',
-            'purpose' => 'required|in:' . implode(',', Visitor::PURPOSES),
-            'vehicle_number' => 'nullable|string|max:20',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         Visitor::create([
             ...$validated,
@@ -90,7 +84,7 @@ class VisitorController extends Controller
     {
         $visitor = Visitor::findOrFail($id);
 
-        if (!$visitor->isCheckedIn()) {
+        if (! $visitor->isCheckedIn()) {
             return back()->with('error', 'This visitor has already checked out.');
         }
 

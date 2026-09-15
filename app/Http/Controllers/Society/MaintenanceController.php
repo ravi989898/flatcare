@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreMaintenanceRequestRequest;
+use App\Http\Requests\Society\UpdateMaintenanceRequestRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceRequest;
@@ -62,18 +64,9 @@ class MaintenanceController extends Controller
     /**
      * Log a new maintenance request.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreMaintenanceRequestRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'block_id' => 'nullable|exists:blocks,id',
-            'flat_id' => 'nullable|exists:flats,id',
-            'category' => 'required|in:' . implode(',', MaintenanceRequest::CATEGORIES),
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'priority' => 'required|in:' . implode(',', MaintenanceRequest::PRIORITIES),
-            'raised_by_name' => 'required|string|max:255',
-            'raised_by_phone' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validated();
 
         $maintenanceRequest = MaintenanceRequest::create([
             ...$validated,
@@ -102,16 +95,11 @@ class MaintenanceController extends Controller
      * Update a request's status, priority, and/or assignment. Every change
      * is appended to the request's history trail.
      */
-    public function update(Request $request, int $id, NotificationService $notifications): RedirectResponse
+    public function update(UpdateMaintenanceRequestRequest $request, int $id, NotificationService $notifications): RedirectResponse
     {
         $maintenanceRequest = MaintenanceRequest::findOrFail($id);
 
-        $validated = $request->validate([
-            'status' => 'required|in:' . implode(',', MaintenanceRequest::STATUSES),
-            'priority' => 'required|in:' . implode(',', MaintenanceRequest::PRIORITIES),
-            'assigned_to_user_id' => 'nullable|exists:users,id',
-            'note' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $statusChanged = $validated['status'] !== $maintenanceRequest->status;
 

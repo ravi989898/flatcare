@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreDocumentRequest;
 use App\Models\Tenant\Document;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,13 +33,9 @@ class DocumentController extends Controller
         return view('society.documents.index', ['documents' => $documents, 'category' => $category]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreDocumentRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|in:' . implode(',', Document::CATEGORIES),
-            'file' => 'required|file|max:10240', // 10 MB
-        ]);
+        $validated = $request->validated();
 
         $file = $request->file('file');
         $path = $file->store('documents', 'public');

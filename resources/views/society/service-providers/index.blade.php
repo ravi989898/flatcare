@@ -15,23 +15,23 @@
     <div class="card stat-card mb-3">
         <div class="card-header bg-white"><strong>Add a Service Provider</strong></div>
         <div class="card-body">
-            <form action="{{ route('society.service-providers.store') }}" method="POST" class="row g-2 align-items-end">
+            <form action="{{ route('society.service-providers.store') }}" method="POST" class="row g-2 align-items-end" novalidate>
                 @csrf
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Name</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <input type="text" name="name" class="form-control" maxlength="100" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Service Type</label>
-                    <input type="text" name="service_type" class="form-control" placeholder="e.g. Plumber" required>
+                    <input type="text" name="service_type" class="form-control" placeholder="e.g. Plumber" maxlength="100" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Phone</label>
-                    <input type="text" name="phone" class="form-control" required>
+                    <input type="text" name="phone" class="form-control" maxlength="20" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Notes</label>
-                    <input type="text" name="notes" class="form-control" placeholder="e.g. Available 9am-6pm">
+                    <input type="text" name="notes" class="form-control" placeholder="e.g. Available 9am-6pm" maxlength="255">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small text-muted">Order</label>
@@ -60,12 +60,12 @@
                         </thead>
                         <tbody>
                             @foreach ($providers as $provider)
-                                <form id="edit-provider-{{ $provider->id }}" action="{{ route('society.service-providers.update', $provider->id) }}" method="POST"></form>
+                                <form id="edit-provider-{{ $provider->id }}" action="{{ route('society.service-providers.update', $provider->id) }}" method="POST" novalidate></form>
                                 <tr>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $provider->name }}"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="service_type" class="form-control form-control-sm" value="{{ $provider->service_type }}"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $provider->phone }}"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="notes" class="form-control form-control-sm" value="{{ $provider->notes }}"></td>
+                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $provider->name }}" maxlength="100"></td>
+                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="service_type" class="form-control form-control-sm" value="{{ $provider->service_type }}" maxlength="100"></td>
+                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $provider->phone }}" maxlength="20"></td>
+                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="notes" class="form-control form-control-sm" value="{{ $provider->notes }}" maxlength="255"></td>
                                     <td class="text-end text-nowrap">
                                         @csrf
                                         @method('PUT')

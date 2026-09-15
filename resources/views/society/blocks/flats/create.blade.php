@@ -9,7 +9,7 @@
 @section('content')
     <div class="card stat-card">
         <div class="card-header bg-white"><strong>New Flats</strong></div>
-        <form action="{{ route('society.blocks.flats.store', $block->id) }}" method="POST">
+        <form action="{{ route('society.blocks.flats.store', $block->id) }}" method="POST" novalidate>
             @csrf
             <div class="card-body">
                 <div class="mb-3">

@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.visitors.store') }}" method="POST">
+    <form action="{{ route('society.visitors.store') }}" method="POST" novalidate>
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
@@ -34,24 +34,24 @@
 
                     <div class="col-md-6">
                         <label for="visitor_name" class="form-label">Visitor Name <span class="text-danger">*</span></label>
-                        <input type="text" name="visitor_name" id="visitor_name" class="form-control @error('visitor_name') is-invalid @enderror" value="{{ old('visitor_name') }}" required>
+                        <input type="text" name="visitor_name" id="visitor_name" class="form-control @error('visitor_name') is-invalid @enderror" value="{{ old('visitor_name') }}" maxlength="255" required>
                         @error('visitor_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="visitor_phone" class="form-label">Phone</label>
-                        <input type="text" name="visitor_phone" id="visitor_phone" class="form-control @error('visitor_phone') is-invalid @enderror" value="{{ old('visitor_phone') }}">
+                        <input type="text" name="visitor_phone" id="visitor_phone" class="form-control @error('visitor_phone') is-invalid @enderror" value="{{ old('visitor_phone') }}" maxlength="20">
                         @error('visitor_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-md-6">
                         <label for="vehicle_number" class="form-label">Vehicle Number</label>
-                        <input type="text" name="vehicle_number" id="vehicle_number" class="form-control @error('vehicle_number') is-invalid @enderror" value="{{ old('vehicle_number') }}" placeholder="Optional">
+                        <input type="text" name="vehicle_number" id="vehicle_number" class="form-control @error('vehicle_number') is-invalid @enderror" value="{{ old('vehicle_number') }}" placeholder="Optional" maxlength="20">
                         @error('vehicle_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-12">
                         <label for="notes" class="form-label">Notes</label>
-                        <textarea name="notes" id="notes" rows="2" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
+                        <textarea name="notes" id="notes" rows="2" maxlength="1000" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
                         @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

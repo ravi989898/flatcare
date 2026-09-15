@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreResidentRequest;
+use App\Http\Requests\Society\UpdateResidentCommitteeRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\FlatResident;
@@ -64,16 +66,9 @@ class DirectoryController extends Controller
      * this just gets the resident into the system so other modules
      * (visitors, complaints, maintenance) can reference them.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreResidentRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'flat_id' => 'required|exists:flats,id',
-            'resident_type' => 'required|in:owner,tenant,occupant',
-            'is_primary' => 'boolean',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20|unique:users,phone',
-        ]);
+        $validated = $request->validated();
 
         $user = User::create([
             'name' => $validated['name'],
@@ -117,14 +112,11 @@ class DirectoryController extends Controller
      * tab) — see the committee_position/committee_order columns' migration
      * docblock for why this is two plain fields rather than an RBAC role.
      */
-    public function updateCommittee(Request $request, int $userId): RedirectResponse
+    public function updateCommittee(UpdateResidentCommitteeRequest $request, int $userId): RedirectResponse
     {
         $resident = User::findOrFail($userId);
 
-        $validated = $request->validate([
-            'committee_position' => 'nullable|string|max:100',
-            'committee_order' => 'nullable|integer|min:0',
-        ]);
+        $validated = $request->validated();
 
         $resident->update([
             'committee_position' => $validated['committee_position'] ?: null,

@@ -11,12 +11,12 @@
         <div class="card-header">
             <h3 class="card-title">Security Guard Details</h3>
         </div>
-        <form action="{{ route('admin.societies.security.store', $society->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.societies.security.store', $society->id) }}" method="POST" enctype="multipart/form-data" novalidate>
             @csrf
             <div class="card-body">
                 <div class="form-group">
                     <label for="name">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" maxlength="255" required>
                     @error('name')
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
@@ -24,7 +24,7 @@
 
                 <div class="form-group">
                     <label for="phone">Phone <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder="10 digits" required>
+                    <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder="10 digits" maxlength="10" data-validate="phone" required>
                     @error('phone')
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
@@ -54,7 +54,7 @@
 
                 <div class="form-group">
                     <label for="photo">Photo</label>
-                    <input type="file" class="form-control-file @error('photo') is-invalid @enderror" id="photo" name="photo" accept="image/*">
+                    <input type="file" class="form-control-file @error('photo') is-invalid @enderror" id="photo" name="photo" accept=".jpg,.jpeg,.png,.webp" data-validate="file" data-allowed-ext="jpg,jpeg,png,webp" data-max-size-kb="2048">
                     @error('photo')
                         <span class="invalid-feedback d-block">{{ $message }}</span>
                     @enderror

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateUserRoleRequest;
 use App\Models\Society;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
@@ -57,13 +58,11 @@ class SocietyUserController extends Controller
      * role row - a plain update() silently does nothing for a user who has
      * never had a role assigned yet.
      */
-    public function updateRole(Request $request, int $societyId, int $userId): RedirectResponse
+    public function updateRole(UpdateUserRoleRequest $request, int $societyId, int $userId): RedirectResponse
     {
         $this->tenantService->switchConnection($societyId);
 
-        $validated = $request->validate([
-            'role_id' => 'nullable|exists:society.roles,id',
-        ]);
+        $validated = $request->validated();
 
         DB::connection('society')->table('role_user')->where('user_id', $userId)->delete();
 

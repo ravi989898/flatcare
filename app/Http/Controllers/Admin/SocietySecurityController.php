@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\ManagesSecurityGuardDuty;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SecurityGuardRequest;
 use App\Models\Society;
 use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\SecurityGuardLog;
@@ -46,17 +47,11 @@ class SocietySecurityController extends Controller
         return view('admin.societies.security.create', compact('society'));
     }
 
-    public function store(Request $request, int $societyId)
+    public function store(SecurityGuardRequest $request, int $societyId)
     {
         $society = Society::findOrFail($societyId);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|digits:10',
-            'shift' => 'required|in:day,night',
-            'aadhar_last4' => 'nullable|digits:4',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         $this->tenantService->switchConnection($societyId);
 
@@ -92,17 +87,11 @@ class SocietySecurityController extends Controller
         return view('admin.societies.security.edit', compact('society', 'guard'));
     }
 
-    public function update(Request $request, int $societyId, int $guardId)
+    public function update(SecurityGuardRequest $request, int $societyId, int $guardId)
     {
         $society = Society::findOrFail($societyId);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|digits:10',
-            'shift' => 'required|in:day,night',
-            'aadhar_last4' => 'nullable|digits:4',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         $this->tenantService->switchConnection($societyId);
 

@@ -73,7 +73,7 @@
                                     <input type="password" class="form-control" name="password_confirmation" form="{{ $formId }}" minlength="10" required>
                                 </td>
                                 <td class="align-middle">
-                                    <form id="{{ $formId }}" action="{{ route('admin.societies.admins.reset_password', [$society->id, $admin->id]) }}" method="POST">
+                                    <form id="{{ $formId }}" action="{{ route('admin.societies.admins.reset_password', [$society->id, $admin->id]) }}" method="POST" novalidate>
                                         @csrf
                                     </form>
                                     <button type="submit" form="{{ $formId }}" class="btn btn-sm btn-primary" onclick="return confirm('Reset password for {{ $admin->name }}?')">

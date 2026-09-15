@@ -686,33 +686,33 @@
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('trial_inquiries.store') }}" method="POST" class="modal-body px-4 pb-4 pt-2">
+                <form action="{{ route('trial_inquiries.store') }}" method="POST" class="modal-body px-4 pb-4 pt-2" novalidate>
                     @csrf
                     <div class="mb-3">
                         <label for="society_name" class="form-label small fw-semibold">Society name</label>
-                        <input type="text" name="society_name" id="society_name" value="{{ old('society_name') }}" class="form-control @error('society_name') is-invalid @enderror" required>
+                        <input type="text" name="society_name" id="society_name" value="{{ old('society_name') }}" class="form-control @error('society_name') is-invalid @enderror" maxlength="255" required>
                         @error('society_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="mb-3">
                         <label for="contact_name" class="form-label small fw-semibold">Your name</label>
-                        <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name') }}" class="form-control @error('contact_name') is-invalid @enderror" required>
+                        <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name') }}" class="form-control @error('contact_name') is-invalid @enderror" maxlength="255" required>
                         @error('contact_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
                             <label for="email" class="form-label small fw-semibold">Email address</label>
-                            <input type="email" name="email" id="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" required>
+                            <input type="email" name="email" id="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" maxlength="255" required>
                             @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-sm-6">
                             <label for="phone" class="form-label small fw-semibold">Mobile number</label>
-                            <input type="tel" name="phone" id="phone" value="{{ old('phone') }}" class="form-control @error('phone') is-invalid @enderror" required>
+                            <input type="tel" name="phone" id="phone" value="{{ old('phone') }}" class="form-control @error('phone') is-invalid @enderror" maxlength="30" required>
                             @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
                     <div class="mb-4">
                         <label for="address" class="form-label small fw-semibold">Address</label>
-                        <textarea name="address" id="address" rows="2" class="form-control @error('address') is-invalid @enderror" required>{{ old('address') }}</textarea>
+                        <textarea name="address" id="address" rows="2" maxlength="500" class="form-control @error('address') is-invalid @enderror" required>{{ old('address') }}</textarea>
                         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <button type="submit" class="btn btn-brand btn-lg w-100 rounded-pill">Request my free trial</button>

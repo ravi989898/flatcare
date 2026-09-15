@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\StoreWaterReadingsRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
@@ -53,14 +54,14 @@ class WaterReadingController extends Controller
     public function create(Request $request): View
     {
         $month = $request->filled('month')
-            ? Carbon::parse($request->string('month')->trim()->value() . '-01')
+            ? Carbon::parse($request->string('month')->trim()->value().'-01')
             : now()->startOfMonth();
 
         $blocks = Block::active()->withCount(['flats' => fn ($q) => $q->active()])->orderBy('name')->get();
 
         $blockId = $request->integer('block_id') ?: null;
 
-        if (!$blockId) {
+        if (! $blockId) {
             return view('society.water-readings.create', [
                 'month' => $month,
                 'blocks' => $blocks,
@@ -98,18 +99,11 @@ class WaterReadingController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreWaterReadingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'month' => 'required|date_format:Y-m',
-            'block_id' => 'nullable|integer|exists:blocks,id',
-            'readings' => 'required|array',
-            'readings.*.flat_id' => 'required|integer|exists:flats,id',
-            'readings.*.previous_reading' => 'nullable|numeric|min:0',
-            'readings.*.current_reading' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
-        $month = Carbon::parse($validated['month'] . '-01')->startOfMonth();
+        $month = Carbon::parse($validated['month'].'-01')->startOfMonth();
         $dueDate = $month->copy()->addMonthNoOverflow()->startOfMonth()->addDays(4);
 
         $society = $request->attributes->get('society');
@@ -120,7 +114,7 @@ class WaterReadingController extends Controller
         $billed = 0;
 
         foreach ($validated['readings'] as $row) {
-            if (!isset($row['current_reading']) || $row['current_reading'] === '') {
+            if (! isset($row['current_reading']) || $row['current_reading'] === '') {
                 continue; // this flat's reading wasn't entered this round — skip it
             }
 
@@ -152,7 +146,7 @@ class WaterReadingController extends Controller
                     ['water_reading_id' => $reading->id],
                     [
                         'flat_id' => $row['flat_id'],
-                        'title' => $month->format('F Y') . ' Maintenance',
+                        'title' => $month->format('F Y').' Maintenance',
                         'amount' => $amount,
                         'due_date' => $dueDate,
                         'notes' => "Water: {$units} units × ₹{$waterUnitRate} + Fixed ₹{$fixedMaintenance}",
@@ -170,6 +164,6 @@ class WaterReadingController extends Controller
 
         return redirect()
             ->route('society.water-readings.create', ['month' => $validated['month']])
-            ->with('success', "Readings saved and bills generated for {$billed} flat" . ($billed > 1 ? 's' : '') . '.');
+            ->with('success', "Readings saved and bills generated for {$billed} flat".($billed > 1 ? 's' : '').'.');
     }
 }

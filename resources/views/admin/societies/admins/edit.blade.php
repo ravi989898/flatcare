@@ -11,13 +11,13 @@
         <div class="card-header">
             <h3 class="card-title">Update Admin User</h3>
         </div>
-        <form action="{{ route('admin.societies.admins.update', [$society->id, $admin->id]) }}" method="POST">
+        <form action="{{ route('admin.societies.admins.update', [$society->id, $admin->id]) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">
                 <div class="form-group">
                     <label for="name">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $admin->name) }}" required>
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $admin->name) }}" maxlength="255" required>
                     @error('name')
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
@@ -34,7 +34,7 @@
 
                     <div class="form-group col-md-6">
                         <label for="phone">Phone <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone', $admin->phone) }}" placeholder="10 digits" required>
+                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone', $admin->phone) }}" placeholder="10 digits" maxlength="10" data-validate="phone" required>
                         @error('phone')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SocietyRequest;
 use App\Models\AuditLog;
 use App\Models\Module;
 use App\Models\Society;
@@ -61,14 +62,10 @@ class SocietyController extends Controller
      * run tenant migrations, seed default roles/permissions, and enable the
      * selected modules.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(SocietyRequest $request): RedirectResponse
     {
-        $validated = $this->validateSociety($request);
-        $manualDb = $this->validateManualDbFields($request, hasExistingDatabase: false);
-
-        if ($manualDb === false) {
-            return back()->withErrors(['db_name' => 'Database Name, User, and Password must all be provided together.'])->withInput();
-        }
+        $validated = $request->societyFields();
+        $manualDb = $request->manualDbFields();
 
         $society = DB::connection('main')->transaction(function () use ($validated, $request) {
             $slug = $this->uniqueSlug($validated['name']);
@@ -119,7 +116,7 @@ class SocietyController extends Controller
             $society->fresh()->toArray(),
         );
 
-        if (!$provisioned) {
+        if (! $provisioned) {
             return redirect()
                 ->route('admin.societies.index')
                 ->with('warning', "Society \"{$society->name}\" was created, but its database could not be fully provisioned. Check the logs and retry provisioning.");
@@ -156,15 +153,11 @@ class SocietyController extends Controller
      * Update a society's profile fields (not its database or modules —
      * those go through update()'s dedicated actions).
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(SocietyRequest $request, int $id): RedirectResponse
     {
         $society = Society::findOrFail($id);
-        $validated = $this->validateSociety($request, $society->id);
-        $manualDb = $this->validateManualDbFields($request, hasExistingDatabase: $society->database !== null);
-
-        if ($manualDb === false) {
-            return back()->withErrors(['db_name' => 'Database Name and User are required (Password too, unless one is already on file).'])->withInput();
-        }
+        $validated = $request->societyFields();
+        $manualDb = $request->manualDbFields();
 
         $before = $society->toArray();
         $society->update($validated);
@@ -232,9 +225,9 @@ class SocietyController extends Controller
             'module_id' => $module->id,
         ]);
 
-        $enabling = !$societyModule->exists || !$societyModule->is_enabled;
+        $enabling = ! $societyModule->exists || ! $societyModule->is_enabled;
 
-        if ($module->is_core && !$enabling) {
+        if ($module->is_core && ! $enabling) {
             return back()->with('warning', "\"{$module->display_name}\" is a core module and cannot be disabled.");
         }
 
@@ -255,7 +248,7 @@ class SocietyController extends Controller
             $module->id,
         );
 
-        return back()->with('success', "\"{$module->display_name}\" " . ($enabling ? 'enabled' : 'disabled') . " for {$society->name}.");
+        return back()->with('success', "\"{$module->display_name}\" ".($enabling ? 'enabled' : 'disabled')." for {$society->name}.");
     }
 
     /**
@@ -278,83 +271,11 @@ class SocietyController extends Controller
             && $this->tenantService->runTenantMigrations($society->id)
             && $this->tenantService->seedTenantDatabase($society->id);
 
-        if (!$provisioned) {
+        if (! $provisioned) {
             return back()->with('warning', 'Provisioning failed again. Check application logs for details.');
         }
 
         return back()->with('success', 'Society database provisioned successfully.');
-    }
-
-    /**
-     * Shared validation for store/update.
-     */
-    private function validateSociety(Request $request, ?int $ignoreId = null): array
-    {
-        // Blank optional text inputs arrive as "" rather than absent; normalize
-        // them to null so nullable numeric/date columns don't receive "".
-        $request->merge(collect($request->only(['registration_number', 'total_flats', 'total_blocks', 'fixed_maintenance', 'water_unit_rate', 'admin_name', 'admin_email', 'admin_phone', 'alternate_phone', 'description']))
-            ->map(fn ($value) => $value === '' ? null : $value)
-            ->all());
-
-        return $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'email' => 'required|email|unique:main.societies,email' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'phone' => 'required|string|max:20',
-            'alternate_phone' => 'nullable|string|max:20',
-            'address' => 'required|string',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
-            'country' => 'nullable|string|max:255',
-            'postal_code' => 'required|string|max:20',
-            'registration_number' => 'nullable|string|max:255',
-            'total_flats' => 'nullable|integer|min:0',
-            'total_blocks' => 'nullable|integer|min:0',
-            'fixed_maintenance' => 'nullable|numeric|min:0',
-            'water_unit_rate' => 'nullable|numeric|min:0',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'status' => 'required|in:active,inactive,expired,archived',
-            'is_trial' => 'boolean',
-            'payment_verified' => 'boolean',
-            'admin_name' => 'nullable|string|max:255',
-            'admin_email' => 'nullable|email|max:255',
-            'admin_phone' => 'nullable|string|max:20',
-        ]);
-    }
-
-    /**
-     * Reads the optional manual db_name/db_user/db_password fields (used
-     * when the hosting environment doesn't let the app CREATE DATABASE
-     * itself, so the super admin creates the tenant database by hand and
-     * pastes its credentials in here instead).
-     *
-     * Returns null if none of the three were provided (the normal
-     * auto-provisioning path), an array of the three values if a usable set
-     * was provided, or false if the set was incomplete and the caller
-     * should reject the request. $hasExistingDatabase allows the password
-     * to be left blank (kept as-is) when editing a society that already has
-     * database credentials on file.
-     */
-    private function validateManualDbFields(Request $request, bool $hasExistingDatabase): array|false|null
-    {
-        $dbName = trim((string) $request->input('db_name'));
-        $dbUser = trim((string) $request->input('db_user'));
-        $dbPassword = trim((string) $request->input('db_password'));
-
-        if ($dbName === '' && $dbUser === '' && $dbPassword === '') {
-            return null;
-        }
-
-        if ($dbName === '' || $dbUser === '' || ($dbPassword === '' && !$hasExistingDatabase)) {
-            return false;
-        }
-
-        return [
-            'db_name' => $dbName,
-            'db_user' => $dbUser,
-            'db_password' => $dbPassword === '' ? null : $dbPassword,
-        ];
     }
 
     /**
@@ -368,7 +289,7 @@ class SocietyController extends Controller
         $suffix = 1;
 
         while (Society::withTrashed()->where('slug', $slug)->exists()) {
-            $slug = "{$base}-" . ++$suffix;
+            $slug = "{$base}-".++$suffix;
         }
 
         return $slug;

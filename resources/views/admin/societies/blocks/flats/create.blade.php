@@ -11,7 +11,7 @@
         <div class="card-header">
             <h3 class="card-title">New Flats</h3>
         </div>
-        <form action="{{ route('admin.societies.blocks.flats.store', [$society->id, $block->id]) }}" method="POST">
+        <form action="{{ route('admin.societies.blocks.flats.store', [$society->id, $block->id]) }}" method="POST" novalidate>
             @csrf
             <div class="card-body">
                 <div class="form-group">

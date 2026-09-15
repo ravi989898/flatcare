@@ -8,7 +8,7 @@
         <div class="row">
             <div class="col-12">
                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ $old('title') }}" placeholder="e.g. Managing Committee Election 2026" required>
+                <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ $old('title') }}" placeholder="e.g. Managing Committee Election 2026" maxlength="255" required>
                 @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 

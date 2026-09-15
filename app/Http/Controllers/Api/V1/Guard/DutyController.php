@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1\Guard;
 
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Controllers\Concerns\ManagesSecurityGuardDuty;
+use App\Http\Requests\Api\V1\Guard\StartDutyRequest;
 use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\SecurityGuardLog;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Lets a guard start/end their own duty shift from the app, instead of only
@@ -36,13 +36,9 @@ class DutyController extends ApiController
         ]);
     }
 
-    public function start(Request $request): JsonResponse
+    public function start(StartDutyRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'shift' => 'required|in:day,night',
-        ]);
-
-        $this->assignShift($this->guard(), $validated['shift']);
+        $this->assignShift($this->guard(), $request->validated('shift'));
 
         return $this->ok(null, 'You are now on duty.');
     }

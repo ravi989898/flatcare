@@ -18,7 +18,7 @@
         <div class="card-header">
             <h3 class="card-title">Society Portal Sidebar — Visibility by Role</h3>
         </div>
-        <form action="{{ route('admin.settings.menu.update') }}" method="POST">
+        <form action="{{ route('admin.settings.menu.update') }}" method="POST" novalidate>
             @csrf
             <div class="card-body p-0">
                 <div class="table-responsive">

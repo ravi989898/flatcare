@@ -413,6 +413,20 @@ return [
                 ],
             ],
         ],
+        'Validation' => [
+            // Loaded globally (every page extends adminlte::page, both the
+            // Super Admin and Society portals) so client-side form/file
+            // validation (public/js/validation.js) runs everywhere without
+            // each individual view needing to remember to include it.
+            'active' => true,
+            'files' => [
+                [
+                    'type' => 'js',
+                    'asset' => true,
+                    'location' => 'js/validation.js',
+                ],
+            ],
+        ],
         'Sweetalert2' => [
             'active' => false,
             'files' => [

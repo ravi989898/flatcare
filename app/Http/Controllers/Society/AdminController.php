@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\AdminUserRequest;
 use App\Models\Tenant\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
@@ -23,8 +23,8 @@ class AdminController extends Controller
     public function index(): View
     {
         $admins = User::whereHas('roles', function ($query) {
-                $query->where('name', 'admin');
-            })
+            $query->where('name', 'admin');
+        })
             ->with('roles')
             ->orderBy('name')
             ->paginate(10);
@@ -42,15 +42,9 @@ class AdminController extends Controller
         return view('society.admins.create', compact('roles'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(AdminUserRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:society.users,email',
-            'phone' => 'required|digits:10|unique:society.users,phone',
-            'password' => 'required|min:10|confirmed',
-            'role' => 'required|exists:society.roles,id',
-        ]);
+        $validated = $request->validated();
 
         $userId = DB::connection('society')
             ->table('users')
@@ -93,15 +87,9 @@ class AdminController extends Controller
         return view('society.admins.edit', compact('admin', 'roles', 'adminRole'));
     }
 
-    public function update(Request $request, int $adminId): RedirectResponse
+    public function update(AdminUserRequest $request, int $adminId): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:society.users,email,' . $adminId,
-            'phone' => 'required|digits:10|unique:society.users,phone,' . $adminId,
-            'password' => 'nullable|min:10|confirmed',
-            'role' => 'required|exists:society.roles,id',
-        ]);
+        $validated = $request->validated();
 
         $updates = [
             'name' => $validated['name'],

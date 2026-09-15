@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Society\EventRequest;
 use App\Models\Tenant\Event;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -37,9 +38,9 @@ class EventController extends Controller
         return view('society.events.create');
     }
 
-    public function store(Request $request, NotificationService $notifications): RedirectResponse
+    public function store(EventRequest $request, NotificationService $notifications): RedirectResponse
     {
-        $validated = $this->validateEvent($request);
+        $validated = $request->validated();
 
         $event = Event::create([
             ...$validated,
@@ -73,10 +74,10 @@ class EventController extends Controller
         return view('society.events.edit', compact('event'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(EventRequest $request, int $id): RedirectResponse
     {
         $event = Event::findOrFail($id);
-        $validated = $this->validateEvent($request);
+        $validated = $request->validated();
 
         $event->update($validated);
 
@@ -97,28 +98,5 @@ class EventController extends Controller
         return redirect()
             ->route('society.events.index')
             ->with('success', 'Event cancelled.');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function validateEvent(Request $request): array
-    {
-        // Blank optional inputs arrive as "" rather than absent; normalize
-        // so nullable rules don't reject an intentionally empty field.
-        foreach (['location', 'end_at'] as $field) {
-            if ($request->input($field) === '') {
-                $request->merge([$field => null]);
-            }
-        }
-
-        return $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category' => 'required|in:' . implode(',', Event::CATEGORIES),
-            'location' => 'nullable|string|max:255',
-            'start_at' => 'required|date',
-            'end_at' => 'nullable|date|after:start_at',
-        ]);
     }
 }

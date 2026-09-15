@@ -11,7 +11,7 @@
         <div class="card-header">
             <h3 class="card-title">New Block</h3>
         </div>
-        <form action="{{ route('admin.societies.blocks.store', $society->id) }}" method="POST">
+        <form action="{{ route('admin.societies.blocks.store', $society->id) }}" method="POST" novalidate>
             @csrf
             <div class="card-body">
                 @include('admin.societies.blocks._form')

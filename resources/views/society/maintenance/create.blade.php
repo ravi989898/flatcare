@@ -7,7 +7,7 @@
 @stop
 
 @section('content')
-    <form action="{{ route('society.maintenance.store') }}" method="POST">
+    <form action="{{ route('society.maintenance.store') }}" method="POST" novalidate>
         @csrf
         <div class="card stat-card">
             <div class="card-body p-4">
@@ -54,7 +54,7 @@
 
                     <div class="col-12">
                         <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="e.g. Leaking kitchen tap" required>
+                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="e.g. Leaking kitchen tap" maxlength="255" required>
                         @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -66,12 +66,12 @@
 
                     <div class="col-md-6">
                         <label for="raised_by_name" class="form-label">Raised By <span class="text-danger">*</span></label>
-                        <input type="text" name="raised_by_name" id="raised_by_name" class="form-control @error('raised_by_name') is-invalid @enderror" value="{{ old('raised_by_name') }}" required>
+                        <input type="text" name="raised_by_name" id="raised_by_name" class="form-control @error('raised_by_name') is-invalid @enderror" value="{{ old('raised_by_name') }}" maxlength="255" required>
                         @error('raised_by_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="raised_by_phone" class="form-label">Contact Phone</label>
-                        <input type="text" name="raised_by_phone" id="raised_by_phone" class="form-control @error('raised_by_phone') is-invalid @enderror" value="{{ old('raised_by_phone') }}">
+                        <input type="text" name="raised_by_phone" id="raised_by_phone" class="form-control @error('raised_by_phone') is-invalid @enderror" value="{{ old('raised_by_phone') }}" maxlength="20">
                         @error('raised_by_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

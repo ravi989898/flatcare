@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\RoleRequest;
 use App\Models\AuditLog;
 use App\Models\RoleDefinition;
 use App\Models\SocietyDatabase;
 use App\Models\SuperAdmin;
 use App\Services\TenantService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -37,9 +37,9 @@ class RoleController extends Controller
         return view('admin.settings.roles.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(RoleRequest $request): RedirectResponse
     {
-        $validated = $this->validateRole($request);
+        $validated = $request->validated();
         $validated['is_system_role'] = false;
 
         $role = RoleDefinition::create($validated);
@@ -58,10 +58,10 @@ class RoleController extends Controller
         return view('admin.settings.roles.edit', compact('role'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(RoleRequest $request, int $id): RedirectResponse
     {
         $role = RoleDefinition::findOrFail($id);
-        $validated = $this->validateRole($request, $role);
+        $validated = $request->validated();
 
         if ($role->is_system_role) {
             // The name is what ties this row to every tenant's `roles.name`
@@ -142,20 +142,7 @@ class RoleController extends Controller
 
         return redirect()
             ->route('admin.settings.roles.index')
-            ->with('success', "Role catalog synced to {$synced} " . str('society')->plural($synced) . '.');
-    }
-
-    private function validateRole(Request $request, ?RoleDefinition $ignoring = null): array
-    {
-        return $request->validate([
-            'name' => [
-                'required', 'string', 'max:255', 'regex:/^[a-z][a-z0-9_]*$/',
-                'unique:main.role_definitions,name' . ($ignoring ? ",{$ignoring->id}" : ''),
-            ],
-            'display_name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'priority' => 'required|integer|min:0|max:1000',
-        ]);
+            ->with('success', "Role catalog synced to {$synced} ".str('society')->plural($synced).'.');
     }
 
     private function currentSuperAdmin(): ?SuperAdmin

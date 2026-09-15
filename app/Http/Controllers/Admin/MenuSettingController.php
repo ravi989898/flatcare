@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\VisibilityMapRequest;
 use App\Models\AuditLog;
 use App\Models\MenuItem;
 use App\Models\RoleDefinition;
 use App\Models\SuperAdmin;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -31,12 +31,9 @@ class MenuSettingController extends Controller
         return view('admin.settings.menu', compact('roles', 'menuItems', 'visibility'));
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(VisibilityMapRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'visibility' => 'array',
-            'visibility.*' => 'array',
-        ]);
+        $validated = $request->validated();
 
         $roles = RoleDefinition::all();
         $menuItems = MenuItem::all();

@@ -58,12 +58,12 @@
                 <div class="card-header bg-white"><strong>Committee Membership</strong></div>
                 <div class="card-body">
                     <p class="text-muted small">Set a title (e.g. Chairman, Secretary, Treasurer) to list this resident under Committee Members in the mobile app. Leave blank to remove them from that list.</p>
-                    <form action="{{ route('society.directory.committee.update', $resident->id) }}" method="POST" class="row g-2 align-items-end">
+                    <form action="{{ route('society.directory.committee.update', $resident->id) }}" method="POST" class="row g-2 align-items-end" novalidate>
                         @csrf
                         @method('PUT')
                         <div class="col-sm-7">
                             <label class="form-label small text-muted">Position</label>
-                            <input type="text" name="committee_position" class="form-control" placeholder="e.g. Chairman" value="{{ old('committee_position', $resident->committee_position) }}">
+                            <input type="text" name="committee_position" class="form-control" placeholder="e.g. Chairman" maxlength="100" value="{{ old('committee_position', $resident->committee_position) }}">
                         </div>
                         <div class="col-sm-3">
                             <label class="form-label small text-muted">Order</label>

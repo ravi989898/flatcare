@@ -9,7 +9,7 @@
 @section('content')
     <div class="card stat-card">
         <div class="card-header bg-white"><strong>{{ $flat->flat_number }}</strong></div>
-        <form action="{{ route('society.blocks.flats.update', [$block->id, $flat->id]) }}" method="POST">
+        <form action="{{ route('society.blocks.flats.update', [$block->id, $flat->id]) }}" method="POST" novalidate>
             @csrf
             @method('PUT')
             <div class="card-body">
@@ -17,14 +17,14 @@
                     <label class="form-label">Flat Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control @error('flat_number') is-invalid @enderror"
                         name="flat_number" value="{{ old('flat_number', $flat->flat_number) }}"
-                        placeholder="e.g. {{ $block->block_number }}-101" autofocus required>
+                        placeholder="e.g. {{ $block->block_number }}-101" maxlength="255" autofocus required>
                     @error('flat_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Resident Mobile Number</label>
-                    <input type="text" class="form-control @error('mobile_number') is-invalid @enderror"
-                        name="mobile_number" value="{{ old('mobile_number', $flat->mobile_number) }}" placeholder="e.g. 9876543210">
+                    <input type="tel" class="form-control @error('mobile_number') is-invalid @enderror"
+                        name="mobile_number" value="{{ old('mobile_number', $flat->mobile_number) }}" placeholder="e.g. 9876543210" maxlength="10" data-validate="phone">
                     <small class="form-text text-muted">
                         This is the OTP-login number for the FlatCare resident app - whoever verifies this number in
                         the app is signed in as this flat's resident. Leave blank if no one should be able to log in yet.
