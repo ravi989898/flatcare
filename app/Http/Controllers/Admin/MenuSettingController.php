@@ -9,6 +9,7 @@ use App\Models\MenuItem;
 use App\Models\RoleDefinition;
 use App\Models\SuperAdmin;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -49,6 +50,7 @@ class MenuSettingController extends Controller
             }
 
             $role->menuItems()->sync($pivotData);
+            Cache::forget('society.menu_items.role.' . $role->name);
         }
 
         AuditLog::log($this->currentSuperAdmin(), null, 'menu_settings.updated', 'role_management');
