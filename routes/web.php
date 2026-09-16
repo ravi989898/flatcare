@@ -40,17 +40,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-// Served as a route (not a static public/robots.txt) so the same codebase
-// blocks crawlers on non-production deployments (e.g. the testing site)
-// without needing a different file uploaded per environment.
-Route::get('/robots.txt', function () {
-    $body = app()->environment('production')
-        ? "User-agent: *\nDisallow:\n\nSitemap: ".url('/sitemap.xml')."\n"
-        : "User-agent: *\nDisallow: /\n";
-
-    return response($body)->header('Content-Type', 'text/plain');
-})->name('robots');
-
 // Sitemap for search engines — currently just the marketing homepage since
 // every other route sits behind auth and shouldn't be indexed.
 Route::get('/sitemap.xml', function () {
