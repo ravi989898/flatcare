@@ -15,6 +15,7 @@ class Visitor {
     this.notes,
     this.photoUrl,
     this.flat,
+    this.awaitingApproval = false,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
@@ -34,6 +35,7 @@ class Visitor {
       notes: json['notes'] as String?,
       photoUrl: json['photo_url'] as String?,
       flat: flatJson != null ? Flat.fromJson(flatJson) : null,
+      awaitingApproval: json['awaiting_approval'] as bool? ?? false,
     );
   }
 
@@ -54,9 +56,15 @@ class Visitor {
   // Only present on the gate-security app's society-wide list (a resident's
   // own visitor list doesn't need it — they already know it's their flat).
   final Flat? flat;
+  // True only for a guard-raised entry request still awaiting the
+  // resident's decision (see VisitorResource::awaiting_approval on the
+  // backend) — distinct from a resident's own self-invite, which is also
+  // `pending` but shouldn't show Approve/Reject to the person who made it.
+  final bool awaitingApproval;
 
   static const purposes = ['guest', 'delivery', 'cab', 'service', 'other'];
 
   bool get isPending => status == 'pending';
   bool get isCheckedIn => status == 'checked_in';
+  bool get isDenied => status == 'denied';
 }

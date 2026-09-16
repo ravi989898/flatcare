@@ -86,6 +86,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [VisitorController::class, 'index'])->name('index');
             Route::post('/', [VisitorController::class, 'store'])->name('store');
             Route::get('/{id}', [VisitorController::class, 'show'])->name('show');
+            Route::post('/{id}/approve', [VisitorController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [VisitorController::class, 'reject'])->name('reject');
         });
 
         Route::prefix('announcements')->name('announcements.')->group(function () {

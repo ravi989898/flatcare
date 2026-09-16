@@ -10,10 +10,12 @@ use Illuminate\Foundation\Http\FormRequest;
  * Walk-in visitor registration from the gate app — unlike
  * Resident\StoreVisitorInviteRequest (a resident pre-approving someone
  * expected later), this is the guard logging someone who has physically
- * arrived right now, so there's no expected_at and the visitor lands
- * already checked_in (see Api\V1\Guard\VisitorController::store). `photo`
- * is optional and, on the app side, camera-only (no gallery picker) so it
- * can only ever be a photo of the person actually at the gate right now.
+ * arrived right now. By default the visitor lands already checked_in (see
+ * Api\V1\Guard\VisitorController::store); if `requires_approval` is sent,
+ * it instead lands `pending` and waits for the resident to approve/reject
+ * from their app before the guard lets them in. `photo` is optional and,
+ * on the app side, camera-only (no gallery picker) so it can only ever be
+ * a photo of the person actually at the gate right now.
  */
 class StoreGuardVisitorRequest extends FormRequest
 {
@@ -34,6 +36,7 @@ class StoreGuardVisitorRequest extends FormRequest
             'purpose' => ['required', 'in:'.implode(',', Visitor::PURPOSES)],
             'vehicle_number' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'requires_approval' => ['sometimes', 'boolean'],
             'photo' => [
                 'nullable',
                 'image',

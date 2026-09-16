@@ -38,6 +38,7 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
   Flat? _flat;
   XFile? _photo;
   bool _isSubmitting = false;
+  bool _requiresApproval = false;
 
   @override
   void dispose() {
@@ -79,10 +80,14 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
             vehicleNumber: _vehicleController.text.trim(),
             notes: _notesController.text.trim(),
             photoPath: _photo?.path,
+            requiresApproval: _requiresApproval,
           );
       ref.invalidate(guardVisitorListProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_nameController.text.trim()} checked in.')));
+      final message = _requiresApproval
+          ? 'Entry request sent to ${_flat!.displayLabel} for approval.'
+          : '${_nameController.text.trim()} checked in.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -165,6 +170,20 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
                     ],
                   ),
                 ),
+                const SizedBox(height: 14),
+                _SectionCard(
+                  title: 'Entry',
+                  child: SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: _requiresApproval,
+                    onChanged: (value) => setState(() => _requiresApproval = value),
+                    title: const Text('Ask resident to approve', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    subtitle: const Text(
+                      "Waits for the resident's approval instead of letting the visitor in right away.",
+                      style: TextStyle(fontSize: 12.5),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -183,7 +202,7 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
                     onPressed: (_isSubmitting || _flat == null) ? null : _submit,
                     child: _isSubmitting
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Check In', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        : Text(_requiresApproval ? 'Send Request' : 'Check In', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
                 ),
               ],

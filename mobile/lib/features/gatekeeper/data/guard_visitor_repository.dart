@@ -24,7 +24,9 @@ class GuardVisitorRepository {
   /// Walk-in check-in — a visitor who wasn't pre-invited by a resident.
   /// `photoPath` (a local file from the device camera — see
   /// GatekeeperVisitorCheckinScreen) is optional and, when given, sent as
-  /// multipart alongside the other fields.
+  /// multipart alongside the other fields. When `requiresApproval` is true,
+  /// the visitor lands `pending` instead of `checked_in` and the resident
+  /// gets an Approve/Reject notification instead of an arrival notice.
   Future<Visitor> checkInWalkIn({
     required int flatId,
     required String visitorName,
@@ -33,6 +35,7 @@ class GuardVisitorRepository {
     String? vehicleNumber,
     String? notes,
     String? photoPath,
+    bool requiresApproval = false,
   }) async {
     final response = await _client.postMultipart(
       '/guard/visitors',
@@ -44,6 +47,7 @@ class GuardVisitorRepository {
         'purpose': purpose,
         if (vehicleNumber != null && vehicleNumber.isNotEmpty) 'vehicle_number': vehicleNumber,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (requiresApproval) 'requires_approval': true,
       },
     );
 

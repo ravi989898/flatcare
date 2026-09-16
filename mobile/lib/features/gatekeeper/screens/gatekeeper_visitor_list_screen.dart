@@ -156,7 +156,7 @@ class _VisitorTileState extends ConsumerState<_VisitorTile> {
     final timeLabel = visitor.isCheckedIn
         ? 'In: ${formatDateTime(visitor.checkInAt)}'
         : visitor.isPending
-            ? 'Pre-approved'
+            ? (visitor.awaitingApproval ? 'Waiting for resident to respond' : 'Pre-approved')
             : 'Out: ${formatDateTime(visitor.checkOutAt)}';
 
     final purposeStyle = PurposeStyle.of(visitor.purpose);
@@ -195,6 +195,14 @@ class _ActionButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A guard-raised request the resident hasn't approved/rejected yet —
+    // nothing for the guard to do but wait (see approve()/reject() on
+    // Api\V1\Resident\VisitorController, which flip this straight to
+    // checked_in/denied once the resident responds).
+    if (visitor.isPending && visitor.awaitingApproval) {
+      return const StatusChip(label: 'awaiting approval');
+    }
+
     if (visitor.isPending) {
       return FilledButton(
         style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2AB930)),

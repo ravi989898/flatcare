@@ -34,6 +34,9 @@ class AppNotification {
     'request_status': '🔧',
     'new_notice': '📣',
     'visitor_arrived': '🚪',
+    'visitor_request': '🔔',
+    'visitor_request_approved': '✅',
+    'visitor_request_rejected': '⛔',
     'event_reminder': '📅',
   };
 

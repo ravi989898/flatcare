@@ -41,6 +41,21 @@ class VisitorRepository {
 
     return Visitor.fromJson(response['data'] as Map<String, dynamic>);
   }
+
+  /// Approve/reject a guard-raised entry request (Visitor.awaitingApproval)
+  /// — approving checks the visitor in immediately and notifies the guard
+  /// back so they know to let them through.
+  Future<Visitor> approve(int visitorId) async {
+    final response = await _client.post('/visitors/$visitorId/approve');
+
+    return Visitor.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<Visitor> reject(int visitorId) async {
+    final response = await _client.post('/visitors/$visitorId/reject');
+
+    return Visitor.fromJson(response['data'] as Map<String, dynamic>);
+  }
 }
 
 final visitorRepositoryProvider = Provider<VisitorRepository>((ref) {

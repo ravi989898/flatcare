@@ -8,6 +8,7 @@ use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\WaterReading;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -99,7 +100,7 @@ class WaterReadingController extends Controller
         ]);
     }
 
-    public function store(StoreWaterReadingsRequest $request): RedirectResponse
+    public function store(StoreWaterReadingsRequest $request, NotificationService $notifications): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -129,7 +130,7 @@ class WaterReadingController extends Controller
                 return back()->withInput()->with('error', 'A current reading can\'t be lower than the previous one.');
             }
 
-            DB::connection('society')->transaction(function () use ($row, $month, $previousReading, $userId, $fixedMaintenance, $waterUnitRate, $dueDate, &$billed) {
+            DB::connection('society')->transaction(function () use ($row, $month, $previousReading, $userId, $fixedMaintenance, $waterUnitRate, $dueDate, $notifications, &$billed) {
                 $reading = WaterReading::updateOrCreate(
                     ['flat_id' => $row['flat_id'], 'reading_month' => $month->toDateString()],
                     [
@@ -142,7 +143,7 @@ class WaterReadingController extends Controller
                 $units = $reading->units;
                 $amount = round(($units * $waterUnitRate) + $fixedMaintenance, 2);
 
-                MaintenanceBill::updateOrCreate(
+                $bill = MaintenanceBill::updateOrCreate(
                     ['water_reading_id' => $reading->id],
                     [
                         'flat_id' => $row['flat_id'],
@@ -153,6 +154,18 @@ class WaterReadingController extends Controller
                         'created_by_user_id' => $userId,
                     ]
                 );
+
+                // Only on first creation — re-saving the same month's readings
+                // (e.g. correcting a typo) shouldn't re-notify the resident.
+                if ($bill->wasRecentlyCreated) {
+                    $notifications->notifyFlats(
+                        [$row['flat_id']],
+                        'maintenance_due',
+                        "{$bill->title} due on ".$dueDate->format('d M Y'),
+                        '₹'.number_format($amount, 2),
+                        ['bill_id' => $bill->id],
+                    );
+                }
 
                 $billed++;
             });

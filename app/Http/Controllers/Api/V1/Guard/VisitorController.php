@@ -57,19 +57,40 @@ class VisitorController extends ApiController
      * resident. Mirrors Society\VisitorController::store, plus an optional
      * gate photo (camera-only on the app side - see
      * StoreGuardVisitorRequest's docblock).
+     *
+     * When `requires_approval` is set, the guard is instead raising an
+     * entry request: the visitor lands `pending` (not checked in yet) and
+     * the resident gets an actionable notification — see
+     * Resident\VisitorController::approve()/reject(). `checked_in_by` is
+     * still set at creation time here so approve/reject knows which guard
+     * to notify back with the resident's decision, even though the visitor
+     * hasn't actually been checked in yet.
      */
     public function store(StoreGuardVisitorRequest $request, NotificationService $notifications): JsonResponse
     {
-        $validated = Arr::except($request->validated(), ['photo']);
+        $validated = Arr::except($request->validated(), ['photo', 'requires_approval']);
         $photo = $request->file('photo');
+        $requiresApproval = $request->boolean('requires_approval');
 
         $visitor = Visitor::create([
             ...$validated,
-            'status' => 'checked_in',
-            'check_in_at' => now(),
+            'status' => $requiresApproval ? 'pending' : 'checked_in',
+            'check_in_at' => $requiresApproval ? null : now(),
             'checked_in_by' => $this->user()->id,
             'photo_path' => $photo?->store('visitors', 'public'),
         ]);
+
+        if ($requiresApproval) {
+            $notifications->notifyFlats(
+                [$validated['flat_id']],
+                'visitor_request',
+                "{$validated['visitor_name']} is at the gate — approve entry?",
+                ucfirst($validated['purpose']),
+                ['visitor_id' => $visitor->id],
+            );
+
+            return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Entry request sent to the resident.', 201);
+        }
 
         $notifications->notifyFlats(
             [$validated['flat_id']],

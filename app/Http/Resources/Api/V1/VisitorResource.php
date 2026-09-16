@@ -22,6 +22,11 @@ class VisitorResource extends JsonResource
             'purpose' => $this->purpose,
             'vehicle_number' => $this->vehicle_number,
             'status' => $this->status,
+            // True only for a guard-raised entry request still awaiting the
+            // resident's decision — not a resident's own self-invite (which
+            // is also `pending` but has invited_by_user_id set). Drives the
+            // Approve/Reject buttons in the mobile app.
+            'awaiting_approval' => $this->status === 'pending' && is_null($this->invited_by_user_id),
             'check_in_at' => $this->check_in_at?->toIso8601String(),
             'check_out_at' => $this->check_out_at?->toIso8601String(),
             'expected_at' => $this->expected_at?->toIso8601String(),
