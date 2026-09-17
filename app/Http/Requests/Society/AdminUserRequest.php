@@ -6,10 +6,9 @@ use App\Rules\IndianMobileNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Shared by Society\AdminController::store() and ::update() — the only
- * difference is that update() must exclude the admin's own row from the
- * email/phone `unique` checks (via the {adminId} route parameter) and may
- * leave the password blank to keep the existing one.
+ * Used by Society\AdminController::update() — password changes go through
+ * the dedicated "Forgot Password" flow instead (resetPassword()), not this
+ * form, so there's no password field here.
  */
 class AdminUserRequest extends FormRequest
 {
@@ -24,7 +23,6 @@ class AdminUserRequest extends FormRequest
     public function rules(): array
     {
         $adminId = $this->route('adminId');
-        $isUpdate = $this->isMethod('put') || $this->isMethod('patch');
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -36,7 +34,6 @@ class AdminUserRequest extends FormRequest
                 'required', 'digits:10', new IndianMobileNumber(),
                 'unique:society.users,phone'.($adminId ? ",{$adminId}" : ''),
             ],
-            'password' => [$isUpdate ? 'nullable' : 'required', 'min:10', 'confirmed'],
             'role' => ['required', 'exists:society.roles,id'],
         ];
     }

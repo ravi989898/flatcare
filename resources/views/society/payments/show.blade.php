@@ -4,7 +4,7 @@
 
 @php
     $statusBadge = ['unpaid' => 'secondary', 'partially_paid' => 'warning', 'paid' => 'success', 'overdue' => 'danger'];
-    $methodLabel = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'upi' => 'UPI', 'cheque' => 'Cheque', 'other' => 'Other'];
+    $methodLabel = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'upi' => 'UPI', 'cheque' => 'Cheque', 'online' => 'Online', 'other' => 'Other'];
 @endphp
 
 @section('content_header')

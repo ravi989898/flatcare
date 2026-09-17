@@ -283,6 +283,7 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::put('/{adminId}', [SocietyPortalAdminController::class, 'update'])->name('update');
             Route::post('/{adminId}/activate', [SocietyPortalAdminController::class, 'activate'])->name('activate');
             Route::post('/{adminId}/deactivate', [SocietyPortalAdminController::class, 'deactivate'])->name('deactivate');
+            Route::post('/{adminId}/reset-password', [SocietyPortalAdminController::class, 'resetPassword'])->name('reset_password');
         });
 
         Route::prefix('blocks')->name('blocks.')->group(function () {

@@ -17,9 +17,6 @@
             <a href="{{ route('admin.societies.admins.index', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-user-shield"></i> Admins
             </a>
-            <a href="{{ route('admin.societies.reset_password', $society->id) }}" class="btn btn-secondary">
-                <i class="fas fa-key"></i> Forgot Password
-            </a>
             <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-building"></i> Blocks
             </a>

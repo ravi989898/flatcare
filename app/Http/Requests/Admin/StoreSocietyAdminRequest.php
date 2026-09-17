@@ -30,9 +30,7 @@ class StoreSocietyAdminRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:society.users,email'],
-            'phone' => ['required', 'digits:10', 'unique:society.users,phone'],
+            'user_id' => ['required', 'integer', 'exists:society.users,id'],
             'password' => ['required', 'min:10', 'confirmed'],
             'role' => ['required', 'exists:society.roles,id'],
         ];

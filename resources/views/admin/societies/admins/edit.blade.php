@@ -41,22 +41,6 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="password">Password (leave empty to keep current)</label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password">
-                        @error('password')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                        <small class="form-text text-muted">Minimum 10 characters</small>
-                    </div>
-
-                    <div class="form-group col-md-6">
-                        <label for="password_confirmation">Confirm Password</label>
-                        <input type="password" class="form-control" id="password_confirmation" name="password_confirmation">
-                    </div>
-                </div>
-
                 <div class="form-group">
                     <label for="role">Role <span class="text-danger">*</span></label>
                     <select class="form-control @error('role') is-invalid @enderror" id="role" name="role" required>

@@ -32,9 +32,12 @@ class SocietyAdminController extends Controller
         // Switch to society's database
         $this->tenantService->switchConnection($societyId);
 
-        // Get admin users
+        // Any user holding an elevated role granted from this screen —
+        // Society Admin, Committee Member, Chairman, Treasurer, etc. — not
+        // just the literal 'admin' role, since the create form below lets
+        // you grant any of those roles.
         $admins = User::whereHas('roles', function ($query) {
-            $query->where('name', 'admin');
+            $query->where('name', '!=', 'resident');
         })
             ->with('roles')
             ->paginate(10);
@@ -58,42 +61,42 @@ class SocietyAdminController extends Controller
             ->where('name', '!=', 'super_admin')
             ->get();
 
-        return view('admin.societies.admins.create', compact('society', 'roles'));
+        // Only plain residents (no elevated role yet) can be promoted here.
+        $users = User::whereDoesntHave('roles', fn ($query) => $query->where('name', '!=', 'resident'))
+            ->with(['residencies' => fn ($query) => $query->where('status', 'active')->with('flat')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone']);
+
+        return view('admin.societies.admins.create', compact('society', 'roles', 'users'));
     }
 
     /**
-     * Store new society admin
+     * Promote an existing society user to admin by granting them a role.
      */
     public function store(StoreSocietyAdminRequest $request, int $societyId)
     {
         $society = Society::findOrFail($societyId);
 
-        // Switch to society's database before validating so the unique
-        // checks below run against this society's users table, not
-        // whichever tenant a previous request happened to leave connected.
+        // Switch to society's database before validating so the exists
+        // checks below run against this society's tables, not whichever
+        // tenant a previous request happened to leave connected.
         $this->tenantService->switchConnection($societyId);
 
         $validated = $request->validated();
 
-        // Create user
-        $user = DB::connection('society')
+        DB::connection('society')
             ->table('users')
-            ->insertGetId([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'],
+            ->where('id', $validated['user_id'])
+            ->update([
                 'password' => Hash::make($validated['password']),
-                'country' => 'India',
-                'status' => 'active',
-                'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-        // Assign role
+        // insertOrIgnore: the user may already hold this role.
         DB::connection('society')
             ->table('role_user')
-            ->insert([
-                'user_id' => $user,
+            ->insertOrIgnore([
+                'user_id' => $validated['user_id'],
                 'role_id' => $validated['role'],
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -121,7 +124,9 @@ class SocietyAdminController extends Controller
             ->where('name', '!=', 'super_admin')
             ->get();
 
-        $adminRole = $admin->roles->first();
+        // Prefer the elevated role over 'resident' — a promoted user holds
+        // both, and roles->first() is otherwise just insertion order.
+        $adminRole = $admin->roles->firstWhere('name', '!=', 'resident') ?? $admin->roles->first();
 
         return view('admin.societies.admins.edit', compact('society', 'admin', 'roles', 'adminRole'));
     }
@@ -139,32 +144,51 @@ class SocietyAdminController extends Controller
 
         $validated = $request->validated();
 
-        $updates = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'updated_at' => now(),
-        ];
-
-        if ($validated['password'] ?? null) {
-            $updates['password'] = Hash::make($validated['password']);
-        }
-
         // Update user
         DB::connection('society')
             ->table('users')
             ->where('id', $adminId)
-            ->update($updates);
+            ->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'updated_at' => now(),
+            ]);
 
-        // Update role
-        DB::connection('society')
-            ->table('role_user')
-            ->where('user_id', $adminId)
-            ->update(['role_id' => $validated['role']]);
+        $this->replaceElevatedRole($adminId, (int) $validated['role']);
 
         return redirect()
             ->route('admin.societies.admins.index', $societyId)
             ->with('success', 'Admin user updated successfully');
+    }
+
+    /**
+     * Swaps a user's elevated (non-resident) role for a new one, leaving
+     * their base 'resident' role_user row untouched. A plain "update the
+     * role_id on every role_user row for this user" would try to collapse
+     * both rows onto the same role_id and hit the (user_id, role_id)
+     * unique constraint whenever the user holds both roles at once —
+     * exactly the case since Add Admin promotes an existing resident
+     * rather than replacing their resident role.
+     */
+    private function replaceElevatedRole(int $userId, int $roleId): void
+    {
+        $residentRoleId = DB::connection('society')->table('roles')->where('name', 'resident')->value('id');
+
+        DB::connection('society')
+            ->table('role_user')
+            ->where('user_id', $userId)
+            ->when($residentRoleId, fn ($query) => $query->where('role_id', '!=', $residentRoleId))
+            ->delete();
+
+        DB::connection('society')
+            ->table('role_user')
+            ->insertOrIgnore([
+                'user_id' => $userId,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
     /**
@@ -220,7 +244,7 @@ class SocietyAdminController extends Controller
         $this->tenantService->switchConnection($societyId);
 
         $admins = User::whereHas('roles', function ($query) {
-            $query->where('name', 'admin');
+            $query->where('name', '!=', 'resident');
         })
             ->orderBy('name')
             ->get();
@@ -248,6 +272,10 @@ class SocietyAdminController extends Controller
                 'password' => Hash::make($validated['password']),
                 'updated_at' => now(),
             ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Password reset successfully']);
+        }
 
         return redirect()
             ->route('admin.societies.reset_password', $societyId)

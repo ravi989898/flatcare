@@ -7,7 +7,9 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * See StoreSocietyAdminRequest's docblock for why the tenant switch happens
- * here rather than in the controller body.
+ * here rather than in the controller body. Password changes go through the
+ * dedicated "Forgot Password" flow (resetPassword()) instead of this form,
+ * so there's no password field here.
  */
 class UpdateSocietyAdminRequest extends FormRequest
 {
@@ -32,7 +34,6 @@ class UpdateSocietyAdminRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', "unique:society.users,email,{$adminId}"],
             'phone' => ['required', 'digits:10', "unique:society.users,phone,{$adminId}"],
-            'password' => ['nullable', 'min:10', 'confirmed'],
             'role' => ['required', 'exists:society.roles,id'],
         ];
     }

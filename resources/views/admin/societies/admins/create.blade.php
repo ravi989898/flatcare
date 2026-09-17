@@ -15,28 +15,43 @@
             @csrf
             <div class="card-body">
                 <div class="form-group">
-                    <label for="name">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" maxlength="255" required>
-                    @error('name')
+                    <label for="user_id">Select User <span class="text-danger">*</span></label>
+                    <select class="form-control @error('user_id') is-invalid @enderror" id="user_id" name="user_id" required>
+                        <option value="">-- Select User --</option>
+                        @foreach ($users as $user)
+                            @php
+                                $residency = $user->residencies->firstWhere('is_primary', true) ?? $user->residencies->first();
+                                $flatNumber = $residency?->flat?->flat_number;
+                            @endphp
+                            <option value="{{ $user->id }}"
+                                data-name="{{ $user->name }}"
+                                data-email="{{ $user->email }}"
+                                data-phone="{{ $user->phone }}"
+                                {{ old('user_id') == $user->id ? 'selected' : '' }}>
+                                {{ $user->name }} ({{ $flatNumber ?? $user->phone }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('user_id')
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
+                    <small class="form-text text-muted">Only existing society users who aren't already admins are listed.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" class="form-control" id="name" readonly>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group col-md-6">
-                        <label for="email">Email <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
-                        @error('email')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" readonly>
                     </div>
 
                     <div class="form-group col-md-6">
-                        <label for="phone">Phone <span class="text-danger">*</span></label>
-                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder="10 digits" maxlength="10" data-validate="phone" required>
-                        @error('phone')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
+                        <label for="phone">Phone</label>
+                        <input type="tel" class="form-control" id="phone" readonly>
                     </div>
                 </div>
 
@@ -82,4 +97,8 @@
             </div>
         </form>
     </div>
+@stop
+
+@section('js')
+    <script src="{{ asset('js/admin-add-user-autofill.js') }}"></script>
 @stop
