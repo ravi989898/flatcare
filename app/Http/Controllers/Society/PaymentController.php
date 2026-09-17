@@ -27,7 +27,7 @@ class PaymentController extends Controller
      */
     public function index(Request $request): View
     {
-        $bills = MaintenanceBill::with(['flat.block', 'payments'])->latest('due_date')->get();
+        $bills = MaintenanceBill::maintenanceOnly()->with(['flat.block', 'payments'])->latest('due_date')->get();
 
         if ($status = $request->string('status')->trim()->value()) {
             $bills = $bills->filter(fn ($bill) => $bill->status === $status)->values();
@@ -125,7 +125,8 @@ class PaymentController extends Controller
     {
         $bill = MaintenanceBill::with([
             'flat.block',
-            'flat.residents' => fn ($query) => $query->where('is_primary', true),
+            'flat.residents' => fn ($query) => $query->where('status', 'active'),
+            'flat.residents.user',
             'waterReading',
             'payments.recordedBy',
         ])->findOrFail($id);
@@ -147,7 +148,9 @@ class PaymentController extends Controller
             'society' => $society,
             'lineItems' => $this->billLineItems($bill, $society),
             'previousDues' => $previousDues,
-            'residentName' => $bill->flat?->residents->first()?->user?->name,
+            'residentName' => $bill->flat?->residents
+                ->firstWhere('is_primary', true)?->user?->name
+                ?? $bill->flat?->residents->first()?->user?->name,
             'amountInWords' => $this->amountInWords((float) $bill->amount + $previousDues),
         ]);
     }

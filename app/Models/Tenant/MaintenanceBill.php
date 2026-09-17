@@ -19,6 +19,7 @@ class MaintenanceBill extends Model
     protected $fillable = [
         'flat_id',
         'water_reading_id',
+        'fee_type_id',
         'title',
         'amount',
         'due_date',
@@ -43,6 +44,11 @@ class MaintenanceBill extends Model
         return $this->belongsTo(WaterReading::class);
     }
 
+    public function feeType(): BelongsTo
+    {
+        return $this->belongsTo(FeeType::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'bill_id');
@@ -51,6 +57,22 @@ class MaintenanceBill extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /**
+     * Extra Charges (function/event usage, hall booking, renovation fund,
+     * transfer fee, ...) are regular maintenance_bills rows tagged with a
+     * fee_type_id — these scopes keep the two lists (Payments vs. Extra
+     * Charges) from mixing, since they're otherwise the same table.
+     */
+    public function scopeExtraCharges($query)
+    {
+        return $query->whereNotNull('fee_type_id');
+    }
+
+    public function scopeMaintenanceOnly($query)
+    {
+        return $query->whereNull('fee_type_id');
     }
 
     /**

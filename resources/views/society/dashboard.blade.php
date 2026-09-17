@@ -61,6 +61,7 @@
             ['title' => 'Events', 'desc' => 'Plan and manage society events and activities.', 'icon' => 'bi-calendar-event', 'color' => 'bg-indigo', 'route' => 'society.events.index'],
             ['title' => 'Elections', 'desc' => 'Run committee elections: nominations, voting, results.', 'icon' => 'bi-clipboard2-check', 'color' => 'bg-teal', 'route' => 'society.elections.index'],
             ['title' => 'Payments', 'desc' => 'Raise maintenance bills and record payments.', 'icon' => 'bi-cash-coin', 'color' => 'bg-purple', 'route' => 'society.payments.index'],
+            ['title' => 'Extra Charges', 'desc' => 'Function usage, hall booking, renovation fund, transfer fee, etc.', 'icon' => 'bi-cash-stack', 'color' => 'bg-orange', 'route' => 'society.extra-charges.index'],
         ] as $module)
             <div class="col-lg-4 col-md-6 col-6">
                 <a href="{{ route($module['route']) }}" class="small-box {{ $module['color'] }} text-white text-decoration-none">

@@ -24,6 +24,8 @@ use App\Http\Controllers\Society\DocumentController;
 use App\Http\Controllers\Society\ElectionController;
 use App\Http\Controllers\Society\EmergencyContactController;
 use App\Http\Controllers\Society\EventController;
+use App\Http\Controllers\Society\ExtraChargeController;
+use App\Http\Controllers\Society\FeeTypeController;
 use App\Http\Controllers\Society\MaintenanceController;
 use App\Http\Controllers\Society\PaymentController;
 use App\Http\Controllers\Society\PollController;
@@ -377,6 +379,25 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/{id}', [PaymentController::class, 'show'])->name('show');
             Route::post('/{id}/pay', [PaymentController::class, 'recordPayment'])->name('pay');
             Route::get('/{id}/invoice', [PaymentController::class, 'invoice'])->name('invoice');
+        });
+
+        // One-off charges (function/event usage, hall booking, renovation
+        // fund, transfer fee, ...) — stored as maintenance_bills rows tagged
+        // with a fee_type_id, so viewing/paying/printing an invoice reuses
+        // the 'payments.show'/'payments.pay'/'payments.invoice' routes
+        // above rather than duplicating them (see ExtraChargeController's
+        // docblock).
+        Route::prefix('extra-charges')->name('extra-charges.')->group(function () {
+            Route::get('/', [ExtraChargeController::class, 'index'])->name('index');
+            Route::get('/create', [ExtraChargeController::class, 'create'])->name('create');
+            Route::post('/', [ExtraChargeController::class, 'store'])->name('store');
+        });
+
+        Route::prefix('fee-types')->name('fee-types.')->group(function () {
+            Route::get('/', [FeeTypeController::class, 'index'])->name('index');
+            Route::post('/', [FeeTypeController::class, 'store'])->name('store');
+            Route::put('/{id}', [FeeTypeController::class, 'update'])->name('update');
+            Route::delete('/{id}', [FeeTypeController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('water-readings')->name('water-readings.')->group(function () {
