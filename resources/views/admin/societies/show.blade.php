@@ -8,6 +8,9 @@
             <h1>{{ $society->name }}</h1>
         </div>
         <div class="col-sm-6 text-right">
+            <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-secondary">
+                <i class="fas fa-user-shield"></i> Security
+            </a>
             <a href="{{ route('admin.societies.users.index', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-users"></i> Residents
             </a>

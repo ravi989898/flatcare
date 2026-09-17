@@ -87,18 +87,6 @@
                                     <a href="{{ route('admin.societies.show', $society->id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> View
                                     </a>
-                                    <a href="{{ route('admin.societies.edit', $society->id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="{{ route('admin.societies.admins.index', $society->id) }}" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-user-shield"></i> Admins
-                                    </a>
-                                    <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-building"></i> Blocks
-                                    </a>
-                                    <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-user-shield"></i> Security
-                                    </a>
                                 </td>
                             </tr>
                         @endforeach
