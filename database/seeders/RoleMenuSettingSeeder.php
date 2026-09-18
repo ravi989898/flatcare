@@ -46,7 +46,6 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 15],
             ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 16],
             ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 17],
-            ['key' => 'maintenance', 'label' => 'Maintenance', 'route_name' => 'society.maintenance.index', 'icon' => 'bi-tools', 'display_order' => 18],
         ];
 
         foreach ($menuItems as $item) {
@@ -68,7 +67,7 @@ class RoleMenuSettingSeeder extends Seeder
         $visibleKeysByRole = [
             'super_admin' => $allKeys,
             'admin' => $allKeys,
-            'committee_member' => ['dashboard', 'maintenance', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
+            'committee_member' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
             'resident' => $allKeys, // resident permissions already cover every module, just their own-facing view
             'security' => ['dashboard', 'visitors', 'directory'],
         ];

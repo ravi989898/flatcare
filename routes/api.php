@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\V1\Resident\ComplaintController;
 use App\Http\Controllers\Api\V1\Resident\DocumentController;
 use App\Http\Controllers\Api\V1\Resident\EmergencyContactController;
 use App\Http\Controllers\Api\V1\Resident\FamilyMemberController;
-use App\Http\Controllers\Api\V1\Resident\MaintenanceRequestController;
 use App\Http\Controllers\Api\V1\Resident\NotificationController;
 use App\Http\Controllers\Api\V1\Resident\PollController;
 use App\Http\Controllers\Api\V1\Resident\ProfileController;
@@ -59,12 +58,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::delete('/vehicles/{id}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
             Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
-        });
-
-        Route::prefix('maintenance-requests')->name('maintenance_requests.')->group(function () {
-            Route::get('/', [MaintenanceRequestController::class, 'index'])->name('index');
-            Route::post('/', [MaintenanceRequestController::class, 'store'])->name('store');
-            Route::get('/{id}', [MaintenanceRequestController::class, 'show'])->name('show');
         });
 
         Route::prefix('bills')->name('bills.')->group(function () {

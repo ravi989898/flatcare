@@ -26,7 +26,6 @@ use App\Http\Controllers\Society\EmergencyContactController;
 use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\ExtraChargeController;
 use App\Http\Controllers\Society\FeeTypeController;
-use App\Http\Controllers\Society\MaintenanceController;
 use App\Http\Controllers\Society\PaymentController;
 use App\Http\Controllers\Society\PollController;
 use App\Http\Controllers\Society\SecurityGuardController as SocietyPortalSecurityGuardController;
@@ -235,14 +234,6 @@ Route::prefix('society')->name('society.')->group(function () {
 
     Route::middleware(['society.context', 'menu.visible'])->group(function () {
         Route::get('/dashboard', [SocietyDashboardController::class, 'index'])->name('dashboard');
-
-        Route::prefix('maintenance')->name('maintenance.')->group(function () {
-            Route::get('/', [MaintenanceController::class, 'index'])->name('index');
-            Route::get('/create', [MaintenanceController::class, 'create'])->name('create');
-            Route::post('/', [MaintenanceController::class, 'store'])->name('store');
-            Route::get('/{id}', [MaintenanceController::class, 'show'])->name('show');
-            Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
-        });
 
         Route::prefix('visitors')->name('visitors.')->group(function () {
             Route::get('/', [VisitorController::class, 'index'])->name('index');

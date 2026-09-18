@@ -32,11 +32,6 @@ class Block extends Model
         return $this->hasMany(Flat::class);
     }
 
-    public function maintenanceRequests(): HasMany
-    {
-        return $this->hasMany(MaintenanceRequest::class);
-    }
-
     public function scopeActive($query)
     {
         return $query->where('status', 'active');

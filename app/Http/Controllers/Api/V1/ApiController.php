@@ -49,7 +49,7 @@ abstract class ApiController extends Controller
     /**
      * Same envelope as ok(), plus the pagination block from
      * ARCHITECTURE.md §7.2. $items is the resource collection to serialize
-     * (e.g. MaintenanceRequestResource::collection($paginator)); $paginator
+     * (e.g. BillResource::collection($paginator)); $paginator
      * is the LengthAwarePaginator it was built from, kept separate so the
      * page metadata survives being wrapped in a Resource collection.
      */

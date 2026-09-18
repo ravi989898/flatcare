@@ -7,9 +7,9 @@ use App\Models\Tenant\ResidentNotification;
 /**
  * Thin helper for producing rows in the resident notification feed from
  * the handful of admin actions that should generate one (see the callers:
- * Society\AnnouncementController::store(), Society\MaintenanceController::
- * update(), Society\VisitorController::store()/checkOut(),
- * Society\PaymentController::store(), Society\EventController::store()).
+ * Society\AnnouncementController::store(), Society\VisitorController::
+ * store()/checkOut(), Society\PaymentController::store(),
+ * Society\EventController::store()).
  * Deliberately not queued/broadcast — the mobile app just polls
  * GET /notifications, so a synchronous insert is all this needs today.
  */
