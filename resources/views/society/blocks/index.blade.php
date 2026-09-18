@@ -46,13 +46,6 @@
                                         <div class="btn-group">
                                             <a href="{{ route('society.blocks.flats.index', $block->id) }}" class="btn btn-sm btn-outline-secondary">Flats</a>
                                             <a href="{{ route('society.blocks.edit', $block->id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                            <form action="{{ route('society.blocks.destroy', $block->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this block?')">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>
