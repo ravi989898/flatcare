@@ -12,9 +12,6 @@
             <h1 class="h3 mb-1">Directory</h1>
             <p class="text-muted mb-0">{{ $residentCount }} resident{{ $residentCount === 1 ? '' : 's' }}</p>
         </div>
-        <a href="{{ route('society.directory.create') }}" class="btn btn-brand">
-            <i class="bi bi-person-plus"></i> Add Resident
-        </a>
     </div>
 @stop
 

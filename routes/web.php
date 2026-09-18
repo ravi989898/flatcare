@@ -233,7 +233,7 @@ Route::prefix('society')->name('society.')->group(function () {
     Route::post('/login', [SocietyAuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('/logout', [SocietyAuthController::class, 'logout'])->name('logout');
 
-    Route::middleware(['society.context'])->group(function () {
+    Route::middleware(['society.context', 'menu.visible'])->group(function () {
         Route::get('/dashboard', [SocietyDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('maintenance')->name('maintenance.')->group(function () {

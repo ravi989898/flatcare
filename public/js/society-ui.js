@@ -33,4 +33,21 @@ document.addEventListener('DOMContentLoaded', function () {
             window.print();
         });
     });
+
+    // <button data-add-option-to="options-wrap" ...> appends another
+    // "options[]" text input to the target container (poll-creation form).
+    document.querySelectorAll('[data-add-option-to]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            var wrap = document.getElementById(el.getAttribute('data-add-option-to'));
+
+            if (!wrap) {
+                return;
+            }
+
+            var row = document.createElement('div');
+            row.className = 'input-group mb-2';
+            row.innerHTML = '<input type="text" name="options[]" class="form-control" placeholder="Option label" maxlength="255" required>';
+            wrap.appendChild(row);
+        });
+    });
 });

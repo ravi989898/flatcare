@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureMenuItemVisible;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\SecurityHeaders;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'society.context' => SetSocietyContext::class,
+            'menu.visible' => EnsureMenuItemVisible::class,
             'api.auth' => AuthenticateApiToken::class,
             'role' => EnsureUserHasRole::class,
         ]);

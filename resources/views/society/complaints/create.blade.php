@@ -12,12 +12,21 @@
         <div class="card stat-card">
             <div class="card-body p-4">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
+                        <label for="block_select" class="form-label">Block</label>
+                        <select id="block_select" class="custom-select">
+                            <option value="">— All blocks —</option>
+                            @foreach ($blocks as $block)
+                                <option value="{{ $block->id }}">{{ $block->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label for="flat_id" class="form-label">Flat</label>
-                        <select name="flat_id" id="flat_id" class="custom-select @error('flat_id') is-invalid @enderror">
+                        <select name="flat_id" id="flat_id" class="custom-select @error('flat_id') is-invalid @enderror" data-filtered-by="block_select">
                             <option value="">— Not flat-specific —</option>
                             @foreach ($flats as $flat)
-                                <option value="{{ $flat->id }}" {{ old('flat_id') == $flat->id ? 'selected' : '' }}>{{ $flat->display_label }}</option>
+                                <option value="{{ $flat->id }}" data-block-id="{{ $flat->block_id }}" {{ old('flat_id') == $flat->id ? 'selected' : '' }}>{{ $flat->display_label }}</option>
                             @endforeach
                         </select>
                         @error('flat_id')<div class="invalid-feedback">{{ $message }}</div>@enderror

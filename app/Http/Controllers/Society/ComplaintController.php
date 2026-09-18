@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Society;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\StoreComplaintRequest;
 use App\Http\Requests\Society\UpdateComplaintRequest;
+use App\Models\Tenant\Block;
 use App\Models\Tenant\Complaint;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\User;
@@ -52,9 +53,10 @@ class ComplaintController extends Controller
      */
     public function create(): View
     {
+        $blocks = Block::active()->orderBy('name')->get();
         $flats = Flat::active()->with('block')->orderBy('flat_number')->get();
 
-        return view('society.complaints.create', compact('flats'));
+        return view('society.complaints.create', compact('blocks', 'flats'));
     }
 
     /**

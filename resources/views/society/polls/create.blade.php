@@ -41,13 +41,7 @@
                         </div>
                     @endforeach
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="
-                    const wrap = document.getElementById('options-wrap');
-                    const row = document.createElement('div');
-                    row.className = 'input-group mb-2';
-                    row.innerHTML = '<input type=&quot;text&quot; name=&quot;options[]&quot; class=&quot;form-control&quot; placeholder=&quot;Option label&quot; maxlength=&quot;255&quot; required>';
-                    wrap.appendChild(row);
-                ">
+                <button type="button" class="btn btn-sm btn-outline-secondary mb-3" data-add-option-to="options-wrap">
                     <i class="bi bi-plus-lg"></i> Add Option
                 </button>
 

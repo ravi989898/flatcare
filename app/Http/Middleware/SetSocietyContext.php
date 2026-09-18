@@ -117,25 +117,6 @@ class SetSocietyContext
     {
         $roleName = $tenantUser?->roles()->orderByDesc('priority')->value('name');
 
-        // Menu visibility only changes via Settings -> Menu Settings
-        // (MenuSettingController::update(), which busts this same key), so
-        // it's safe to cache per role rather than re-querying two tables on
-        // every society-portal request.
-        return Cache::remember(
-            'society.menu_items.role.' . ($roleName ?? '__none__'),
-            now()->addHours(24),
-            function () use ($roleName) {
-                $items = MenuItem::query()
-                    ->when($roleName, function ($query) use ($roleName) {
-                        $query->whereHas('roles', function ($q) use ($roleName) {
-                            $q->where('name', $roleName)->where('role_menu_item.is_visible', true);
-                        });
-                    }, fn ($query) => $query->whereRaw('1 = 0'))
-                    ->orderBy('display_order')
-                    ->get();
-
-                return $items->isEmpty() ? MenuItem::where('key', 'dashboard')->get() : $items;
-            }
-        );
+        return MenuItem::visibleForRole($roleName);
     }
 }
