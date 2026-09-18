@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'FlatCare') }} — Smart Apartment & Society Management Software</title>
     <meta name="description" content="FlatCare is smart apartment & society management software for housing societies and apartments — manage maintenance billing, payments, visitors, complaints, announcements, elections and more from one simple platform.">
+    <meta name="keywords" content="FlatCare, flat care, apartment management software, society management software, housing society software, RWA management software, maintenance billing software, society accounting software, visitor management system, society management app India">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -294,7 +295,7 @@
         <div class="row align-items-center g-5">
             <div class="col-lg-6">
                 <span class="eyebrow-badge mb-4"><span class="eyebrow-dot"></span> Built for landlords &amp; property managers</span>
-                <h1 class="mb-4">Effortless property care, <span class="grad-text">all in one place.</span></h1>
+                <h1 class="mb-4">FlatCare — effortless <span class="grad-text">property care, all in one place.</span></h1>
                 <p class="fs-5 text-muted-2 mb-4">
                     FlatCare brings maintenance requests, rent tracking and tenant communication
                     together — so nothing falls through the cracks and every flat gets the care it deserves.
