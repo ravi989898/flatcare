@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin panel — requires an authenticated, verified session AND role=admin.
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'admin', 'throttle:panel'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Module routes (stub placeholders for now)
@@ -232,7 +232,7 @@ Route::prefix('society')->name('society.')->group(function () {
     Route::post('/login', [SocietyAuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('/logout', [SocietyAuthController::class, 'logout'])->name('logout');
 
-    Route::middleware(['society.context', 'menu.visible'])->group(function () {
+    Route::middleware(['throttle:panel', 'society.context', 'menu.visible'])->group(function () {
         Route::get('/dashboard', [SocietyDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('visitors')->name('visitors.')->group(function () {

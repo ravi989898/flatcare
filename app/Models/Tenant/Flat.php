@@ -27,11 +27,15 @@ class Flat extends Model
         'bike_parking_slot',
         'amenities',
         'metadata',
+        'guest_approval_required',
+        'house_closed',
     ];
 
     protected $casts = [
         'amenities' => 'array',
         'metadata' => 'array',
+        'guest_approval_required' => 'boolean',
+        'house_closed' => 'boolean',
     ];
 
     public function block(): BelongsTo

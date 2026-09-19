@@ -63,7 +63,7 @@
                                     <form action="{{ route('admin.societies.blocks.flats.toggle_status', [$society->id, $block->id, $flat->id]) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @if ($flat->status === 'active')
-                                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Mark this flat inactive?')">
+                                            <button type="submit" class="btn btn-sm btn-warning" data-confirm="Mark this flat inactive?">
                                                 <i class="fas fa-ban"></i> Deactivate
                                             </button>
                                         @else
@@ -75,7 +75,7 @@
                                     <form action="{{ route('admin.societies.blocks.flats.destroy', [$society->id, $block->id, $flat->id]) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this flat?')">
+                                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this flat?">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

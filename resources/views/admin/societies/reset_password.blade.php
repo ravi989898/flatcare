@@ -76,7 +76,7 @@
                                     <form id="{{ $formId }}" action="{{ route('admin.societies.admins.reset_password', [$society->id, $admin->id]) }}" method="POST" novalidate>
                                         @csrf
                                     </form>
-                                    <button type="submit" form="{{ $formId }}" class="btn btn-sm btn-primary" onclick="return confirm('Reset password for {{ $admin->name }}?')">
+                                    <button type="submit" form="{{ $formId }}" class="btn btn-sm btn-primary" data-confirm="Reset password for {{ $admin->name }}?">
                                         <i class="fas fa-key"></i> Reset
                                     </button>
                                 </td>

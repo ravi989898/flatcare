@@ -9,6 +9,9 @@ use App\Http\Requests\Society\StoreAdminUserRequest;
 use App\Models\Tenant\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use App\Support\SecurityLog;
+use App\Services\Api\ApiTokenService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
@@ -80,6 +83,8 @@ class AdminController extends Controller
                 'updated_at' => now(),
             ]);
 
+        SecurityLog::info('admin.role_granted', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => (int) $validated['user_id'], 'role_id' => (int) $validated['role']]);
+
         return redirect()
             ->route('society.admins.index')
             ->with('success', 'Admin user created successfully.');
@@ -113,6 +118,8 @@ class AdminController extends Controller
         ]);
 
         $this->replaceElevatedRole($adminId, (int) $validated['role']);
+
+        SecurityLog::info('admin.role_changed', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => $adminId, 'role_id' => (int) $validated['role']]);
 
         return redirect()
             ->route('society.admins.index')
@@ -148,9 +155,25 @@ class AdminController extends Controller
             ]);
     }
 
+    /**
+     * Delete every mobile-app token of a tenant user (scoped to the current
+     * society - tenant_user_id alone is not unique across societies).
+     */
+    private function revokeApiTokens(int $userId): void
+    {
+        $society = request()->attributes->get('society');
+        $user = User::find($userId);
+
+        if ($society && $user) {
+            app(ApiTokenService::class)->revokeAllForUser($society, $user);
+        }
+    }
+
     public function activate(int $adminId): RedirectResponse
     {
         DB::connection('society')->table('users')->where('id', $adminId)->update(['status' => 'active']);
+
+        SecurityLog::info('admin.activated', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => $adminId]);
 
         return redirect()
             ->route('society.admins.index')
@@ -160,6 +183,10 @@ class AdminController extends Controller
     public function deactivate(int $adminId): RedirectResponse
     {
         DB::connection('society')->table('users')->where('id', $adminId)->update(['status' => 'inactive']);
+
+        // A deactivated account must not keep working on the mobile app.
+        $this->revokeApiTokens($adminId);
+        SecurityLog::info('admin.deactivated', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => $adminId]);
 
         return redirect()
             ->route('society.admins.index')
@@ -183,6 +210,10 @@ class AdminController extends Controller
                 'password' => Hash::make($validated['password']),
                 'updated_at' => now(),
             ]);
+
+        // Old mobile sessions must not survive a password reset.
+        $this->revokeApiTokens($adminId);
+        SecurityLog::info('admin.password_reset', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => $adminId]);
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Password reset successfully']);

@@ -32,7 +32,6 @@ class _MenuGroup {
 const _groups = [
   _MenuGroup('Quick Access', [
     _MenuItem('My Bills', '🧾', route: '/bills'),
-    _MenuItem('Maintenance', '🔧', route: '/maintenance-requests'),
     _MenuItem('Complaints', '⚠️', route: '/complaints'),
   ]),
   _MenuGroup('Directory', [
@@ -56,11 +55,11 @@ const _groups = [
   ]),
   _MenuGroup('Visitor', [
     _MenuItem('My Visitors', '🚪', route: '/visitors'),
-    _MenuItem('My Daily Helpers', '🧹'),
-    _MenuItem('Gate Keeper', '👮'),
+    _MenuItem('My Daily Helpers', '🧹', route: '/visitors/helpers'),
+    _MenuItem('Gate Keeper', '👮', route: '/visitors/gatekeeper'),
     _MenuItem('Gate Pass', '🎫', route: '/visitors/invite'),
-    _MenuItem('Pre-Approve', '✅', route: '/visitors/invite'),
-    _MenuItem('Settings', '⚙️', route: '/profile'),
+    _MenuItem('Pre-Approve', '✅', route: '/visitors/pre-approved'),
+    _MenuItem('Settings', '⚙️', route: '/visitors/settings'),
   ]),
   _MenuGroup('My Building', [
     _MenuItem('Documents', '📄', route: '/documents'),
@@ -87,7 +86,7 @@ class HomeScreen extends ConsumerWidget {
             _HomeHeader(societyName: societyName),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
                 children: [
                   for (final group in _groups) ...[
                     _GroupCard(group: group),
@@ -96,7 +95,6 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const _ScanQrBar(),
           ],
         ),
       ),
@@ -238,42 +236,6 @@ class _MenuTile extends StatelessWidget {
   }
 }
 
-class _ScanQrBar extends StatelessWidget {
-  const _ScanQrBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(28), gradient: AppTheme.brandGradient),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-              ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('QR scanning is coming soon')),
-                );
-              },
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan QR Code'),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _HomeDrawer extends ConsumerWidget {
   const _HomeDrawer({required this.societyName, required this.unit});
 
@@ -317,6 +279,15 @@ class _HomeDrawer extends ConsumerWidget {
               onTap: () {
                 Navigator.of(context).pop();
                 context.push('/profile');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.support_agent_outlined),
+              title: const Text('Help Line'),
+              subtitle: const Text('Customer service 24 × 7'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push('/help-line');
               },
             ),
             const Spacer(),

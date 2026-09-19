@@ -59,8 +59,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
 
     <style>
         :root {
@@ -642,15 +642,16 @@
         </div>
         <div class="row g-4">
             @foreach ([
-                ['quote' => 'FlatCare made our <b>maintenance process so simple.</b> Tenants can easily raise requests and we can track everything in one place.', 'name' => 'Aarav Mehta', 'role' => 'Property Manager, 40 Units', 'tone' => 'green'],
-                ['quote' => 'Rent collection used to be our biggest headache. Now it <b>basically runs itself.</b> FlatCare saves us hours every month.', 'name' => 'Sneha Kapoor', 'role' => 'Landlord, 12 Units', 'tone' => 'blue'],
-                ['quote' => 'Simple, powerful and easy to use. FlatCare keeps our residents engaged and our community <b>running smoothly.</b>', 'name' => 'Rohan Verma', 'role' => 'Operations Lead, Skyline Homes', 'tone' => 'gold'],
+                ['quote' => 'FlatCare made our **maintenance process so simple.** Tenants can easily raise requests and we can track everything in one place.', 'name' => 'Aarav Mehta', 'role' => 'Property Manager, 40 Units', 'tone' => 'green'],
+                ['quote' => 'Rent collection used to be our biggest headache. Now it **basically runs itself.** FlatCare saves us hours every month.', 'name' => 'Sneha Kapoor', 'role' => 'Landlord, 12 Units', 'tone' => 'blue'],
+                ['quote' => 'Simple, powerful and easy to use. FlatCare keeps our residents engaged and our community **running smoothly.**', 'name' => 'Rohan Verma', 'role' => 'Operations Lead, Skyline Homes', 'tone' => 'gold'],
             ] as $i => $t)
                 <div class="col-lg-4">
                     <div class="card card-feature testimonial-card testimonial-card--{{ $t['tone'] }} h-100 p-4">
                         <div class="stars mb-2">★★★★★</div>
                         <div class="quote-mark">&ldquo;</div>
-                        <p class="mb-4 mt-n2 testimonial-quote">{!! $t['quote'] !!}</p>
+                        <p class="mb-4 mt-n2 testimonial-quote">{{-- Escape FIRST, then turn only our own **bold** markers into <b>: no raw HTML from data ever reaches the page. --}}
+                        {!! preg_replace('/\*\*(.+?)\*\*/', '<b>$1</b>', e($t['quote'])) !!}</p>
                         <div class="mt-auto d-flex align-items-center gap-3">
                             <img src="{{ asset('images/marketing/testimonials/a'.($i + 1).'.jpg') }}" alt="{{ $t['name'] }}" class="testimonial-avatar" width="48" height="48" loading="lazy">
                             <div>
@@ -783,13 +784,9 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-@if ($errors->any() || session('trial_inquiry_sent'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            new bootstrap.Modal(document.getElementById('trialInquiryModal')).show();
-        });
-    </script>
-@endif
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+{{-- External script (the CSP forbids inline JS); data-open tells it whether to
+     re-open the trial modal to show validation errors / the thank-you note. --}}
+<script src="{{ asset('js/welcome-trial-modal.js') }}" @if ($errors->any() || session('trial_inquiry_sent')) data-open="1" @endif></script>
 </body>
 </html>

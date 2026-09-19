@@ -5,6 +5,16 @@
 
     RewriteEngine On
 
+    # Never serve dot-files/directories (.env, .git, .htpasswd, ...), except
+    # the RFC 8615 .well-known folder used for certificate validation.
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+    # Uploaded files live under /storage (a symlink to storage/app/public).
+    # They must only ever be downloaded/displayed, never executed or rendered
+    # as a page: refuse anything with a server-side-script or HTML/JS
+    # extension, whatever a user managed to name it.
+    RewriteRule ^storage/.*\.(php[0-9]?|phtml|phar|pht|phps|cgi|pl|py|sh|asp|aspx|jsp|exe|dll|bat|cmd|html?|xhtml|js|mjs)$ - [F,NC,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -22,4 +32,16 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Files under /storage bypass Laravel (Apache serves them directly), so the
+# SecurityHeaders middleware never runs for them: give them the headers here.
+# `sandbox` + `default-src 'none'` means even an SVG opened directly in the
+# browser cannot run script or load anything.
+<IfModule mod_headers.c>
+    <If "%{REQUEST_URI} =~ m#^/storage/#">
+        Header always set X-Content-Type-Options "nosniff"
+        Header always set Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+    </If>
+    Header always unset X-Powered-By
 </IfModule>

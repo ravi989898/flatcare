@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Resident;
 
 use App\Models\Tenant\Visitor;
+use App\Rules\SafeUploadedFile;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -25,11 +26,23 @@ class StoreVisitorInviteRequest extends FormRequest
         return [
             'flat_id' => ['required', 'exists:flats,id'],
             'visitor_name' => ['required', 'string', 'max:255'],
-            'visitor_phone' => ['nullable', 'string', 'max:20'],
+            'visitor_phone' => ['required', 'string', 'max:20'],
+            'visitor_email' => ['nullable', 'email', 'max:255'],
             'purpose' => ['required', 'in:'.implode(',', Visitor::PURPOSES)],
             'vehicle_number' => ['nullable', 'string', 'max:20'],
-            'expected_at' => ['nullable', 'date'],
+            'entry_kind' => ['sometimes', 'in:'.implode(',', Visitor::ENTRY_KINDS)],
+            // A dated Gate Pass needs its From/To window; the quicker
+            // Pre-Approval form has none.
+            'expected_at' => ['nullable', 'required_if:entry_kind,gate_pass', 'date'],
+            'valid_until' => ['nullable', 'required_if:entry_kind,gate_pass', 'date', 'after_or_equal:expected_at'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'photo' => [
+                'nullable',
+                'image',
+                'max:4096',
+                'mimes:jpg,jpeg,png,webp',
+                new SafeUploadedFile(['jpg', 'jpeg', 'png', 'webp']),
+            ],
         ];
     }
 }

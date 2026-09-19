@@ -30,17 +30,41 @@ class TenantAccountLocator
      */
     public function findByCredentials(string $email, string $password): ?array
     {
+        $hashChecked = false;
+
         foreach ($this->activeSocieties() as $society) {
             $this->tenantService->setTenant($society);
 
             $user = TenantUser::where('email', $email)->first();
 
-            if ($user && Hash::check($password, $user->password)) {
-                return ['society' => $society, 'user' => $user];
+            if ($user) {
+                $hashChecked = true;
+
+                if (Hash::check($password, $user->password)) {
+                    return ['society' => $society, 'user' => $user];
+                }
             }
         }
 
+        // Unknown e-mail: still burn one bcrypt verification so the response
+        // time doesn't reveal whether the address is registered.
+        if (! $hashChecked) {
+            Hash::check($password, self::dummyHash());
+        }
+
         return null;
+    }
+
+    /**
+     * A valid bcrypt hash (cost 12) of a random throw-away string. Verifying
+     * against it costs the same as a real check without re-hashing on every
+     * request. It protects nothing and matches no account.
+     */
+    private const DUMMY_HASH = '$2y$12$2WEGdGThF19P8NR/X21KHuK4gyNfwo7JVzuMmpJPa.g1XgRQBaF5G';
+
+    private static function dummyHash(): string
+    {
+        return self::DUMMY_HASH;
     }
 
     /**

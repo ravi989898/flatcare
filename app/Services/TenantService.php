@@ -318,6 +318,14 @@ class TenantService
      */
     private function createDatabase(string $databaseName): void
     {
+        // The name is interpolated into DDL (identifiers can't be bound), so
+        // refuse anything but a plain identifier rather than trusting that
+        // the society slug it was built from was already sanitized.
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', str_replace('-', '_', $databaseName))
+            || str_contains($databaseName, '`')) {
+            throw new \InvalidArgumentException('Unsafe database name.');
+        }
+
         try {
             DB::statement("CREATE DATABASE IF NOT EXISTS `{$databaseName}`
                 CHARACTER SET utf8mb4

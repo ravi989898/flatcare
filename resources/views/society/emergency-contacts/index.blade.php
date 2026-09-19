@@ -76,7 +76,7 @@
                                         <input form="edit-contact-{{ $contact->id }}" type="hidden" name="_method" value="PUT">
                                         <input form="edit-contact-{{ $contact->id }}" type="hidden" name="sort_order" value="{{ $contact->sort_order }}">
                                         <button form="edit-contact-{{ $contact->id }}" type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check-lg"></i></button>
-                                        <form action="{{ route('society.emergency-contacts.destroy', $contact->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove this contact?');">
+                                        <form action="{{ route('society.emergency-contacts.destroy', $contact->id) }}" method="POST" class="d-inline" data-confirm="Remove this contact?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>

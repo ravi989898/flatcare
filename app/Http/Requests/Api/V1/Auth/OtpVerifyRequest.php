@@ -7,6 +7,7 @@ use App\Models\Tenant\Flat;
 use App\Models\Tenant\SecurityGuard;
 use App\Services\Api\OtpService;
 use App\Services\Api\TenantAccountLocator;
+use App\Support\SecurityLog;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\RateLimiter;
@@ -53,6 +54,8 @@ class OtpVerifyRequest extends FormRequest
 
         if (!$otp->verify($mobileNumber, $this->string('otp')->value())) {
             RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
+            RateLimiter::hit($this->identifierKey(), decaySeconds: 900);
+            SecurityLog::warning('auth.otp_verify_failed', ['mobile' => substr($mobileNumber, -4)]);
 
             throw ValidationException::withMessages([
                 'otp' => 'That code is incorrect or has expired.',
@@ -72,6 +75,8 @@ class OtpVerifyRequest extends FormRequest
 
         if (!$found) {
             RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
+            RateLimiter::hit($this->identifierKey(), decaySeconds: 900);
+            SecurityLog::warning('auth.otp_unknown_number', ['mobile' => substr($mobileNumber, -4)]);
 
             throw ValidationException::withMessages([
                 'mobile_number' => 'No flat is registered with this mobile number. Contact your society office.',
@@ -79,6 +84,7 @@ class OtpVerifyRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+        RateLimiter::clear($this->identifierKey());
 
         return $found;
     }
@@ -90,13 +96,14 @@ class OtpVerifyRequest extends FormRequest
     {
         $maxAttempts = (int) config('auth.login_max_attempts', 5);
 
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)
+            && ! RateLimiter::tooManyAttempts($this->identifierKey(), self::MAX_FAILURES_PER_ACCOUNT)) {
             return;
         }
 
         event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
+        $seconds = max(RateLimiter::availableIn($this->throttleKey()), RateLimiter::availableIn($this->identifierKey()));
 
         throw ValidationException::withMessages([
             'otp' => trans('auth.throttle', [
@@ -111,5 +118,18 @@ class OtpVerifyRequest extends FormRequest
         return Str::transliterate(
             'otp|'.$this->string('mobile_number').'|'.$this->ip()
         );
+    }
+
+    /** Failed attempts allowed per account in 15 minutes, whatever the source IP. */
+    private const MAX_FAILURES_PER_ACCOUNT = 20;
+
+    /**
+     * Failure counter keyed by the account alone (no IP). The per-IP key above
+     * stops one client; this one stops a distributed / IP-rotating (e.g. spoofed
+     * X-Forwarded-For) brute force against a single account.
+     */
+    private function identifierKey(): string
+    {
+        return Str::transliterate('otpid|'.$this->string('mobile_number'));
     }
 }

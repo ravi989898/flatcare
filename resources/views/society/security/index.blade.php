@@ -97,12 +97,12 @@
                                             @if ($guard->status === 'active')
                                                 <form action="{{ route('society.security.deactivate', $guard->id) }}" method="POST" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Deactivate this guard?')">Deactivate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" data-confirm="Deactivate this guard?">Deactivate</button>
                                                 </form>
                                             @else
                                                 <form action="{{ route('society.security.activate', $guard->id) }}" method="POST" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Activate this guard?')">Activate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" data-confirm="Activate this guard?">Activate</button>
                                                 </form>
                                             @endif
                                         </div>

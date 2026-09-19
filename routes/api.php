@@ -22,7 +22,9 @@ use App\Http\Controllers\Api\V1\Resident\ProfileController;
 use App\Http\Controllers\Api\V1\Resident\SecurityGuardController;
 use App\Http\Controllers\Api\V1\Resident\ServiceProviderController;
 use App\Http\Controllers\Api\V1\Resident\VehicleController;
+use App\Http\Controllers\Api\V1\Resident\DailyHelperController;
 use App\Http\Controllers\Api\V1\Resident\VisitorController;
+use App\Http\Controllers\Api\V1\Resident\VisitorSettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile app REST API — see ARCHITECTURE.md §7 for the overall shape and
@@ -35,11 +37,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('reset_password');
 
         // Resident app login: mobile number + OTP instead of email/password.
-        Route::post('/otp/request', [OtpAuthController::class, 'request'])->middleware('throttle:5,1')->name('otp.request');
+        Route::post('/otp/request', [OtpAuthController::class, 'request'])->middleware('throttle:otp-request')->name('otp.request');
         Route::post('/otp/verify', [OtpAuthController::class, 'verify'])->middleware('throttle:10,1')->name('otp.verify');
     });
 
-    Route::middleware('api.auth')->group(function () {
+    Route::middleware(['api.auth', 'throttle:api-auth'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
 
@@ -57,7 +59,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::put('/vehicles/{id}', [VehicleController::class, 'update'])->name('vehicles.update');
             Route::delete('/vehicles/{id}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
-            Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+            Route::put('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:password-change')->name('password.update');
         });
 
         Route::prefix('bills')->name('bills.')->group(function () {
@@ -77,10 +79,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::prefix('visitors')->name('visitors.')->group(function () {
             Route::get('/', [VisitorController::class, 'index'])->name('index');
-            Route::post('/', [VisitorController::class, 'store'])->name('store');
+            Route::post('/', [VisitorController::class, 'store'])->middleware('throttle:visitor-create')->name('store');
             Route::get('/{id}', [VisitorController::class, 'show'])->name('show');
             Route::post('/{id}/approve', [VisitorController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [VisitorController::class, 'reject'])->name('reject');
+            Route::delete('/{id}', [VisitorController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::get('/visitor-settings', [VisitorSettingsController::class, 'show'])->name('visitor_settings.show');
+        Route::put('/visitor-settings', [VisitorSettingsController::class, 'update'])->name('visitor_settings.update');
+
+        Route::prefix('daily-helpers')->name('daily_helpers.')->group(function () {
+            Route::get('/', [DailyHelperController::class, 'index'])->name('index');
+            Route::post('/', [DailyHelperController::class, 'store'])->middleware('throttle:uploads')->name('store');
+            Route::delete('/{id}', [DailyHelperController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('announcements')->name('announcements.')->group(function () {
@@ -133,7 +145,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::prefix('visitors')->name('visitors.')->group(function () {
                 Route::get('/', [GuardVisitorController::class, 'index'])->name('index');
-                Route::post('/', [GuardVisitorController::class, 'store'])->name('store');
+                Route::post('/', [GuardVisitorController::class, 'store'])->middleware('throttle:guard-visitor-create')->name('store');
                 Route::get('/{id}', [GuardVisitorController::class, 'show'])->name('show');
                 Route::post('/{id}/check-in', [GuardVisitorController::class, 'checkIn'])->name('check_in');
                 Route::post('/{id}/check-out', [GuardVisitorController::class, 'checkOut'])->name('check_out');

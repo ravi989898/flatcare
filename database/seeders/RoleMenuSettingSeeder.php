@@ -68,7 +68,9 @@ class RoleMenuSettingSeeder extends Seeder
             'super_admin' => $allKeys,
             'admin' => $allKeys,
             'committee_member' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
-            'resident' => $allKeys, // resident permissions already cover every module, just their own-facing view
+            // Residents use the mobile app; the society portal is refused to them at the door (SetSocietyContext),
+            // and admin-only modules are refused server-side (EnsureMenuItemVisible::ADMIN_ONLY_KEYS).
+            'resident' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'elections', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
             'security' => ['dashboard', 'visitors', 'directory'],
         ];
 

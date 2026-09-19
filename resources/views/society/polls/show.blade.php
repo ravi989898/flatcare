@@ -63,7 +63,7 @@
                     <button type="submit" class="btn btn-outline-dark btn-sm">Close Poll</button>
                 </form>
             @endif
-            <form action="{{ route('society.polls.destroy', $poll->id) }}" method="POST" onsubmit="return confirm('Delete this poll?');">
+            <form action="{{ route('society.polls.destroy', $poll->id) }}" method="POST" data-confirm="Delete this poll?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>

@@ -8,7 +8,7 @@
             <h1>Roles</h1>
         </div>
         <div class="col-sm-6 text-right">
-            <form action="{{ route('admin.settings.roles.sync') }}" method="POST" class="d-inline" onsubmit="return confirm('Push the current role catalog into every provisioned society? Existing role assignments are kept.')">
+            <form action="{{ route('admin.settings.roles.sync') }}" method="POST" class="d-inline" data-confirm="Push the current role catalog into every provisioned society? Existing role assignments are kept.">
                 @csrf
                 <button type="submit" class="btn btn-outline-secondary">
                     <i class="fas fa-sync"></i> Sync to Societies
@@ -65,7 +65,7 @@
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
                                 @unless ($role->is_system_role)
-                                    <form action="{{ route('admin.settings.roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this role?')">
+                                    <form action="{{ route('admin.settings.roles.destroy', $role->id) }}" method="POST" class="d-inline" data-confirm="Delete this role?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>

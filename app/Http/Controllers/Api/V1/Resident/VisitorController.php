@@ -9,6 +9,7 @@ use App\Models\Tenant\Visitor;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 /**
@@ -29,11 +30,50 @@ class VisitorController extends ApiController
 {
     public function index(Request $request): JsonResponse
     {
-        $visitors = Visitor::with('flat.block')
+        // Query-string filters are client input: validate type/length/allowed
+        // values up front so junk gets a clean 422 instead of a 500.
+        $request->validate([
+            'status' => ['nullable', 'in:'.implode(',', Visitor::STATUSES)],
+            'kind' => ['nullable', 'in:'.implode(',', Visitor::ENTRY_KINDS)],
+            'search' => ['nullable', 'string', 'max:100'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+
+        $query = Visitor::with('flat.block')
             ->whereIn('flat_id', $this->myFlatIds())
-            ->status($request->string('status')->trim()->value() ?: null)
-            ->latest('check_in_at')
-            ->paginate(15);
+            ->status($request->string('status')->trim()->value() ?: null);
+
+        if ($kind = $request->string('kind')->trim()->value()) {
+            $query->where('entry_kind', $kind)->whereNotNull('invited_by_user_id');
+        }
+
+        if ($search = $request->string('search')->trim()->value()) {
+            $query->where(function ($q) use ($search) {
+                $q->where('visitor_name', 'like', "%{$search}%")
+                    ->orWhere('visitor_phone', 'like', "%{$search}%")
+                    ->orWhere('purpose', 'like', "%{$search}%")
+                    ->orWhereHas('flat', fn ($f) => $f->where('flat_number', 'like', "%{$search}%"));
+            });
+        }
+
+        // The My Visitors date filter. A visitor's date is when they came,
+        // or - for a pass that hasn't been used yet - when they're expected.
+        $from = $request->date('from');
+        $to = $request->date('to');
+        if ($from || $to) {
+            $query->where(function ($q) use ($from, $to) {
+                $day = 'COALESCE(check_in_at, expected_at, created_at)';
+                if ($from) {
+                    $q->whereRaw("$day >= ?", [$from->startOfDay()]);
+                }
+                if ($to) {
+                    $q->whereRaw("$day <= ?", [$to->copy()->endOfDay()]);
+                }
+            });
+        }
+
+        $visitors = $query->orderByRaw('COALESCE(check_in_at, expected_at, created_at) DESC')->paginate(50);
 
         return $this->paginated(VisitorResource::collection($visitors), $visitors);
     }
@@ -56,13 +96,32 @@ class VisitorController extends ApiController
         }
 
         $visitor = Visitor::create([
-            ...$validated,
+            ...Arr::except($validated, ['photo']),
+            'photo_path' => $request->file('photo')?->store('visitors', 'public'),
             'status' => 'pending',
             'invited_by_user_id' => $this->user()->id,
             'pass_code' => strtoupper(Str::random(6)),
         ]);
 
         return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor invited successfully.', 201);
+    }
+
+    /**
+     * A resident withdrawing their own still-unused pass / pre-approval.
+     * Guard-raised requests aren't theirs to delete - those are answered
+     * with approve()/reject() instead.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $visitor = Visitor::whereIn('flat_id', $this->myFlatIds())->findOrFail($id);
+
+        if (!$visitor->isPending() || $visitor->invited_by_user_id === null) {
+            return $this->fail('Only a pass you created that has not been used yet can be cancelled.');
+        }
+
+        $visitor->delete();
+
+        return $this->ok(null, 'Pass cancelled.');
     }
 
     public function approve(int $id, NotificationService $notifications): JsonResponse

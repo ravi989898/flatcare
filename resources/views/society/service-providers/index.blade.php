@@ -73,7 +73,7 @@
                                         <input form="edit-provider-{{ $provider->id }}" type="hidden" name="_method" value="PUT">
                                         <input form="edit-provider-{{ $provider->id }}" type="hidden" name="sort_order" value="{{ $provider->sort_order }}">
                                         <button form="edit-provider-{{ $provider->id }}" type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check-lg"></i></button>
-                                        <form action="{{ route('society.service-providers.destroy', $provider->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove this provider?');">
+                                        <form action="{{ route('society.service-providers.destroy', $provider->id) }}" method="POST" class="d-inline" data-confirm="Remove this provider?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>

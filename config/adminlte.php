@@ -440,6 +440,18 @@ return [
                 ],
             ],
         ],
+        // Replaces inline onclick/onsubmit confirm() handlers (blocked by the
+        // CSP) with data-confirm="..." — see public/js/security-ui.js.
+        'SecurityUi' => [
+            'active' => true,
+            'files' => [
+                [
+                    'type' => 'js',
+                    'asset' => true,
+                    'location' => 'js/security-ui.js',
+                ],
+            ],
+        ],
         'Sweetalert2' => [
             'active' => false,
             'files' => [

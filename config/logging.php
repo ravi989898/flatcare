@@ -58,6 +58,17 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // Security events only (failed logins, lockouts, 403s, blocked
+        // uploads, rate-limit hits). Kept apart from laravel.log so it can be
+        // shipped/alerted on separately. See App\Support\SecurityLog.
+        'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => 'info',
+            'days' => (int) env('SECURITY_LOG_DAYS', 90),
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Society;
 
 use App\Rules\IndianMobileNumber;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Used by Society\AdminController::update() — password changes go through
@@ -34,7 +35,9 @@ class AdminUserRequest extends FormRequest
                 'required', 'digits:10', new IndianMobileNumber(),
                 'unique:society.users,phone'.($adminId ? ",{$adminId}" : ''),
             ],
-            'role' => ['required', 'exists:society.roles,id'],
+            // super_admin is a platform role: a society admin must not be able to
+            // grant it by posting its id (the form just hides it from the list).
+            'role' => ['required', Rule::exists('society.roles', 'id')->where(fn ($q) => $q->where('name', '!=', 'super_admin'))],
         ];
     }
 }

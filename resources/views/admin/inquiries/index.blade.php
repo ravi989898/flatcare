@@ -77,7 +77,7 @@
                                             <button type="submit" class="btn btn-xs btn-outline-secondary"><i class="fas fa-times"></i> Dismiss</button>
                                         </form>
                                     @endif
-                                    <form action="{{ route('admin.inquiries.destroy', $inquiry) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this inquiry?');">
+                                    <form action="{{ route('admin.inquiries.destroy', $inquiry) }}" method="POST" class="d-inline" data-confirm="Delete this inquiry?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>

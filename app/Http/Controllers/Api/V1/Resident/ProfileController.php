@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Requests\Api\V1\Resident\UpdatePasswordRequest;
 use App\Http\Requests\Api\V1\Resident\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
+use App\Services\Api\ApiTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -32,7 +33,7 @@ class ProfileController extends ApiController
      * pre-login /auth/forgot-password + /auth/reset-password pair, which
      * requires no current password since the resident is locked out.
      */
-    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request, ApiTokenService $tokenService): JsonResponse
     {
         $user = $this->user();
 
@@ -43,6 +44,11 @@ class ProfileController extends ApiController
         }
 
         $user->update(['password' => Hash::make($request->string('password')->value())]);
+
+        // A session/token that existed before the password changed must not
+        // survive it - keep only the device that made this request.
+        $current = $request->attributes->get('api_token');
+        $tokenService->revokeAllExcept($request->attributes->get('api_society'), $user, $current->id);
 
         return $this->ok(null, 'Password changed successfully.');
     }

@@ -29,11 +29,9 @@ import '../../features/gatekeeper/screens/gatekeeper_vehicle_detail_screen.dart'
 import '../../features/gatekeeper/screens/gatekeeper_vehicle_list_screen.dart';
 import '../../features/gatekeeper/screens/gatekeeper_visitor_checkin_screen.dart';
 import '../../features/gatekeeper/screens/gatekeeper_visitor_list_screen.dart';
+import '../../features/help/screens/help_line_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/my_properties_screen.dart';
-import '../../features/maintenance_requests/screens/maintenance_request_detail_screen.dart';
-import '../../features/maintenance_requests/screens/maintenance_request_form_screen.dart';
-import '../../features/maintenance_requests/screens/maintenance_request_list_screen.dart';
 import '../../features/notifications/screens/notification_list_screen.dart';
 import '../../features/polls/screens/poll_list_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
@@ -50,9 +48,15 @@ import '../../features/profile/screens/theme_screen.dart';
 import '../../features/profile/screens/vehicles_screen.dart';
 import '../../features/service_providers/screens/service_provider_list_screen.dart';
 import '../../features/visitors/data/visitor.dart';
+import '../../features/visitors/screens/daily_helper_form_screen.dart';
+import '../../features/visitors/screens/daily_helper_screen.dart';
+import '../../features/visitors/screens/gate_keeper_screen.dart';
 import '../../features/visitors/screens/gate_pass_screen.dart';
 import '../../features/visitors/screens/invite_visitor_screen.dart';
+import '../../features/visitors/screens/pre_approval_request_screen.dart';
+import '../../features/visitors/screens/pre_approved_entry_screen.dart';
 import '../../features/visitors/screens/visitor_list_screen.dart';
+import '../../features/visitors/screens/visitor_settings_screen.dart';
 
 /// A ChangeNotifier that pings go_router's `refreshListenable` whenever the
 /// auth session changes, so login/logout are reflected in navigation
@@ -138,18 +142,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/gatekeeper/profile', builder: (context, state) => const GatekeeperProfileScreen()),
 
       GoRoute(
-        path: '/maintenance-requests',
-        builder: (context, state) => const MaintenanceRequestListScreen(),
-        routes: [
-          GoRoute(path: 'new', builder: (context, state) => const MaintenanceRequestFormScreen()),
-          GoRoute(
-            path: ':id',
-            builder: (context, state) => MaintenanceRequestDetailScreen(id: int.parse(state.pathParameters['id']!)),
-          ),
-        ],
-      ),
-
-      GoRoute(
         path: '/bills',
         builder: (context, state) => const BillListScreen(),
         routes: [
@@ -177,6 +169,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VisitorListScreen(),
         routes: [
           GoRoute(path: 'invite', builder: (context, state) => const InviteVisitorScreen()),
+          GoRoute(path: 'pre-approved', builder: (context, state) => const PreApprovedEntryScreen()),
+          GoRoute(path: 'pre-approval', builder: (context, state) => const PreApprovalRequestScreen()),
+          GoRoute(
+            path: 'helpers',
+            builder: (context, state) => const DailyHelperScreen(),
+            routes: [
+              GoRoute(path: 'new', builder: (context, state) => const DailyHelperFormScreen()),
+            ],
+          ),
+          GoRoute(path: 'gatekeeper', builder: (context, state) => const GateKeeperScreen()),
+          GoRoute(path: 'settings', builder: (context, state) => const VisitorSettingsScreen()),
           GoRoute(
             path: 'gate-pass',
             builder: (context, state) => GatePassScreen(visitor: state.extra as Visitor),
@@ -206,6 +209,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      GoRoute(path: '/help-line', builder: (context, state) => const HelpLineScreen()),
       GoRoute(path: '/directory', builder: (context, state) => const DirectoryListScreen()),
       GoRoute(path: '/documents', builder: (context, state) => const DocumentListScreen()),
       GoRoute(path: '/emergency-contacts', builder: (context, state) => const EmergencyContactsScreen()),

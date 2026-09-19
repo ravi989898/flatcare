@@ -89,7 +89,7 @@
                                     <td><a href="{{ Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}" target="_blank">{{ $document->file_name }}</a></td>
                                     <td class="text-muted small">{{ $document->created_at->format('d M Y') }} &middot; {{ $document->uploadedBy?->name ?? '—' }}</td>
                                     <td class="text-end">
-                                        <form action="{{ route('society.documents.destroy', $document->id) }}" method="POST" onsubmit="return confirm('Delete this document?');">
+                                        <form action="{{ route('society.documents.destroy', $document->id) }}" method="POST" data-confirm="Delete this document?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>

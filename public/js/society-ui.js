@@ -16,15 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // <button data-confirm="Are you sure?" ...> asks before its click goes
-    // through (Archive/Cancel/Remove-style destructive actions).
-    document.querySelectorAll('[data-confirm]').forEach(function (el) {
-        el.addEventListener('click', function (e) {
-            if (!window.confirm(el.getAttribute('data-confirm'))) {
-                e.preventDefault();
-            }
-        });
-    });
+    // Confirmation prompts (data-confirm) are handled globally by
+    // public/js/security-ui.js, which every AdminLTE page loads.
 
     // <button data-action="print" ...> triggers the browser print dialog
     // (invoice/receipt pages use this for their "Print / Save as PDF" button).

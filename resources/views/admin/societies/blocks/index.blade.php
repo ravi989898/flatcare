@@ -70,7 +70,7 @@
                                     <form action="{{ route('admin.societies.blocks.destroy', [$society->id, $block->id]) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this block?')">
+                                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this block?">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

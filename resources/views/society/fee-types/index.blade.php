@@ -66,7 +66,7 @@
                                         <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="_method" value="PUT">
                                         <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="sort_order" value="{{ $feeType->sort_order }}">
                                         <button form="edit-fee-type-{{ $feeType->id }}" type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check-lg"></i></button>
-                                        <form action="{{ route('society.fee-types.destroy', $feeType->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove this fee type?');">
+                                        <form action="{{ route('society.fee-types.destroy', $feeType->id) }}" method="POST" class="d-inline" data-confirm="Remove this fee type?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>

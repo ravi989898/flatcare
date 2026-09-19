@@ -64,6 +64,19 @@ class ApiTokenService
     }
 
     /**
+     * Sign a user out everywhere except the device they are using right now
+     * (e.g. after they change their password: a token stolen before the
+     * change must stop working).
+     */
+    public function revokeAllExcept(Society $society, TenantUser $user, int $keepTokenId): void
+    {
+        ApiToken::where('society_id', $society->id)
+            ->where('tenant_user_id', $user->id)
+            ->where('id', '!=', $keepTokenId)
+            ->delete();
+    }
+
+    /**
      * Revoke every token issued to a tenant user (e.g. on password reset),
      * scoped to their society since tenant_user_id alone isn't unique
      * across societies.

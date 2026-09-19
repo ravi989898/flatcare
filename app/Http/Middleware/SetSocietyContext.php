@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\MenuItem;
 use App\Models\Society;
 use App\Services\TenantService;
+use App\Support\SecurityLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SetSocietyContext
 {
+    /**
+     * Roles allowed into the society management portal. Everything except a
+     * plain `resident` (see handle()); listed explicitly so a new role is
+     * denied until someone decides it belongs here.
+     */
+    private const PORTAL_ROLES = ['super_admin', 'admin', 'chairman', 'vice_chairman', 'secretary', 'treasurer', 'committee_member', 'security'];
+
     public function __construct(
         private TenantService $tenantService,
     ) {}
@@ -64,6 +72,25 @@ class SetSocietyContext
 
         if (!Auth::guard('society')->check()) {
             return redirect()->route('society.login');
+        }
+
+        // The society portal is a management panel (users, blocks, guards,
+        // billing, documents, announcements...). A user whose only role is
+        // `resident` - or who has no role - is a mobile-app user and must not
+        // get in, otherwise "forgot password" + this login turns every
+        // resident into an administrator (they were even shown every menu
+        // item by the default role/menu seed). Elevated roles are unaffected.
+        $highestRole = Auth::guard('society')->user()->roles()->orderByDesc('priority')->value('name');
+
+        if (!in_array($highestRole, self::PORTAL_ROLES, true)) {
+            SecurityLog::warning('authz.portal_role_denied', ['user_id' => Auth::guard('society')->id(), 'role' => $highestRole]);
+
+            Auth::guard('society')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('society.login')
+                ->with('error', 'This portal is for society staff. Residents please use the FlatCare mobile app.');
         }
 
         // The Society portal shares the Super Admin panel's AdminLTE shell

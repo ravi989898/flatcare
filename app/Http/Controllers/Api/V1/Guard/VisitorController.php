@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Guard;
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Requests\Api\V1\Guard\StoreGuardVisitorRequest;
 use App\Http\Resources\Api\V1\VisitorResource;
+use App\Models\Tenant\Flat;
 use App\Models\Tenant\Visitor;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
@@ -71,6 +72,17 @@ class VisitorController extends ApiController
         $validated = Arr::except($request->validated(), ['photo', 'requires_approval']);
         $photo = $request->file('photo');
         $requiresApproval = $request->boolean('requires_approval');
+
+        // The resident's Visitor > Settings: a closed house takes no
+        // walk-ins, and "guests only if I approve" turns every guest entry
+        // into an approval request whether or not the guard asked for one.
+        $flat = Flat::with('block')->findOrFail($validated['flat_id']);
+        if ($flat->house_closed) {
+            return $this->fail("{$flat->display_label} is marked closed by the resident - entry is not allowed.");
+        }
+        if ($flat->guest_approval_required && $validated['purpose'] === 'guest') {
+            $requiresApproval = true;
+        }
 
         $visitor = Visitor::create([
             ...$validated,

@@ -15,18 +15,22 @@ class Visitor extends Model
 
     public const STATUSES = ['pending', 'checked_in', 'checked_out', 'denied'];
     public const PURPOSES = ['guest', 'delivery', 'cab', 'service', 'other'];
+    public const ENTRY_KINDS = ['gate_pass', 'pre_approval'];
 
     protected $fillable = [
         'flat_id',
         'visitor_name',
         'visitor_phone',
+        'visitor_email',
         'purpose',
         'vehicle_number',
         'status',
         'check_in_at',
         'check_out_at',
         'expected_at',
+        'valid_until',
         'pass_code',
+        'entry_kind',
         'checked_in_by',
         'checked_out_by',
         'invited_by_user_id',
@@ -38,6 +42,7 @@ class Visitor extends Model
         'check_in_at' => 'datetime',
         'check_out_at' => 'datetime',
         'expected_at' => 'datetime',
+        'valid_until' => 'datetime',
     ];
 
     /**

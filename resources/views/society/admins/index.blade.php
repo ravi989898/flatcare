@@ -64,12 +64,12 @@
                                             @if ($admin->status === 'active')
                                                 <form action="{{ route('society.admins.deactivate', $admin->id) }}" method="POST" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Deactivate this admin?')">Deactivate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" data-confirm="Deactivate this admin?">Deactivate</button>
                                                 </form>
                                             @else
                                                 <form action="{{ route('society.admins.activate', $admin->id) }}" method="POST" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Activate this admin?')">Activate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" data-confirm="Activate this admin?">Activate</button>
                                                 </form>
                                             @endif
                                         </div>

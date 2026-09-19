@@ -33,7 +33,7 @@
                 </div>
                 @if ($settings->logoUrl())
                     <div class="card-footer">
-                        <form action="{{ route('admin.settings.branding.destroy') }}" method="POST" onsubmit="return confirm('Remove the current logo and revert to the default brand mark?')">
+                        <form action="{{ route('admin.settings.branding.destroy') }}" method="POST" data-confirm="Remove the current logo and revert to the default brand mark?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger btn-block">
@@ -98,7 +98,7 @@
                 </div>
                 @if ($settings->iconUrl())
                     <div class="card-footer">
-                        <form action="{{ route('admin.settings.branding.icon.destroy') }}" method="POST" onsubmit="return confirm('Remove the current app icon and revert to the default?')">
+                        <form action="{{ route('admin.settings.branding.icon.destroy') }}" method="POST" data-confirm="Remove the current app icon and revert to the default?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger btn-block">
@@ -149,15 +149,5 @@
 @stop
 
 @section('js')
-    <script>
-        // Bootstrap 4 custom-file input doesn't show the chosen filename by default.
-        ['logo', 'icon'].forEach(function (id) {
-            document.getElementById(id)?.addEventListener('change', function (e) {
-                const label = e.target.nextElementSibling;
-                if (label) {
-                    label.textContent = e.target.files.length ? e.target.files[0].name : 'Choose file…';
-                }
-            });
-        });
-    </script>
+    <script src="{{ asset('js/admin-branding.js') }}"></script>
 @stop

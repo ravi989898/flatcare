@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use App\Models\Society;
 use App\Services\TenantService;
+use App\Support\SecurityLog;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -82,11 +83,14 @@ class SocietyLoginRequest extends FormRequest
             }
 
             RateLimiter::clear($this->throttleKey());
+        RateLimiter::clear($this->identifierKey());
 
             return $society;
         }
 
         RateLimiter::hit($this->throttleKey(), decaySeconds: 60);
+            RateLimiter::hit($this->identifierKey(), decaySeconds: 900);
+            SecurityLog::warning('auth.society_login_failed', ['email' => $this->string('email')->value()]);
 
         throw ValidationException::withMessages([
             'email' => trans('auth.failed'),
@@ -100,13 +104,14 @@ class SocietyLoginRequest extends FormRequest
     {
         $maxAttempts = (int) config('auth.login_max_attempts', 5);
 
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)
+            && ! RateLimiter::tooManyAttempts($this->identifierKey(), self::MAX_FAILURES_PER_ACCOUNT)) {
             return;
         }
 
         event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
+        $seconds = max(RateLimiter::availableIn($this->throttleKey()), RateLimiter::availableIn($this->identifierKey()));
 
         throw ValidationException::withMessages([
             'email' => trans('auth.throttle', [
@@ -125,5 +130,18 @@ class SocietyLoginRequest extends FormRequest
         return Str::transliterate(
             Str::lower($this->string('email')).'|'.$this->ip()
         );
+    }
+
+    /** Failed attempts allowed per account in 15 minutes, whatever the source IP. */
+    private const MAX_FAILURES_PER_ACCOUNT = 20;
+
+    /**
+     * Failure counter keyed by the account alone (no IP). The per-IP key above
+     * stops one client; this one stops a distributed / IP-rotating (e.g. spoofed
+     * X-Forwarded-For) brute force against a single account.
+     */
+    private function identifierKey(): string
+    {
+        return Str::transliterate('id|'.Str::lower($this->string('email')));
     }
 }
