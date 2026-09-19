@@ -5,6 +5,17 @@
 
     RewriteEngine On
 
+    # One canonical origin (https://flatcare.in): send www.flatcare.in and plain
+    # http to it with a single 301, so Google never sees duplicate hosts.
+    # Only applies to the production host names, so localhost / staging still work,
+    # and honours X-Forwarded-Proto when TLS is terminated by a proxy/CDN.
+    RewriteCond %{HTTP_HOST} ^www\.flatcare\.in$ [NC]
+    RewriteRule ^ https://flatcare.in%{REQUEST_URI} [L,R=301]
+    RewriteCond %{HTTP_HOST} ^flatcare\.in$ [NC]
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteRule ^ https://flatcare.in%{REQUEST_URI} [L,R=301]
+
     # Never serve dot-files/directories (.env, .git, .htpasswd, ...), except
     # the RFC 8615 .well-known folder used for certificate validation.
     RewriteRule (^|/)\.(?!well-known/) - [F,L]

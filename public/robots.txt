@@ -1,4 +1,16 @@
+# https://flatcare.in/robots.txt
 User-agent: *
-Disallow:
+Allow: /
+
+# Private / application areas - not for search results
+Disallow: /admin/
+Disallow: /society/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /logout
+Disallow: /email/
+Disallow: /trial-inquiries
+Disallow: /downloads/
 
 Sitemap: https://flatcare.in/sitemap.xml

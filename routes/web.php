@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\SocietyStructureController;
 use App\Http\Controllers\Admin\SocietyUserController;
 use App\Http\Controllers\Admin\TrialInquiryController as AdminTrialInquiryController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\TrialInquiryController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Society\AdminController as SocietyPortalAdminController;
@@ -36,22 +37,22 @@ use App\Http\Controllers\Society\SocietyDashboardController;
 use App\Http\Controllers\Society\VisitorController;
 use Illuminate\Support\Facades\Route;
 
-// Public landing page.
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Public marketing site: landing page, SEO pages and sitemap (config/seo.php).
+Route::get('/', [MarketingController::class, 'home'])->name('home');
 
-// Sitemap for search engines — currently just the marketing homepage since
-// every other route sits behind auth and shouldn't be indexed.
-Route::get('/sitemap.xml', function () {
-    $urls = [
-        ['loc' => url('/'), 'changefreq' => 'weekly', 'priority' => '1.0'],
-    ];
+// One route per public SEO page (/features, /pricing, /society-management-software ...).
+foreach (config('seo.pages', []) as $seoKey => $seoPage) {
+    if ($seoKey === 'home') {
+        continue;
+    }
 
-    return response()
-        ->view('sitemap', ['urls' => $urls])
-        ->header('Content-Type', 'application/xml');
-})->name('sitemap');
+    Route::get($seoPage['path'], [MarketingController::class, 'page'])
+        ->defaults('key', $seoKey)
+        ->name('marketing.'.$seoKey);
+}
+
+// XML sitemap for search engines - every public, indexable page (canonical URLs only).
+Route::get('/sitemap.xml', [MarketingController::class, 'sitemap'])->name('sitemap');
 
 // "Start free trial" on the landing page — captures a lead for Super Admin
 // to follow up with (Admin > Inquiries). It does not create an account.

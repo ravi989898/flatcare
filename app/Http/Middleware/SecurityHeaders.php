@@ -41,6 +41,12 @@ class SecurityHeaders
 
         $isApi = $request->is('api/*');
 
+        // Private / application URLs must never be indexed, even if something
+        // links to them (robots.txt only stops crawling; this stops indexing).
+        if ($isApi || $request->is('admin', 'admin/*', 'society', 'society/*', 'login', 'register', 'logout', 'email/*', 'trial-inquiries')) {
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        }
+
         if ($isApi) {
             // JSON only: nothing in an API response should ever be rendered,
             // framed or scripted, and a token-bearing response must never be
