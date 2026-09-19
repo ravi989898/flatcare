@@ -107,21 +107,10 @@
         .nav-link:hover { color: var(--brand); }
 
         /* Hero */
-        .hero { position: relative; padding: 7.5rem 0 6rem; overflow: hidden; isolation: isolate; }
+        .hero { position: relative; margin-top: -5.25rem; padding: 9rem 0 4rem; overflow: hidden; isolation: isolate; }
         .hero-mesh {
-            position: absolute; inset: -10% -10% auto -10%; height: 130%; z-index: -1;
-            background:
-                radial-gradient(38rem 26rem at 88% -8%, rgba(240,180,41,.16), transparent 60%),
-                radial-gradient(46rem 32rem at 8% 8%, rgba(47,111,79,.16), transparent 60%),
-                radial-gradient(40rem 30rem at 60% 40%, rgba(37,99,69,.08), transparent 65%),
-                linear-gradient(180deg, #fbfdfc, #ffffff 55%);
-        }
-        .hero-mesh::before {
-            content: ''; position: absolute; inset: 0;
-            background-image: radial-gradient(rgba(20,32,25,.05) 1px, transparent 1px);
-            background-size: 22px 22px;
-            -webkit-mask-image: radial-gradient(60rem 40rem at 75% 10%, #000 5%, transparent 70%);
-            mask-image: radial-gradient(60rem 40rem at 75% 10%, #000 5%, transparent 70%);
+            position: absolute; inset: 0; z-index: -1;
+            background: #fbfdfc url('{{ asset('images/marketing/hero-bg.png') }}') center bottom / cover no-repeat;
         }
         .eyebrow-badge {
             display: inline-flex; align-items: center; gap: .5rem;
@@ -144,7 +133,7 @@
         .avatar-stack span:first-child { margin-left: 0; }
 
         /* Hero mockup */
-        .hero-visual-wrap { position: relative; padding: .5rem 0 2.75rem 2.25rem; }
+        .hero-visual-wrap { position: relative; padding: 1.5rem 0 9.5rem 2.25rem; }
         .hero-visual-glow {
             position: absolute; width: 22rem; height: 22rem; border-radius: 50%;
             background: radial-gradient(circle, rgba(47,111,79,.22), transparent 70%);
@@ -157,7 +146,24 @@
         }
         .mock-topbar { background: var(--brand-dark); padding: .8rem 1.1rem; display: flex; align-items: center; gap: .4rem; }
         .mock-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.35); }
-        .mock-dot:first-child { background: var(--gold); }
+        .mock-dot:nth-child(1) { background: #ff5f57; }
+        .mock-dot:nth-child(2) { background: #febc2e; }
+        .mock-dot:nth-child(3) { background: #28c840; }
+        .mock-stat { display: flex; align-items: center; gap: .6rem; background: var(--brand-light); border-radius: .8rem; padding: .7rem .75rem; height: 100%; }
+        .mock-stat i { font-size: 1.5rem; color: var(--brand); }
+        .mock-stat small { display: block; font-size: .65rem; color: var(--muted); line-height: 1.1; }
+        .mock-stat strong { font-size: 1.15rem; color: var(--brand-dark); line-height: 1.2; }
+        .float-icon {
+            position: absolute; width: 48px; height: 48px; border-radius: 50%; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+            background: var(--brand); box-shadow: 0 .8rem 1.4rem -.5rem rgba(20,32,25,.35);
+        }
+        .float-icon--home { background: var(--gold); top: -.5rem; left: 24%; width: 54px; height: 54px; z-index: 2; }
+        .float-icon--tool { top: -.25rem; right: -1.5rem; z-index: 3; }
+        .float-icon--team { top: 46%; right: -1.75rem; z-index: 3; }
+        .float-icon--chat { top: 33%; left: .25rem; z-index: 3; }
+        .hero-checks span { display: inline-flex; align-items: center; gap: .4rem; font-weight: 500; color: var(--muted); font-size: .95rem; }
+        .hero-checks i { color: var(--brand); }
         .mock-body { padding: 1.4rem; }
         .mock-row { height: 12px; border-radius: 6px; background: var(--brand-light); }
         .mock-bar-bg { height: 16px; border-radius: 8px; background: #eef2ef; overflow: hidden; }
@@ -166,8 +172,8 @@
             position: absolute; background: #fff; border-radius: 1.1rem;
             box-shadow: 0 1.5rem 2.5rem -1rem rgba(20,32,25,.22); border: 1px solid rgba(20,32,25,.05);
         }
-        .float-card--stat { left: -2rem; bottom: -1.75rem; max-width: 250px; }
-        .float-card--task { right: -1.5rem; top: 2.5rem; max-width: 210px; }
+        .float-card--stat { left: -1rem; bottom: -4rem; width: 250px; }
+        .float-card--task { right: -1.5rem; top: 3.5rem; max-width: 210px; z-index: 2; }
         .stat-chip { background: var(--brand-soft); border-radius: .7rem; padding: .55rem .5rem; }
 
         /* Sections */
@@ -185,14 +191,25 @@
 
         /* Feature cards */
         .card-feature {
-            border: 1px solid #eef1ef; border-radius: 1.25rem; background: #fff;
+            border: 1px solid #e6efe9; border-radius: 1.5rem;
+            background: linear-gradient(135deg, #fff 50%, #f0f9f3);
+            min-height: 15.5rem; box-shadow: 0 1rem 2rem -1.5rem rgba(20,32,25,.18);
             transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
             position: relative; overflow: hidden;
         }
         .card-feature:hover { transform: translateY(-6px); box-shadow: 0 1.5rem 2.5rem -1rem rgba(20,32,25,.14); border-color: transparent; }
         .card-feature .feature-index {
             position: absolute; top: 1.1rem; right: 1.3rem; font-weight: 800; font-size: .85rem;
-            color: #d6e0da;
+            color: #a9d3bb; font-size: 1rem;
+        }
+        .card-feature .feature-desc { max-width: 60%; }
+        .feature-art {
+            position: absolute; right: 0; bottom: 0; width: 44%; max-width: 175px; height: auto;
+            mix-blend-mode: multiply; pointer-events: none;
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 30%), linear-gradient(to bottom, transparent, #000 30%);
+            -webkit-mask-composite: source-in;
+            mask-image: linear-gradient(to right, transparent, #000 30%), linear-gradient(to bottom, transparent, #000 30%);
+            mask-composite: intersect;
         }
         .feature-icon {
             width: 54px; height: 54px; border-radius: 1rem;
@@ -201,7 +218,19 @@
         }
 
         /* Steps */
-        .step-card { background: #fff; border: 1px solid #eef1ef; border-radius: 1.25rem; height: 100%; position: relative; }
+        .step-card {
+            background: #fff; border: 1px solid #e6efe9; border-radius: 1.5rem; height: 100%; min-height: 15rem;
+            position: relative; overflow: hidden; box-shadow: 0 1rem 2rem -1.5rem rgba(20,32,25,.18);
+        }
+        .step-desc { max-width: 58%; }
+        .step-art {
+            position: absolute; right: 0; bottom: 0; width: 46%; max-width: 190px; height: auto;
+            mix-blend-mode: multiply; pointer-events: none;
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 25%), linear-gradient(to bottom, transparent, #000 25%);
+            -webkit-mask-composite: source-in;
+            mask-image: linear-gradient(to right, transparent, #000 25%), linear-gradient(to bottom, transparent, #000 25%);
+            mask-composite: intersect;
+        }
         .step-num {
             width: 44px; height: 44px; border-radius: 50%;
             background: linear-gradient(135deg, var(--brand-mid), var(--brand-dark)); color: #fff;
@@ -223,6 +252,21 @@
 
         /* Testimonials */
         .quote-mark { font-family: Georgia, serif; font-size: 3rem; line-height: 1; color: var(--brand); opacity: .18; }
+        .testimonial-card { min-height: 17rem; }
+        .testimonial-card--green { background: linear-gradient(135deg, #fff 45%, #eaf7ee); }
+        .testimonial-card--blue { background: linear-gradient(135deg, #fff 45%, #e8f2fd); }
+        .testimonial-card--gold { background: linear-gradient(135deg, #fff 45%, #fdf3dd); }
+        .testimonial-quote { max-width: 62%; color: var(--ink); }
+        .testimonial-card--green .testimonial-quote b { color: #157347; }
+        .testimonial-card--blue .testimonial-quote b { color: #1a73c9; }
+        .testimonial-card--gold .testimonial-quote b { color: #15803d; }
+        .testimonial-card--green .quote-mark { color: #2f9e62; opacity: .35; }
+        .testimonial-card--blue .quote-mark { color: #4a9be0; opacity: .35; }
+        .testimonial-card--gold .quote-mark { color: #f0b429; opacity: .45; }
+        .testimonial-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #fff; }
+        .testimonial-art { width: 40%; max-width: 165px; }
+        .testimonial-card--gold .testimonial-art { bottom: 2.6rem; }
+        @media (max-width: 575.98px) { .testimonial-quote { max-width: 100%; } .testimonial-art { display: none; } }
         .avatar-badge {
             width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
             background: linear-gradient(135deg, var(--brand-mid), var(--brand-dark)); color: #fff;
@@ -241,13 +285,26 @@
             background: radial-gradient(34rem 22rem at 15% 110%, rgba(240,180,41,.16), transparent 60%);
         }
 
+        .cta-band.app-band { min-height: 20rem; align-items: center; background: #0f5a3c; }
+        .cta-band.app-band::before {
+            inset: -3%;
+            background: linear-gradient(90deg, rgba(6,52,34,.6) 0, rgba(6,52,34,.4) 38%, transparent 62%),
+                        url('{{ asset('images/marketing/app-band-bg.png') }}') 70% center / cover no-repeat;
+        }
+        .app-band > * { position: relative; z-index: 1; }
+        .app-band .app-band-copy { max-width: 30rem; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+        @media (max-width: 767.98px) { .cta-band.app-band::before { background-position: 85% center; } }
+
         footer { background: #0f1a13; color: #aebbb2; }
         footer a { color: #d9e4dc; text-decoration: none; }
         footer a:hover { color: #fff; }
         footer .footer-brand-text { color: #fff; }
+        footer .footer-brand-text > img, footer .footer-brand-text > i { background: #fff; border-radius: .75rem; padding: .35rem .6rem; }
 
         @media (max-width: 991.98px) {
-            .float-card--stat { position: static; margin-top: -2.5rem; margin-inline: 1rem; max-width: none; }
+            .hero-visual-wrap { padding: 1rem 0 0 0; }
+            .float-icon { display: none; }
+            .float-card--stat { position: static; margin-top: -2.5rem; margin-inline: 1rem; width: auto; }
             .float-card--task { display: none; }
             .step-connector { display: none; }
         }
@@ -302,22 +359,21 @@
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-4">
                     <button type="button" class="btn btn-brand btn-lg rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#trialInquiryModal">Start free trial <i class="bi bi-arrow-right ms-1"></i></button>
-                    <a href="#how-it-works" class="btn btn-outline-brand btn-lg rounded-pill px-4">See how it works</a>
+                    <a href="#how-it-works" class="btn btn-outline-brand btn-lg rounded-pill px-4"><i class="bi bi-play-circle me-1"></i> See how it works</a>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="avatar-stack">
-                        <span style="background:#2f6f4f;">AM</span>
-                        <span style="background:#4c9d75;">SL</span>
-                        <span style="background:#f0b429; color:#1c3f2b;">DC</span>
-                    </div>
-                    <div class="small text-muted-2">
-                        <span class="stars">★★★★★</span> Loved by <strong class="text-ink">20+</strong> property teams
-                    </div>
+                <div class="hero-checks d-flex flex-wrap gap-4">
+                    <span><i class="bi bi-check-circle-fill"></i> Easy to use</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Save time</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Better living</span>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="hero-visual-wrap">
                     <div class="hero-visual-glow"></div>
+                    <div class="float-icon float-icon--home"><i class="bi bi-house-door-fill"></i></div>
+                    <div class="float-icon float-icon--tool"><i class="bi bi-wrench"></i></div>
+                    <div class="float-icon float-icon--team"><i class="bi bi-people-fill"></i></div>
+                    <div class="float-icon float-icon--chat"><i class="bi bi-chat-square-text-fill"></i></div>
                     <div class="mock-panel">
                         <div class="mock-topbar">
                             <div class="mock-dot"></div><div class="mock-dot"></div><div class="mock-dot"></div>
@@ -325,7 +381,6 @@
                         <div class="mock-body">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div class="fw-bold">Portfolio overview</div>
-                                <span class="badge bg-success-subtle text-success rounded-pill px-3">Live</span>
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col-4 mock-row"></div>
@@ -338,9 +393,9 @@
                                 <div class="mock-bar-bg"><div class="mock-bar-fill" style="width:92%"></div></div>
                             </div>
                             <div class="row g-2 mt-1">
-                                <div class="col-4"><div class="ratio ratio-1x1 rounded-3" style="background:var(--brand-light);"></div></div>
-                                <div class="col-4"><div class="ratio ratio-1x1 rounded-3" style="background:#eef2ef;"></div></div>
-                                <div class="col-4"><div class="ratio ratio-1x1 rounded-3" style="background:var(--brand-light);"></div></div>
+                                <div class="col-4"><div class="mock-stat"><i class="bi bi-house-door-fill"></i><div><small>Total Units</small><strong>240</strong></div></div></div>
+                                <div class="col-4"><div class="mock-stat"><i class="bi bi-people-fill"></i><div><small>Active Tenants</small><strong>218</strong></div></div></div>
+                                <div class="col-4"><div class="mock-stat"><i class="bi bi-wrench"></i><div><small>Open Requests</small><strong>12</strong></div></div></div>
                             </div>
                         </div>
                     </div>
@@ -374,6 +429,14 @@
                             <i class="bi bi-check-circle-fill text-success"></i>
                             <div>Leaky faucet resolved <span class="text-muted-2">2h ago</span></div>
                         </div>
+                        <div class="d-flex align-items-center gap-2 small mt-1">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <div>Lift maintenance scheduled</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 small mt-1">
+                            <i class="bi bi-clock-fill text-secondary"></i>
+                            <div>2 new requests received</div>
+                        </div>
                     </div>
 
                     <div class="float-card float-card--task p-3">
@@ -402,18 +465,16 @@
     </div>
 </section>
 
-<section class="py-5">
+<section class="pt-4 pb-0">
     <div class="container">
-        <div class="cta-band text-white p-4 p-lg-5 d-flex flex-wrap align-items-center justify-content-between gap-4">
-            <div>
+        <div class="cta-band app-band text-white p-4 p-lg-5 d-flex align-items-center">
+            <div class="app-band-copy">
                 <h3 class="fw-bold mb-2"><i class="bi bi-phone"></i> Get the FlatCare resident app</h3>
-                <p class="mb-0 opacity-75">
+                <p class="mb-4">
                     Pay maintenance, raise requests and stay updated — right from your phone.
                     Android only for now, test build.
                 </p>
-            </div>
-            <div class="text-lg-end">
-                <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" class="btn btn-light btn-lg px-4 fw-semibold">
+                <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" download="flatcare-app.apk" class="btn btn-light btn-lg px-4 fw-semibold">
                     <i class="bi bi-download"></i> Download for Android
                 </a>
                 <p class="small mb-0 mt-2 opacity-75">
@@ -424,7 +485,7 @@
     </div>
 </section>
 
-<section id="features" class="py-5 py-lg-6 my-4">
+<section id="features" class="py-5 py-lg-6 my-2">
     <div class="container">
         <div class="text-center mb-5 mx-auto" style="max-width:640px;">
             <span class="section-eyebrow">Features</span>
@@ -445,7 +506,8 @@
                         <span class="feature-index">{{ sprintf('%02d', $i + 1) }}</span>
                         <div class="feature-icon mb-3"><i class="bi {{ $f['icon'] }}"></i></div>
                         <h5 class="fw-bold">{{ $f['title'] }}</h5>
-                        <p class="text-muted-2 mb-0">{{ $f['text'] }}</p>
+                        <p class="text-muted-2 mb-0 feature-desc">{{ $f['text'] }}</p>
+                        <img src="{{ asset('images/marketing/features/f'.($i + 1).'.png') }}" alt="" class="feature-art" loading="lazy">
                     </div>
                 </div>
             @endforeach
@@ -519,34 +581,29 @@
 
 <section id="how-it-works" class="py-5 py-lg-6 bg-brand-soft my-4">
     <div class="container py-4">
-        <div class="text-center mb-5 mx-auto" style="max-width:560px;">
+        <div class="text-center mb-5 mx-auto" style="max-width:600px;">
             <span class="section-eyebrow">How it works</span>
-            <h2 class="section-title">Up and running in three steps</h2>
+            <h2 class="section-title mb-2">Up and running in <span class="text-brand">three steps</span></h2>
+            <p class="text-muted-2 fs-5 mb-0">Set up, automate and stay in control — all in just a few minutes.</p>
         </div>
         <div class="row g-4">
-            <div class="col-lg-4 position-relative">
-                <div class="step-connector d-none d-lg-block"></div>
-                <div class="step-card p-4">
-                    <div class="step-num mb-3">1</div>
-                    <h5 class="fw-bold">Add your properties</h5>
-                    <p class="text-muted-2 mb-0">Import units and invite tenants in minutes.</p>
+            @foreach ([
+                ['title' => 'Set up your society', 'text' => 'Add blocks, flats and residents in minutes. Get everything ready in one place.'],
+                ['title' => 'Handle everything with ease', 'text' => 'Track maintenance, collect payments, manage visitors and keep residents updated.'],
+                ['title' => 'Keep your society connected', 'text' => 'Manage requests, visitors, notices and society activities from a single dashboard.'],
+            ] as $i => $step)
+                <div class="col-lg-4 position-relative">
+                    @unless ($loop->last)
+                        <div class="step-connector d-none d-lg-block"></div>
+                    @endunless
+                    <div class="step-card p-4">
+                        <div class="step-num mb-3">{{ $i + 1 }}</div>
+                        <h5 class="fw-bold">{{ $step['title'] }}</h5>
+                        <p class="text-muted-2 mb-0 step-desc">{{ $step['text'] }}</p>
+                        <img src="{{ asset('images/marketing/steps/s'.($i + 1).'.png') }}" alt="" class="step-art" loading="lazy">
+                    </div>
                 </div>
-            </div>
-            <div class="col-lg-4 position-relative">
-                <div class="step-connector d-none d-lg-block"></div>
-                <div class="step-card p-4">
-                    <div class="step-num mb-3">2</div>
-                    <h5 class="fw-bold">Automate the busywork</h5>
-                    <p class="text-muted-2 mb-0">Rent reminders and maintenance routing happen on their own.</p>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="step-card p-4">
-                    <div class="step-num mb-3">3</div>
-                    <h5 class="fw-bold">Track everything</h5>
-                    <p class="text-muted-2 mb-0">One dashboard shows exactly what needs your attention.</p>
-                </div>
-            </div>
+            @endforeach
         </div>
     </div>
 </section>
@@ -578,28 +635,30 @@
 
 <section id="testimonials" class="py-5 py-lg-6 my-4">
     <div class="container">
-        <div class="text-center mb-5 mx-auto" style="max-width:560px;">
+        <div class="text-center mb-5 mx-auto" style="max-width:640px;">
             <span class="section-eyebrow">Testimonials</span>
-            <h2 class="section-title">Trusted by property teams</h2>
+            <h2 class="section-title mb-2">Trusted by <span class="text-brand">property teams</span></h2>
+            <p class="text-muted-2 fs-5 mb-0">Property managers, residents and committees rely on FlatCare to simplify day-to-day operations and keep their communities happy.</p>
         </div>
         <div class="row g-4">
             @foreach ([
-                ['quote' => 'FlatCare cut our maintenance response time in half. Tenants actually notice the difference.', 'name' => 'Aarav Mehta', 'role' => 'Property Manager, 40 units'],
-                ['quote' => 'Rent collection used to be our biggest headache. Now it basically runs itself.', 'name' => 'Sneha Kapoor', 'role' => 'Landlord, 12 units'],
-                ['quote' => 'Simple enough for tenants, powerful enough for our whole ops team.', 'name' => 'Rohan Verma', 'role' => 'Operations Lead, Skyline Homes'],
-            ] as $t)
+                ['quote' => 'FlatCare made our <b>maintenance process so simple.</b> Tenants can easily raise requests and we can track everything in one place.', 'name' => 'Aarav Mehta', 'role' => 'Property Manager, 40 Units', 'tone' => 'green'],
+                ['quote' => 'Rent collection used to be our biggest headache. Now it <b>basically runs itself.</b> FlatCare saves us hours every month.', 'name' => 'Sneha Kapoor', 'role' => 'Landlord, 12 Units', 'tone' => 'blue'],
+                ['quote' => 'Simple, powerful and easy to use. FlatCare keeps our residents engaged and our community <b>running smoothly.</b>', 'name' => 'Rohan Verma', 'role' => 'Operations Lead, Skyline Homes', 'tone' => 'gold'],
+            ] as $i => $t)
                 <div class="col-lg-4">
-                    <div class="card card-feature h-100 p-4">
+                    <div class="card card-feature testimonial-card testimonial-card--{{ $t['tone'] }} h-100 p-4">
                         <div class="stars mb-2">★★★★★</div>
                         <div class="quote-mark">&ldquo;</div>
-                        <p class="mb-4 mt-n2">{{ $t['quote'] }}</p>
+                        <p class="mb-4 mt-n2 testimonial-quote">{!! $t['quote'] !!}</p>
                         <div class="mt-auto d-flex align-items-center gap-3">
-                            <div class="avatar-badge">{{ collect(explode(' ', $t['name']))->map(fn ($p) => mb_substr($p, 0, 1))->join('') }}</div>
+                            <img src="{{ asset('images/marketing/testimonials/a'.($i + 1).'.jpg') }}" alt="{{ $t['name'] }}" class="testimonial-avatar" width="48" height="48" loading="lazy">
                             <div>
                                 <div class="fw-bold">{{ $t['name'] }}</div>
                                 <div class="small text-muted-2">{{ $t['role'] }}</div>
                             </div>
                         </div>
+                        <img src="{{ asset('images/marketing/testimonials/t'.($i + 1).'.png') }}" alt="" class="feature-art testimonial-art" loading="lazy">
                     </div>
                 </div>
             @endforeach
