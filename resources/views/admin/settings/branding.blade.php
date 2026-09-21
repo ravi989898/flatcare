@@ -146,6 +146,43 @@
             </div>
         </div>
     </div>
+
+    @php($contact = \App\Models\PlatformSetting::contact())
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Contact Details</h3>
+                </div>
+                <form action="{{ route('admin.settings.branding.contact.update') }}" method="POST" novalidate>
+                    @csrf
+                    <div class="card-body">
+                        <p class="text-muted small">Shown in the public website footer, the contact page and search-engine data. Phone numbers are also used for the WhatsApp links.</p>
+                        <div class="row">
+                            <div class="form-group col-md-4">
+                                <label for="contact_email">Support Email <span class="text-danger">*</span></label>
+                                <input type="email" name="contact_email" id="contact_email" class="form-control @error('contact_email') is-invalid @enderror" value="{{ old('contact_email', $contact['email']) }}" required>
+                                @error('contact_email')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="contact_phone_1">Phone / WhatsApp 1 <span class="text-danger">*</span></label>
+                                <input type="text" name="contact_phone_1" id="contact_phone_1" class="form-control @error('contact_phone_1') is-invalid @enderror" value="{{ old('contact_phone_1', $contact['phones'][0] ?? '') }}" required>
+                                @error('contact_phone_1')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="contact_phone_2">Phone / WhatsApp 2</label>
+                                <input type="text" name="contact_phone_2" id="contact_phone_2" class="form-control @error('contact_phone_2') is-invalid @enderror" value="{{ old('contact_phone_2', $contact['phones'][1] ?? '') }}">
+                                @error('contact_phone_2')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Contact Details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @stop
 
 @section('js')

@@ -80,7 +80,7 @@ class Seo
     /** @return array<string, mixed> */
     public static function organization(): array
     {
-        $contact = config('seo.contact');
+        $contact = \App\Models\PlatformSetting::contact();
 
         return [
             '@type' => 'Organization',

@@ -1,4 +1,4 @@
-@php($contact = config('seo.contact'))
+@php($contact = \App\Models\PlatformSetting::contact())
 <footer class="pt-5 pb-4">
     <div class="container">
         <div class="row g-4">
@@ -38,12 +38,11 @@
                     </a>
                 </p>
                 <p class="small mb-0">
-                    <a href="https://wa.me/{{ $contact['whatsapp'][0] }}" target="_blank" rel="noopener" class="text-reset text-decoration-none me-3">
-                        <i class="bi bi-whatsapp me-1"></i> 9664653896
-                    </a>
-                    <a href="https://wa.me/{{ $contact['whatsapp'][1] }}" target="_blank" rel="noopener" class="text-reset text-decoration-none">
-                        <i class="bi bi-whatsapp me-1"></i> 9712423633
-                    </a>
+                    @foreach ($contact['phones'] as $i => $phone)
+                        <a href="https://wa.me/{{ $contact['whatsapp'][$i] }}" target="_blank" rel="noopener" class="text-reset text-decoration-none {{ $loop->last ? '' : 'me-3' }}">
+                            <i class="bi bi-whatsapp me-1"></i> {{ $phone }}
+                        </a>
+                    @endforeach
                 </p>
             </div>
         </div>

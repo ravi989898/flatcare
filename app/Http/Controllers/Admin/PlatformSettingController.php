@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateContactRequest;
 use App\Http\Requests\Admin\UpdateIconRequest;
 use App\Http\Requests\Admin\UpdateLogoRequest;
 use App\Models\PlatformSetting;
@@ -142,6 +143,23 @@ class PlatformSettingController extends Controller
         return redirect()
             ->route('admin.settings.branding.edit')
             ->with('success', 'App icon removed — reverted to the default FlatCare icon.');
+    }
+
+    /**
+     * Update the email and phone numbers shown in the public site footer
+     * and on the contact page.
+     */
+    public function updateContact(UpdateContactRequest $request): RedirectResponse
+    {
+        PlatformSetting::current()->update($request->validated() + [
+            'updated_by_super_admin_id' => $this->currentSuperAdminId(),
+        ]);
+
+        PlatformSetting::forgetCache();
+
+        return redirect()
+            ->route('admin.settings.branding.edit')
+            ->with('success', 'Contact details updated.');
     }
 
     private function currentSuperAdminId(): ?int

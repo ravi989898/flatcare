@@ -203,6 +203,7 @@ Route::middleware(['auth', 'verified', 'admin', 'throttle:panel'])->prefix('admi
         Route::delete('/branding', [PlatformSettingController::class, 'destroy'])->name('branding.destroy');
         Route::post('/branding/icon', [PlatformSettingController::class, 'updateIcon'])->name('branding.icon.update');
         Route::delete('/branding/icon', [PlatformSettingController::class, 'destroyIcon'])->name('branding.icon.destroy');
+        Route::post('/branding/contact', [PlatformSettingController::class, 'updateContact'])->name('branding.contact.update');
 
         // Role catalog (used to provision new societies + sync into existing ones)
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');

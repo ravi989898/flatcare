@@ -7,7 +7,7 @@
 
 @php
     $isContact = $key === 'contact';
-    $contact = config('seo.contact');
+    $contact = \App\Models\PlatformSetting::contact();
 @endphp
 
 @section('content')
