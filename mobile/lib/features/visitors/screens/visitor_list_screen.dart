@@ -75,10 +75,11 @@ class _VisitorListScreenState extends ConsumerState<VisitorListScreen> {
   Future<void> _pickStatus() async {
     const options = <(String?, String, IconData)>[
       (null, 'All visitors', Icons.people_alt_rounded),
-      ('checked_in', 'Inside now (IN)', Icons.login_rounded),
-      ('checked_out', 'Left (OUT)', Icons.logout_rounded),
-      ('pending', 'Expected / awaiting approval', Icons.schedule_rounded),
-      ('denied', 'Denied', Icons.block_rounded),
+      ('pending', 'Pending / expected', Icons.schedule_rounded),
+      ('approved', 'Approved', Icons.check_circle_outline_rounded),
+      ('checked_in', 'Entered', Icons.login_rounded),
+      ('checked_out', 'Exited', Icons.logout_rounded),
+      ('denied', 'Rejected', Icons.block_rounded),
     ];
 
     final picked = await showModalBottomSheet<(String?,)>(

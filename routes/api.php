@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
+use App\Http\Controllers\Api\V1\Common\DeviceTokenController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
 use App\Http\Controllers\Api\V1\Guard\DutyController as GuardDutyController;
@@ -44,6 +45,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::middleware(['api.auth', 'throttle:api-auth'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
+
+        // FCM device registration - any authenticated role (resident or guard).
+        Route::post('/devices', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1')->name('devices.store');
+        Route::delete('/devices', [DeviceTokenController::class, 'destroy'])->name('devices.destroy');
 
         Route::prefix('profile')->name('profile.')->group(function () {
             Route::get('/', [ProfileController::class, 'show'])->name('show');
@@ -125,6 +130,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
             Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread_count');
             Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('mark_all_read');
+            Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read_all');
             Route::post('/{id}/read', [NotificationController::class, 'markRead'])->name('mark_read');
         });
 
@@ -147,6 +153,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/', [GuardVisitorController::class, 'index'])->name('index');
                 Route::post('/', [GuardVisitorController::class, 'store'])->middleware('throttle:guard-visitor-create')->name('store');
                 Route::get('/{id}', [GuardVisitorController::class, 'show'])->name('show');
+                Route::post('/{id}/entry', [GuardVisitorController::class, 'checkIn'])->name('entry');
+                Route::post('/{id}/exit', [GuardVisitorController::class, 'checkOut'])->name('exit');
+                // Older names for the same two actions, kept so an app build that predates entry/exit still works.
                 Route::post('/{id}/check-in', [GuardVisitorController::class, 'checkIn'])->name('check_in');
                 Route::post('/{id}/check-out', [GuardVisitorController::class, 'checkOut'])->name('check_out');
             });

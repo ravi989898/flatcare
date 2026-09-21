@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers/theme_provider.dart';
+import 'core/push/push_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initFirebase();
   runApp(const ProviderScope(child: FlatCareApp()));
 }
 
@@ -15,6 +18,8 @@ class FlatCareApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // Starts push listeners and registers this device's FCM token once signed in.
+    ref.watch(pushBootstrapProvider);
     // Defaults to ThemeMode.light (see ThemeModeController) so the app
     // looks exactly as it did before a Theme setting existed, until a
     // resident explicitly opts into Dark/System under Profile > Theme.

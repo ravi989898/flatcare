@@ -30,7 +30,8 @@ class StoreGuardVisitorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'flat_id' => ['required', 'exists:flats,id'],
+            'flat_id' => ['required', 'integer'],
+            'block_id' => ['nullable', 'integer'],
             'visitor_name' => ['required', 'string', 'max:255'],
             'visitor_phone' => ['nullable', 'string', 'max:20'],
             'purpose' => ['required', 'in:'.implode(',', Visitor::PURPOSES)],

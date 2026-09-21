@@ -56,6 +56,7 @@ import '../../features/visitors/screens/invite_visitor_screen.dart';
 import '../../features/visitors/screens/pre_approval_request_screen.dart';
 import '../../features/visitors/screens/pre_approved_entry_screen.dart';
 import '../../features/visitors/screens/visitor_list_screen.dart';
+import '../../features/visitors/screens/visitor_request_screen.dart';
 import '../../features/visitors/screens/visitor_settings_screen.dart';
 
 /// A ChangeNotifier that pings go_router's `refreshListenable` whenever the
@@ -169,6 +170,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VisitorListScreen(),
         routes: [
           GoRoute(path: 'invite', builder: (context, state) => const InviteVisitorScreen()),
+          GoRoute(
+            path: 'request/:id',
+            builder: (context, state) => VisitorRequestScreen(id: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: 'pre-approved', builder: (context, state) => const PreApprovedEntryScreen()),
           GoRoute(path: 'pre-approval', builder: (context, state) => const PreApprovalRequestScreen()),
           GoRoute(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/society.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/providers/core_providers.dart';
+import '../../../core/push/push_service.dart';
 import '../data/auth_repository.dart';
 
 class AuthState {
@@ -58,6 +59,8 @@ class AuthController extends AsyncNotifier<AuthState?> {
   }
 
   Future<void> logout() async {
+    // Stop pushes to this device first, while the token is still valid.
+    await ref.read(pushServiceProvider).unregisterDevice();
     try {
       await ref.read(authRepositoryProvider).logout();
     } catch (_) {

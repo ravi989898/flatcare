@@ -35,7 +35,7 @@ class GuardVisitorRepository {
     String? vehicleNumber,
     String? notes,
     String? photoPath,
-    bool requiresApproval = false,
+    bool requiresApproval = true,
   }) async {
     final response = await _client.postMultipart(
       '/guard/visitors',
@@ -47,22 +47,24 @@ class GuardVisitorRepository {
         'purpose': purpose,
         if (vehicleNumber != null && vehicleNumber.isNotEmpty) 'vehicle_number': vehicleNumber,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
-        if (requiresApproval) 'requires_approval': true,
+        // Always sent: the server defaults to "needs approval" when it is missing.
+        'requires_approval': requiresApproval,
       },
     );
 
     return Visitor.fromJson(response['data'] as Map<String, dynamic>);
   }
 
-  /// A resident-pre-invited (pending) visitor has just arrived.
+  /// Let an APPROVED visitor (or one with a resident's pre-approved pass) in — ENTERED.
   Future<Visitor> checkIn(int visitorId) async {
-    final response = await _client.post('/guard/visitors/$visitorId/check-in');
+    final response = await _client.post('/guard/visitors/$visitorId/entry');
 
     return Visitor.fromJson(response['data'] as Map<String, dynamic>);
   }
 
+  /// The visitor has left — EXITED.
   Future<Visitor> checkOut(int visitorId) async {
-    final response = await _client.post('/guard/visitors/$visitorId/check-out');
+    final response = await _client.post('/guard/visitors/$visitorId/exit');
 
     return Visitor.fromJson(response['data'] as Map<String, dynamic>);
   }

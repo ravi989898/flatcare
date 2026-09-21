@@ -27,3 +27,7 @@ serve_stderr.log
 /.nova
 /.vscode
 /.zed
+
+# Firebase secrets - never commit these (see mobile/FCM_SETUP.md)
+service-account*.json
+firebase-adminsdk*.json

@@ -23,11 +23,24 @@ class VisitorResource extends JsonResource
             'purpose' => $this->purpose,
             'vehicle_number' => $this->vehicle_number,
             'status' => $this->status,
+            // The workflow name: PENDING / APPROVED / ENTERED / EXITED / REJECTED.
+            'status_label' => $this->status_label,
             // True only for a guard-raised entry request still awaiting the
             // resident's decision — not a resident's own self-invite (which
             // is also `pending` but has invited_by_user_id set). Drives the
             // Approve/Reject buttons in the mobile app.
             'awaiting_approval' => $this->status === 'pending' && is_null($this->invited_by_user_id),
+            // The resident may still approve/reject; drives the same buttons as awaiting_approval.
+            'can_respond' => $this->status === 'pending' && is_null($this->invited_by_user_id),
+            // What the gate may do next: enter (approved / pre-approved pass) or exit (inside).
+            'can_enter' => $this->status === 'approved' || ($this->status === 'pending' && !is_null($this->invited_by_user_id)),
+            'can_exit' => $this->status === 'checked_in',
+            'requested_at' => $this->created_at?->toIso8601String(),
+            'approved_at' => $this->approved_at?->toIso8601String(),
+            'rejected_at' => $this->rejected_at?->toIso8601String(),
+            'entered_at' => $this->check_in_at?->toIso8601String(),
+            'exited_at' => $this->check_out_at?->toIso8601String(),
+            'gate_keeper' => $this->whenLoaded('gateKeeper', fn () => $this->gateKeeper ? ['id' => $this->gateKeeper->id, 'name' => $this->gateKeeper->name] : null),
             'check_in_at' => $this->check_in_at?->toIso8601String(),
             'check_out_at' => $this->check_out_at?->toIso8601String(),
             'expected_at' => $this->expected_at?->toIso8601String(),

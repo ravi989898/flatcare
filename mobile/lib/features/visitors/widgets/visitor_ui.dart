@@ -359,7 +359,8 @@ String purposeLabel(String purpose) => purpose.isEmpty ? '' : '${purpose[0].toUp
   };
 }
 
-/// IN / OUT / PENDING / DENIED pill for a visitor's status.
+/// PENDING / APPROVED / ENTERED / EXITED / REJECTED pill for a visitor's
+/// status (EXPECTED for a resident's own unused pass).
 class VisitorStatusPill extends StatelessWidget {
   const VisitorStatusPill({super.key, required this.visitor});
 
@@ -368,10 +369,11 @@ class VisitorStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (visitor.status) {
-      'checked_in' => ('IN', VisitorColors.success),
-      'checked_out' => ('OUT', VisitorColors.error),
-      'denied' => ('DENIED', VisitorColors.error),
-      _ => (visitor.awaitingApproval ? 'REQUEST' : 'EXPECTED', const Color(0xFFB7791F)),
+      'approved' => ('APPROVED', VisitorColors.success),
+      'checked_in' => ('ENTERED', VisitorColors.green),
+      'checked_out' => ('EXITED', VisitorColors.muted),
+      'denied' => ('REJECTED', VisitorColors.error),
+      _ => (visitor.awaitingApproval ? 'PENDING' : 'EXPECTED', const Color(0xFFB7791F)),
     };
 
     return Container(

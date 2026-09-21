@@ -6,7 +6,8 @@ use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Requests\Api\V1\Resident\StoreVisitorInviteRequest;
 use App\Http\Resources\Api\V1\VisitorResource;
 use App\Models\Tenant\Visitor;
-use App\Services\NotificationService;
+use App\Exceptions\VisitorTransitionException;
+use App\Services\VisitorWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -40,7 +41,7 @@ class VisitorController extends ApiController
             'to' => ['nullable', 'date'],
         ]);
 
-        $query = Visitor::with('flat.block')
+        $query = Visitor::with(['flat.block', 'gateKeeper'])
             ->whereIn('flat_id', $this->myFlatIds())
             ->status($request->string('status')->trim()->value() ?: null);
 
@@ -80,7 +81,7 @@ class VisitorController extends ApiController
 
     public function show(int $id): JsonResponse
     {
-        $visitor = Visitor::with('flat.block')
+        $visitor = Visitor::with(['flat.block', 'gateKeeper'])
             ->whereIn('flat_id', $this->myFlatIds())
             ->findOrFail($id);
 
@@ -124,45 +125,34 @@ class VisitorController extends ApiController
         return $this->ok(null, 'Pass cancelled.');
     }
 
-    public function approve(int $id, NotificationService $notifications): JsonResponse
+    /**
+     * Approve / reject a guard-raised request. Both go through
+     * VisitorWorkflow::respond(), which re-checks under a row lock that the
+     * caller is an active resident of the request's flat and that it is
+     * still PENDING - so a wrong flat is a 404, and a second device (or a
+     * second tap) answering an already-decided request gets a 409.
+     */
+    public function approve(Request $request, int $id, VisitorWorkflow $workflow): JsonResponse
     {
-        $visitor = Visitor::whereIn('flat_id', $this->myFlatIds())->findOrFail($id);
-
-        if (!$visitor->isPending() || $visitor->invited_by_user_id !== null) {
-            return $this->fail('This visitor request can no longer be approved.');
-        }
-
-        $visitor->update(['status' => 'checked_in', 'check_in_at' => now()]);
-
-        if ($visitor->checked_in_by) {
-            $notifications->notify(
-                $visitor->checked_in_by,
-                'visitor_request_approved',
-                "{$visitor->visitor_name} approved — let them in",
-            );
-        }
-
-        return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor approved.');
+        return $this->respond($request, $id, $workflow, true);
     }
 
-    public function reject(int $id, NotificationService $notifications): JsonResponse
+    public function reject(Request $request, int $id, VisitorWorkflow $workflow): JsonResponse
     {
-        $visitor = Visitor::whereIn('flat_id', $this->myFlatIds())->findOrFail($id);
+        return $this->respond($request, $id, $workflow, false);
+    }
 
-        if (!$visitor->isPending() || $visitor->invited_by_user_id !== null) {
-            return $this->fail('This visitor request can no longer be rejected.');
+    private function respond(Request $request, int $id, VisitorWorkflow $workflow, bool $approve): JsonResponse
+    {
+        try {
+            $visitor = $workflow->respond($id, $this->user(), $approve, $request->ip());
+        } catch (VisitorTransitionException $e) {
+            return $this->fail($e->getMessage(), $e->httpStatus);
         }
 
-        $visitor->update(['status' => 'denied']);
-
-        if ($visitor->checked_in_by) {
-            $notifications->notify(
-                $visitor->checked_in_by,
-                'visitor_request_rejected',
-                "{$visitor->visitor_name} was denied entry",
-            );
-        }
-
-        return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor request rejected.');
+        return $this->ok(
+            new VisitorResource($visitor->load(['flat.block', 'gateKeeper'])),
+            $approve ? 'Visitor approved.' : 'Visitor request rejected.',
+        );
     }
 }

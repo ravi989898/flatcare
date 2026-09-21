@@ -5,6 +5,7 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Visitor extends Model
@@ -13,12 +14,29 @@ class Visitor extends Model
 
     protected $connection = 'society';
 
-    public const STATUSES = ['pending', 'checked_in', 'checked_out', 'denied'];
+    public const STATUSES = ['pending', 'approved', 'checked_in', 'checked_out', 'denied'];
+
+    /**
+     * The workflow names (PENDING -> APPROVED -> ENTERED -> EXITED, or
+     * REJECTED) for the stored statuses — see the approval-workflow
+     * migration for why the database keeps checked_in/checked_out/denied.
+     */
+    public const STATUS_LABELS = [
+        'pending' => 'PENDING',
+        'approved' => 'APPROVED',
+        'checked_in' => 'ENTERED',
+        'checked_out' => 'EXITED',
+        'denied' => 'REJECTED',
+    ];
+
+    /** Statuses the gate still has to act on or keep an eye on. */
+    public const ACTIVE_STATUSES = ['pending', 'approved', 'checked_in'];
     public const PURPOSES = ['guest', 'delivery', 'cab', 'service', 'other'];
     public const ENTRY_KINDS = ['gate_pass', 'pre_approval'];
 
     protected $fillable = [
         'flat_id',
+        'block_id',
         'visitor_name',
         'visitor_phone',
         'visitor_email',
@@ -36,6 +54,11 @@ class Visitor extends Model
         'invited_by_user_id',
         'notes',
         'photo_path',
+        'gate_keeper_id',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
     ];
 
     protected $casts = [
@@ -43,6 +66,8 @@ class Visitor extends Model
         'check_out_at' => 'datetime',
         'expected_at' => 'datetime',
         'valid_until' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -61,6 +86,26 @@ class Visitor extends Model
     public function checkedOutBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'checked_out_by');
+    }
+
+    public function gateKeeper(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'gate_keeper_id');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(VisitorStatusHistory::class);
     }
 
     public function invitedBy(): BelongsTo
@@ -84,6 +129,25 @@ class Visitor extends Model
     public function isCheckedIn(): bool
     {
         return $this->status === 'checked_in';
+    }
+
+    public function scopeActiveRequests(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::ACTIVE_STATUSES);
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return self::STATUS_LABELS[$this->status] ?? strtoupper($this->status);
+    }
+
+    /**
+     * A guard-raised entry request (as opposed to a resident's own
+     * self-invite, which always has invited_by_user_id set).
+     */
+    public function isGuardRequest(): bool
+    {
+        return $this->invited_by_user_id === null;
     }
 
     public function isPending(): bool

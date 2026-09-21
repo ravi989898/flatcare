@@ -2,6 +2,8 @@
     <!-- Explicit even though most plugins' merged manifests already imply it —
          needed for every API call this app makes, Razorpay checkout included. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: runtime permission to show visitor request / decision notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- allowBackup=false: keeps the login token out of adb/cloud backups.
          usesCleartextTraffic=false: release builds may only talk HTTPS (the
          debug manifest re-enables http for the local emulator/dev server). -->

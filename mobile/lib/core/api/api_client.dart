@@ -81,8 +81,8 @@ class ApiClient {
     return _unwrap(() => _dio.put(path, data: data));
   }
 
-  Future<Map<String, dynamic>> delete(String path) async {
-    return _unwrap(() => _dio.delete(path));
+  Future<Map<String, dynamic>> delete(String path, {Map<String, dynamic>? data}) async {
+    return _unwrap(() => _dio.delete(path, data: data));
   }
 
   /// For binary responses (the receipt PDF) — the other methods above all

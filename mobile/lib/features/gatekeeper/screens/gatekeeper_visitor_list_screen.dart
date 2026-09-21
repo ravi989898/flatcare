@@ -14,13 +14,18 @@ import '../providers/gatekeeper_providers.dart';
 import '../widgets/purpose_style.dart';
 
 const _tabs = [
-  (label: 'Currently In', status: 'checked_in'),
+  (label: 'Active', status: 'active'),
+  (label: 'Inside', status: 'checked_in'),
   (label: 'Expected', status: 'pending'),
   (label: 'All', status: 'all'),
 ];
 
-/// The gate register — currently-in / expected (resident pre-invited) /
-/// full log, each check-in-able or check-out-able right from the row. The
+/// The gate register — active requests (pending / approved / inside),
+/// inside now, expected, and the full log, each with a status chip and the
+/// next gate action (allow entry / mark exit) right on the row. It stays
+/// live: a push for a status change (see PushService) invalidates
+/// guardVisitorListProvider, so a resident's decision shows up without a
+/// manual refresh. The
 /// resident-facing equivalent (features/visitors/screens/visitor_list_screen.dart)
 /// is read-only and scoped to their own flat; this one is society-wide and
 /// actionable, matching Society\VisitorController's web gate register.
@@ -143,6 +148,8 @@ class _VisitorTileState extends ConsumerState<_VisitorTile> {
       await action();
       ref.invalidate(guardVisitorListProvider);
     } on ApiException catch (e) {
+      // e.g. 409 - the request changed under us; show the current state.
+      ref.invalidate(guardVisitorListProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
@@ -153,37 +160,70 @@ class _VisitorTileState extends ConsumerState<_VisitorTile> {
   @override
   Widget build(BuildContext context) {
     final visitor = widget.visitor;
-    final timeLabel = visitor.isCheckedIn
-        ? 'In: ${formatDateTime(visitor.checkInAt)}'
-        : visitor.isPending
-            ? (visitor.awaitingApproval ? 'Waiting for resident to respond' : 'Pre-approved')
-            : 'Out: ${formatDateTime(visitor.checkOutAt)}';
+    final timeLabel = switch (visitor.status) {
+      'checked_in' => 'Entered: ${formatDateTime(visitor.checkInAt)}',
+      'checked_out' => 'Exited: ${formatDateTime(visitor.checkOutAt)}',
+      'approved' => 'Approved: ${formatDateTime(visitor.approvedAt)}',
+      'denied' => 'Rejected: ${formatDateTime(visitor.rejectedAt)}',
+      _ => visitor.awaitingApproval ? 'Waiting for resident to respond' : 'Pre-approved',
+    };
 
     final purposeStyle = PurposeStyle.of(visitor.purpose);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Colors.grey.shade200)),
-      child: ListTile(
-        leading: visitor.photoUrl != null
-            ? PhotoAvatar(url: visitor.photoUrl, name: visitor.visitorName)
-            : CircleAvatar(
-                backgroundColor: purposeStyle.color.withValues(alpha: 0.15),
-                child: Text(purposeStyle.emoji, style: const TextStyle(fontSize: 17)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                visitor.photoUrl != null
+                    ? PhotoAvatar(url: visitor.photoUrl, name: visitor.visitorName)
+                    : CircleAvatar(
+                        backgroundColor: purposeStyle.color.withValues(alpha: 0.15),
+                        child: Text(purposeStyle.emoji, style: const TextStyle(fontSize: 17)),
+                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(visitor.visitorName, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Text('${visitor.flat?.displayLabel ?? ''} · ${visitor.purpose.replaceAll('_', ' ')}\n$timeLabel'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                StatusChip(label: _chipLabel(visitor)),
+              ],
+            ),
+            if (_isUpdating)
+              const Padding(
+                padding: EdgeInsets.only(top: 10),
+                child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            else if (visitor.canEnter || visitor.canExit)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: _ActionButton(visitor: visitor, onAct: _act),
               ),
-        title: Text(visitor.visitorName, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '${visitor.flat?.displayLabel ?? ''} · ${visitor.purpose.replaceAll('_', ' ')}\n$timeLabel',
-          ),
+          ],
         ),
-        isThreeLine: true,
-        trailing: _isUpdating
-            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-            : _ActionButton(visitor: visitor, onAct: _act),
       ),
     );
+  }
+
+  /// PENDING / APPROVED / ENTERED / EXITED / REJECTED — a resident's own
+  /// unused pass reads "PRE-APPROVED" rather than PENDING.
+  String _chipLabel(Visitor visitor) {
+    if (visitor.isPending && !visitor.awaitingApproval) return 'PRE-APPROVED';
+
+    return visitor.statusLabel ?? visitor.status.toUpperCase();
   }
 }
 
@@ -195,30 +235,27 @@ class _ActionButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A guard-raised request the resident hasn't approved/rejected yet —
-    // nothing for the guard to do but wait (see approve()/reject() on
-    // Api\V1\Resident\VisitorController, which flip this straight to
-    // checked_in/denied once the resident responds).
-    if (visitor.isPending && visitor.awaitingApproval) {
-      return const StatusChip(label: 'awaiting approval');
-    }
-
-    if (visitor.isPending) {
-      return FilledButton(
-        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2AB930)),
+    // What the buttons offer follows the server's can_enter / can_exit, so
+    // the gate can never be shown "Allow Entry" for a request that is still
+    // pending or was rejected (the backend refuses those anyway).
+    if (visitor.canEnter) {
+      return FilledButton.icon(
+        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E9B62), minimumSize: const Size.fromHeight(42)),
         onPressed: () => onAct(() => ref.read(guardVisitorRepositoryProvider).checkIn(visitor.id)),
-        child: const Text('Check In'),
+        icon: const Icon(Icons.login_rounded, size: 18),
+        label: const Text('Allow Entry'),
       );
     }
 
-    if (visitor.isCheckedIn) {
-      return OutlinedButton(
-        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE0245E), side: const BorderSide(color: Color(0xFFE0245E))),
-        onPressed: () => onAct(() => ref.read(guardVisitorRepositoryProvider).checkOut(visitor.id)),
-        child: const Text('Check Out'),
-      );
-    }
-
-    return StatusChip(label: visitor.status);
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFD64545),
+        side: const BorderSide(color: Color(0xFFD64545)),
+        minimumSize: const Size.fromHeight(42),
+      ),
+      onPressed: () => onAct(() => ref.read(guardVisitorRepositoryProvider).checkOut(visitor.id)),
+      icon: const Icon(Icons.logout_rounded, size: 18),
+      label: const Text('Mark Exit'),
+    );
   }
 }

@@ -2,34 +2,52 @@
 
 namespace App\Http\Controllers\Api\V1\Guard;
 
+use App\Exceptions\VisitorTransitionException;
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Requests\Api\V1\Guard\StoreGuardVisitorRequest;
 use App\Http\Resources\Api\V1\VisitorResource;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Visitor;
-use App\Services\NotificationService;
+use App\Services\VisitorWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 /**
- * The gate register, from the mobile app — the same job
+ * The gate register, from the mobile app - the same job
  * Society\VisitorController does for the web portal, but society-wide
  * (a guard isn't scoped to a flat the way ApiController::myFlatIds()
  * scopes a resident) and returning the API envelope instead of a view.
+ *
+ * "Society-wide" is also the security boundary: every society has its own
+ * database, and AuthenticateApiToken points the connection at the caller's
+ * society, so a guard can only ever see or touch that society's visitors.
+ * Status changes go through App\Services\VisitorWorkflow, which validates
+ * the current status under a row lock and writes the audit trail.
  */
 class VisitorController extends ApiController
 {
+    public function __construct(private VisitorWorkflow $workflow) {}
+
     /**
-     * Defaults to currently-in visitors, like the web gate register does,
-     * with the same status/search filters.
+     * Defaults to the requests the gate still has to act on (pending,
+     * approved, currently inside). `status` may also be a single status or
+     * `all`; `search` matches name, phone and vehicle.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Visitor::with(['flat.block', 'checkedInBy']);
+        $request->validate([
+            'status' => ['nullable', 'in:active,all,'.implode(',', Visitor::STATUSES)],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
 
-        $status = $request->string('status')->trim()->value() ?: 'checked_in';
-        if ($status !== 'all') {
+        $query = Visitor::with(['flat.block', 'gateKeeper', 'checkedInBy']);
+
+        $status = $request->string('status')->trim()->value() ?: 'active';
+        if ($status === 'active') {
+            $query->activeRequests();
+        } elseif ($status !== 'all') {
             $query->status($status);
         }
 
@@ -41,42 +59,48 @@ class VisitorController extends ApiController
             });
         }
 
-        $visitors = $query->latest('check_in_at')->paginate(15);
+        $visitors = $query->latest('created_at')->latest('id')->paginate(30);
 
         return $this->paginated(VisitorResource::collection($visitors), $visitors);
     }
 
     public function show(int $id): JsonResponse
     {
-        $visitor = Visitor::with(['flat.block', 'checkedInBy'])->findOrFail($id);
+        $visitor = Visitor::with(['flat.block', 'gateKeeper', 'checkedInBy'])->findOrFail($id);
 
         return $this->ok(new VisitorResource($visitor));
     }
 
     /**
-     * Walk-in check-in: someone at the gate who wasn't pre-invited by a
-     * resident. Mirrors Society\VisitorController::store, plus an optional
-     * gate photo (camera-only on the app side - see
-     * StoreGuardVisitorRequest's docblock).
-     *
-     * When `requires_approval` is set, the guard is instead raising an
-     * entry request: the visitor lands `pending` (not checked in yet) and
-     * the resident gets an actionable notification — see
-     * Resident\VisitorController::approve()/reject(). `checked_in_by` is
-     * still set at creation time here so approve/reject knows which guard
-     * to notify back with the resident's decision, even though the visitor
-     * hasn't actually been checked in yet.
+     * Raise an entry request for someone at the gate the resident didn't
+     * pre-invite. Unless the guard explicitly sends `requires_approval:
+     * false` (a known delivery person etc.), the visitor lands `pending`
+     * and every authorised resident of the flat gets an actionable push;
+     * the resident's decision is pushed back to this guard. `visitor_name`,
+     * `purpose` (the visitor type) and `notes` (what they've come for) plus
+     * an optional camera photo are stored; the block is taken from the flat,
+     * never trusted from the client.
      */
-    public function store(StoreGuardVisitorRequest $request, NotificationService $notifications): JsonResponse
+    public function store(StoreGuardVisitorRequest $request): JsonResponse
     {
-        $validated = Arr::except($request->validated(), ['photo', 'requires_approval']);
-        $photo = $request->file('photo');
-        $requiresApproval = $request->boolean('requires_approval');
+        $validated = Arr::except($request->validated(), ['photo', 'requires_approval', 'flat_id', 'block_id']);
+        $requiresApproval = $request->boolean('requires_approval', true);
+
+        $flat = Flat::with('block')->active()->find($request->integer('flat_id'));
+
+        if (!$flat) {
+            return $this->fail('That flat was not found in this society.', 404);
+        }
+
+        // A block, if sent, must be this flat's block - guards a mismatched
+        // picker selection rather than silently routing to another flat.
+        if ($request->filled('block_id') && (int) $request->input('block_id') !== (int) $flat->block_id) {
+            return $this->fail('The selected flat does not belong to the selected block.', 422);
+        }
 
         // The resident's Visitor > Settings: a closed house takes no
         // walk-ins, and "guests only if I approve" turns every guest entry
         // into an approval request whether or not the guard asked for one.
-        $flat = Flat::with('block')->findOrFail($validated['flat_id']);
         if ($flat->house_closed) {
             return $this->fail("{$flat->display_label} is marked closed by the resident - entry is not allowed.");
         }
@@ -84,78 +108,53 @@ class VisitorController extends ApiController
             $requiresApproval = true;
         }
 
-        $visitor = Visitor::create([
-            ...$validated,
-            'status' => $requiresApproval ? 'pending' : 'checked_in',
-            'check_in_at' => $requiresApproval ? null : now(),
-            'checked_in_by' => $this->user()->id,
-            'photo_path' => $photo?->store('visitors', 'public'),
-        ]);
-
-        if ($requiresApproval) {
-            $notifications->notifyFlats(
-                [$validated['flat_id']],
-                'visitor_request',
-                "{$validated['visitor_name']} is at the gate — approve entry?",
-                ucfirst($validated['purpose']),
-                ['visitor_id' => $visitor->id],
-            );
-
-            return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Entry request sent to the resident.', 201);
+        if ($requiresApproval && !FlatResident::active()->where('flat_id', $flat->id)->exists()) {
+            return $this->fail("No resident is registered on {$flat->display_label}, so nobody can approve this visitor.");
         }
 
-        $notifications->notifyFlats(
-            [$validated['flat_id']],
-            'visitor_arrived',
-            "{$validated['visitor_name']} has arrived",
-            ucfirst($validated['purpose']),
+        $visitor = $this->workflow->createRequest(
+            $this->user(),
+            $flat,
+            $validated,
+            $requiresApproval,
+            $request->file('photo')?->store('visitors', 'public'),
+            $request->ip(),
         );
 
-        return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor checked in successfully.', 201);
+        return $this->ok(
+            new VisitorResource($visitor->load(['flat.block', 'gateKeeper'])),
+            $requiresApproval ? 'Entry request sent to the resident.' : 'Visitor checked in successfully.',
+            201,
+        );
     }
 
     /**
-     * Turns a resident-pre-invited (pending) visitor into checked_in once
-     * they actually arrive at the gate.
+     * Mark an APPROVED visitor (or one holding a resident's pre-approved
+     * pass) as ENTERED. Routed as both /entry and the older /check-in.
      */
-    public function checkIn(int $id, NotificationService $notifications): JsonResponse
+    public function checkIn(Request $request, int $id): JsonResponse
     {
-        $visitor = Visitor::findOrFail($id);
-
-        if (!$visitor->isPending()) {
-            return $this->fail('This visitor has already been checked in.');
+        try {
+            $visitor = $this->workflow->enter($id, $this->user(), $request->ip());
+        } catch (VisitorTransitionException $e) {
+            return $this->fail($e->getMessage(), $e->httpStatus);
         }
 
-        $visitor->update([
-            'status' => 'checked_in',
-            'check_in_at' => now(),
-            'checked_in_by' => $this->user()->id,
-        ]);
-
-        $notifications->notifyFlats(
-            [$visitor->flat_id],
-            'visitor_arrived',
-            "{$visitor->visitor_name} has arrived",
-            ucfirst($visitor->purpose),
-        );
-
-        return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor checked in successfully.');
+        return $this->ok(new VisitorResource($visitor->load(['flat.block', 'gateKeeper'])), 'Visitor entered.');
     }
 
-    public function checkOut(int $id): JsonResponse
+    /**
+     * Mark an ENTERED visitor as EXITED. Routed as both /exit and the older
+     * /check-out.
+     */
+    public function checkOut(Request $request, int $id): JsonResponse
     {
-        $visitor = Visitor::findOrFail($id);
-
-        if (!$visitor->isCheckedIn()) {
-            return $this->fail('This visitor has already checked out.');
+        try {
+            $visitor = $this->workflow->exit($id, $this->user(), $request->ip());
+        } catch (VisitorTransitionException $e) {
+            return $this->fail($e->getMessage(), $e->httpStatus);
         }
 
-        $visitor->update([
-            'status' => 'checked_out',
-            'check_out_at' => now(),
-            'checked_out_by' => $this->user()->id,
-        ]);
-
-        return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor checked out successfully.');
+        return $this->ok(new VisitorResource($visitor->load(['flat.block', 'gateKeeper'])), 'Visitor exited.');
     }
 }

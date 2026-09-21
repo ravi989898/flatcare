@@ -45,4 +45,17 @@ return [
         'secret' => env('RAZORPAY_KEY_SECRET'),
     ],
 
+    /*
+    | Firebase Cloud Messaging (HTTP v1) for mobile push notifications.
+    | FCM_CREDENTIALS is the path to a Firebase service-account JSON (kept
+    | outside version control, e.g. storage/app/firebase/service-account.json);
+    | FCM_PROJECT_ID is optional - it defaults to the project_id in that file.
+    | With no credentials, pushes are skipped (in-app notifications still work).
+    */
+    'fcm' => [
+        'credentials' => env('FCM_CREDENTIALS'),
+        'project_id' => env('FCM_PROJECT_ID'),
+        'timeout' => env('FCM_TIMEOUT', 5),
+    ],
+
 ];

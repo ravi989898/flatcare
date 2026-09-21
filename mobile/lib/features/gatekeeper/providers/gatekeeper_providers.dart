@@ -9,10 +9,10 @@ import '../data/guard_vehicle.dart';
 import '../data/guard_vehicle_repository.dart';
 import '../data/guard_visitor_repository.dart';
 
-/// 'checked_in' by default — same convention as the backend's
-/// Api\V1\Guard\VisitorController::index — set by the tab bar on
-/// GatekeeperVisitorListScreen.
-final guardVisitorStatusProvider = StateProvider.autoDispose<String>((ref) => 'checked_in');
+/// 'active' (pending + approved + inside) by default — same convention as
+/// the backend's Api\V1\Guard\VisitorController::index — set by the tab bar
+/// on GatekeeperVisitorListScreen.
+final guardVisitorStatusProvider = StateProvider.autoDispose<String>((ref) => 'active');
 final guardVisitorSearchProvider = StateProvider.autoDispose<String>((ref) => '');
 
 final guardVisitorListProvider = FutureProvider.autoDispose<List<Visitor>>((ref) {

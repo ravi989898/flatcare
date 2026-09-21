@@ -30,6 +30,14 @@ class VisitorRepository {
     return (response['data'] as List).map((item) => Visitor.fromJson(item as Map<String, dynamic>)).toList();
   }
 
+  /// One request, e.g. when a push notification is tapped. The server only
+  /// returns it if it belongs to one of the caller's own flats.
+  Future<Visitor> get(int visitorId) async {
+    final response = await _client.get('/visitors/$visitorId');
+
+    return Visitor.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
   /// "Gate Pass" and "Pre-Approval" — a resident pre-approving an expected
   /// visitor. `kind` records which form made it ('gate_pass' has a From/To
   /// window, 'pre_approval' doesn't). Returns the created row, including its

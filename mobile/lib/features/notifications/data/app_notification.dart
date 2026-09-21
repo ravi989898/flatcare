@@ -29,6 +29,9 @@ class AppNotification {
   final bool isRead;
   final String? createdAt;
 
+  /// The visitor request this notification is about, if any.
+  int? get visitorId => int.tryParse('${data?['visitor_id'] ?? ''}');
+
   static const _icons = {
     'maintenance_due': '🧾',
     'request_status': '🔧',

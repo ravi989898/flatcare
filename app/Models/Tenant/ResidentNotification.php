@@ -17,25 +17,40 @@ class ResidentNotification extends Model
     protected $connection = 'society';
     protected $table = 'resident_notifications';
 
-    public const TYPES = ['maintenance_due', 'request_status', 'new_notice', 'visitor_arrived', 'event_reminder'];
+    public const TYPES = [
+        'maintenance_due', 'request_status', 'new_notice', 'visitor_arrived', 'event_reminder',
+        'visitor_request', 'visitor_request_approved', 'visitor_request_rejected',
+    ];
 
     protected $fillable = [
         'user_id',
+        'society_id',
+        'visitor_id',
         'type',
         'title',
         'body',
         'data',
         'read_at',
+        'push_status',
+        'push_attempts',
+        'push_sent_at',
+        'push_error',
     ];
 
     protected $casts = [
         'data' => 'array',
         'read_at' => 'datetime',
+        'push_sent_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function visitor(): BelongsTo
+    {
+        return $this->belongsTo(Visitor::class);
     }
 
     public function scopeUnread(Builder $query): Builder

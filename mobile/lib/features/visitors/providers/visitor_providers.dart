@@ -18,6 +18,12 @@ final preApprovedListProvider = FutureProvider.autoDispose<List<Visitor>>((ref) 
   return ref.watch(visitorRepositoryProvider).list((status: 'pending', search: null, from: null, to: null, kind: 'pre_approval'));
 });
 
+/// A single visitor request — the Visitor Request screen (also the target of
+/// a tapped push notification).
+final visitorRequestProvider = FutureProvider.autoDispose.family<Visitor, int>((ref, id) {
+  return ref.watch(visitorRepositoryProvider).get(id);
+});
+
 final dailyHelperListProvider = FutureProvider.autoDispose<List<DailyHelper>>((ref) {
   return ref.watch(dailyHelperRepositoryProvider).list();
 });

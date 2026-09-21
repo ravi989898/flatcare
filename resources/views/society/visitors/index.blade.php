@@ -3,7 +3,7 @@
 @section('title', 'Visitors')
 
 @php
-    $statusBadge = ['checked_in' => 'success', 'checked_out' => 'secondary', 'denied' => 'danger'];
+    $statusBadge = ['pending' => 'warning', 'approved' => 'info', 'checked_in' => 'success', 'checked_out' => 'secondary', 'denied' => 'danger'];
     $purposeLabel = ['guest' => 'Guest', 'delivery' => 'Delivery', 'cab' => 'Cab/Taxi', 'service' => 'Service', 'other' => 'Other'];
 @endphp
 
@@ -76,7 +76,7 @@
                                     <td>{{ $visitor->vehicle_number ?: '—' }}</td>
                                     <td class="text-muted small">{{ $visitor->check_in_at?->format('d M, h:i A') }}</td>
                                     <td class="text-muted small">{{ $visitor->check_out_at?->format('d M, h:i A') ?? '—' }}</td>
-                                    <td><span class="badge bg-{{ $statusBadge[$visitor->status] }}">{{ ucfirst(str_replace('_', ' ', $visitor->status)) }}</span></td>
+                                    <td><span class="badge bg-{{ $statusBadge[$visitor->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_', ' ', $visitor->status)) }}</span></td>
                                     <td class="text-end">
                                         @if ($visitor->isCheckedIn())
                                             <form action="{{ route('society.visitors.check_out', $visitor->id) }}" method="POST" class="d-inline">

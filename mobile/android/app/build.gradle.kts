@@ -25,6 +25,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications (visitor request notifications) needs
+        // Java 8+ library desugaring - see the coreLibraryDesugaring dependency below.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -71,6 +74,17 @@ android {
             // payments app for a few more MB.
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+// Firebase Cloud Messaging: applied only when the Firebase config file is
+// present, so the app still builds (with push disabled) on a checkout that
+// doesn't have android/app/google-services.json - see mobile/FCM_SETUP.md.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 flutter {

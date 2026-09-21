@@ -20,6 +20,13 @@ class Visitor {
     this.awaitingApproval = false,
     this.entryKind = 'gate_pass',
     this.createdAt,
+    this.statusLabel,
+    this.canRespond = false,
+    this.canEnter = false,
+    this.canExit = false,
+    this.gateKeeperName,
+    this.approvedAt,
+    this.rejectedAt,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
@@ -44,6 +51,13 @@ class Visitor {
       awaitingApproval: json['awaiting_approval'] as bool? ?? false,
       entryKind: json['entry_kind'] as String? ?? 'gate_pass',
       createdAt: json['created_at'] as String?,
+      statusLabel: json['status_label'] as String?,
+      canRespond: json['can_respond'] as bool? ?? (json['awaiting_approval'] as bool? ?? false),
+      canEnter: json['can_enter'] as bool? ?? false,
+      canExit: json['can_exit'] as bool? ?? false,
+      gateKeeperName: (json['gate_keeper'] as Map<String, dynamic>?)?['name'] as String?,
+      approvedAt: json['approved_at'] as String?,
+      rejectedAt: json['rejected_at'] as String?,
     );
   }
 
@@ -75,10 +89,23 @@ class Visitor {
   // 'gate_pass' (dated pass) or 'pre_approval' (quick standing approval).
   final String entryKind;
   final String? createdAt;
+  // PENDING / APPROVED / ENTERED / EXITED / REJECTED, as named by the backend.
+  final String? statusLabel;
+  // What the server says is allowed next (the buttons follow these, never
+  // the local status string): the resident may approve/reject, or the gate
+  // may let the visitor in / mark them out.
+  final bool canRespond;
+  final bool canEnter;
+  final bool canExit;
+  // The guard who raised the request (null for a resident's own pass).
+  final String? gateKeeperName;
+  final String? approvedAt;
+  final String? rejectedAt;
 
   static const purposes = ['guest', 'delivery', 'cab', 'service', 'other'];
 
   bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
   bool get isCheckedIn => status == 'checked_in';
   bool get isDenied => status == 'denied';
 

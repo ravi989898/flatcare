@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/async_view.dart';
 import '../data/app_notification.dart';
 import '../data/notification_repository.dart';
 import '../providers/notification_providers.dart';
+
+/// A visitor notification opens what it is about: the request for a resident
+/// to answer, the gate register for a guard's approved/rejected result.
+void _openTarget(BuildContext context, AppNotification item) {
+  final visitorId = item.visitorId;
+  if (visitorId == null) return;
+
+  if (item.type == 'visitor_request') {
+    context.push('/visitors/request/$visitorId');
+  } else if (item.type.startsWith('visitor_request_')) {
+    context.push('/gatekeeper/visitors');
+  }
+}
 
 class NotificationListScreen extends ConsumerWidget {
   const NotificationListScreen({super.key});
@@ -58,6 +72,7 @@ class NotificationListScreen extends ConsumerWidget {
                         ref.invalidate(notificationListProvider);
                         ref.invalidate(unreadNotificationCountProvider);
                       }
+                      if (context.mounted) _openTarget(context, item);
                     },
                   ),
                 );

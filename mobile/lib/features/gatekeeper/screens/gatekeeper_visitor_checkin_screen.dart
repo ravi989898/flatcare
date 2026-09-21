@@ -38,7 +38,8 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
   Flat? _flat;
   XFile? _photo;
   bool _isSubmitting = false;
-  bool _requiresApproval = false;
+  // A walk-in is sent to the resident for approval unless the guard opts out.
+  bool _requiresApproval = true;
 
   @override
   void dispose() {
