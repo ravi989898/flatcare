@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../../core/widgets/app_form_dialog.dart';
 import '../../../core/widgets/async_view.dart';
 import '../data/profile_repository.dart';
 import '../data/vehicle.dart';
 import '../providers/profile_providers.dart';
+
+/// Predefined choices for the Add Vehicle "Type" field — 'Other' stays
+/// free-text since a fixed list can never cover every vehicle a gate
+/// might see.
+const List<String> _vehicleTypes = ['Car', 'Bike', 'Scooter', 'Auto', 'Van', 'Truck', 'Other'];
 
 class VehiclesScreen extends ConsumerWidget {
   const VehiclesScreen({super.key});
@@ -65,25 +71,36 @@ class VehiclesScreen extends ConsumerWidget {
   }
 
   Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
-    final typeController = TextEditingController();
+    final otherTypeController = TextEditingController();
     final regController = TextEditingController();
     final slotController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    String? selectedType = _vehicleTypes.first;
 
-    await showDialog(
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add Vehicle'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: typeController,
-                decoration: const InputDecoration(labelText: 'Type (car, bike…)'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (statefulContext, setState) {
+          return AppFormDialog(
+            title: 'Add Vehicle',
+            formKey: formKey,
+            submitLabel: 'Add',
+            fields: [
+              DropdownButtonFormField<String>(
+                initialValue: selectedType,
+                decoration: const InputDecoration(labelText: 'Vehicle Type'),
+                items: [
+                  for (final type in _vehicleTypes) DropdownMenuItem(value: type, child: Text(type)),
+                ],
+                onChanged: (value) => setState(() => selectedType = value),
+                validator: (value) => (value == null || value.isEmpty) ? 'Select a vehicle type' : null,
               ),
+              if (selectedType == 'Other')
+                TextFormField(
+                  controller: otherTypeController,
+                  decoration: const InputDecoration(labelText: 'Specify vehicle type'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
               TextFormField(
                 controller: regController,
                 decoration: const InputDecoration(labelText: 'Registration number'),
@@ -94,31 +111,19 @@ class VehiclesScreen extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: 'Parking slot (optional)'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              try {
-                await ref.read(profileRepositoryProvider).addVehicle({
-                  'vehicle_type': typeController.text.trim(),
-                  'registration_number': regController.text.trim(),
-                  if (slotController.text.trim().isNotEmpty) 'parking_slot': slotController.text.trim(),
-                });
-                ref.invalidate(vehicleListProvider);
-                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              } on ApiException catch (e) {
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));
-                }
-              }
+            onSubmit: () async {
+              final vehicleType = selectedType == 'Other' ? otherTypeController.text.trim() : selectedType!;
+              await ref.read(profileRepositoryProvider).addVehicle({
+                'vehicle_type': vehicleType,
+                'registration_number': regController.text.trim(),
+                if (slotController.text.trim().isNotEmpty) 'parking_slot': slotController.text.trim(),
+              });
             },
-            child: const Text('Add'),
-          ),
-        ],
+          );
+        },
       ),
     );
+
+    if (saved == true) ref.invalidate(vehicleListProvider);
   }
 }

@@ -92,7 +92,13 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      // Laravel's default `message` for a multi-field validation failure is
+      // just the first error plus "(and N more errors)" — list every
+      // field's actual message instead so the guard knows exactly what to
+      // fix (e.g. the photo being rejected vs. a missing flat).
+      final fieldMessages = e.fieldErrors?.values.expand((messages) => messages).toList();
+      final text = (fieldMessages != null && fieldMessages.isNotEmpty) ? fieldMessages.join('\n') : e.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

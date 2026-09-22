@@ -70,7 +70,12 @@ class ApiClient {
     String fileField = 'photo',
   }) async {
     final formData = FormData.fromMap({
-      ...fields,
+      // multipart/form-data has no boolean type — FormData.fromMap's default
+      // Object.toString() would turn `true`/`false` into the strings "true"
+      // and "false", which Laravel's `boolean` validation rule rejects (it
+      // only accepts true, false, 1, 0, "1", "0"). Send "1"/"0" instead so a
+      // bool field round-trips correctly.
+      ...fields.map((key, value) => MapEntry(key, value is bool ? (value ? '1' : '0') : value)),
       if (filePath != null) fileField: await MultipartFile.fromFile(filePath),
     });
 

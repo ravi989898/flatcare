@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../../core/widgets/app_form_dialog.dart';
 import '../../../core/widgets/async_view.dart';
 import '../data/family_member.dart';
 import '../data/profile_repository.dart';
@@ -67,55 +68,36 @@ class FamilyMembersScreen extends ConsumerWidget {
     final phoneController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add Family Member'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: relationController,
-                decoration: const InputDecoration(labelText: 'Relation'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: phoneController,
-                decoration: const InputDecoration(labelText: 'Phone (optional)'),
-              ),
-            ],
-          ),
+    final saved = await AppFormDialog.show(
+      context,
+      title: 'Add Family Member',
+      formKey: formKey,
+      submitLabel: 'Add',
+      fields: [
+        TextFormField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Name'),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              try {
-                await ref.read(profileRepositoryProvider).addFamilyMember({
-                  'name': nameController.text.trim(),
-                  'relation': relationController.text.trim(),
-                  if (phoneController.text.trim().isNotEmpty) 'phone': phoneController.text.trim(),
-                });
-                ref.invalidate(familyMemberListProvider);
-                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              } on ApiException catch (e) {
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));
-                }
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+        TextFormField(
+          controller: relationController,
+          decoration: const InputDecoration(labelText: 'Relation'),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        ),
+        TextFormField(
+          controller: phoneController,
+          decoration: const InputDecoration(labelText: 'Phone (optional)'),
+        ),
+      ],
+      onSubmit: () async {
+        await ref.read(profileRepositoryProvider).addFamilyMember({
+          'name': nameController.text.trim(),
+          'relation': relationController.text.trim(),
+          if (phoneController.text.trim().isNotEmpty) 'phone': phoneController.text.trim(),
+        });
+      },
     );
+
+    if (saved == true) ref.invalidate(familyMemberListProvider);
   }
 }
