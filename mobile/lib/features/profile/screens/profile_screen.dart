@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/photo_avatar.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -110,17 +111,15 @@ class ProfileScreen extends ConsumerWidget {
                 label: 'Sign Out',
                 color: Theme.of(context).colorScheme.error,
                 onTap: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Sign out?'),
-                      actions: [
-                        TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
-                        TextButton(onPressed: () => context.pop(true), child: const Text('Sign out')),
-                      ],
-                    ),
-                  );
-                  if (confirmed == true) {
+                  final confirmed = await showFcConfirmDialog(
+                  context,
+                  title: 'Sign out?',
+                  message: 'You will stop receiving visitor alerts on this phone until you sign in again.',
+                  confirmLabel: 'Sign out',
+                  icon: Icons.logout_rounded,
+                  danger: true,
+                );
+                if (confirmed) {
                     await ref.read(authControllerProvider.notifier).logout();
                   }
                 },

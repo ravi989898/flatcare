@@ -19,6 +19,8 @@ class VehicleController extends ApiController
 
     public function store(VehicleRequest $request): JsonResponse
     {
+        $this->releaseDeletedNumber($request->validated('registration_number'));
+
         $vehicle = Vehicle::create([
             ...$request->validated(),
             'user_id' => $this->user()->id,
@@ -31,6 +33,7 @@ class VehicleController extends ApiController
     public function update(VehicleRequest $request, int $id): JsonResponse
     {
         $vehicle = Vehicle::where('user_id', $this->user()->id)->findOrFail($id);
+        $this->releaseDeletedNumber($request->validated('registration_number'));
         $vehicle->update($request->validated());
 
         return $this->ok(new VehicleResource($vehicle), 'Vehicle updated.');
@@ -42,5 +45,20 @@ class VehicleController extends ApiController
         $vehicle->delete();
 
         return $this->ok(null, 'Vehicle removed.');
+    }
+
+    /**
+     * registration_number carries a DB-level unique index that also covers
+     * soft-deleted rows, so re-adding a number that was removed earlier
+     * would hit a constraint violation. The validator already rejects live
+     * duplicates; here we purge a trashed one holding the same number.
+     */
+    private function releaseDeletedNumber(?string $registrationNumber): void
+    {
+        if ($registrationNumber === null) {
+            return;
+        }
+
+        Vehicle::onlyTrashed()->where('registration_number', $registrationNumber)->forceDelete();
     }
 }

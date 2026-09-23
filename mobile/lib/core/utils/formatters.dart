@@ -32,3 +32,22 @@ String formatDateTime(String? isoDateTime) {
 
   return _dateTimeFormat.format(parsed.toLocal());
 }
+
+/// "Just now", "5 min ago", "3 h ago", "Yesterday", then a short date — for
+/// notification and activity timestamps where recency matters more than
+/// the exact time.
+String formatRelative(String? isoDateTime) {
+  if (isoDateTime == null || isoDateTime.isEmpty) return '';
+
+  final parsed = DateTime.tryParse(isoDateTime)?.toLocal();
+  if (parsed == null) return isoDateTime;
+
+  final diff = DateTime.now().difference(parsed);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+  if (diff.inHours < 24) return '${diff.inHours} h ago';
+  if (diff.inDays == 1) return 'Yesterday';
+  if (diff.inDays < 7) return '${diff.inDays} days ago';
+
+  return _dateFormat.format(parsed);
+}

@@ -24,7 +24,8 @@ class DirectoryController extends ApiController
                     $u->where('name', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%");
                 })->orWhereHas('flat', function ($f) use ($search) {
-                    $f->where('flat_number', 'like', "%{$search}%");
+                    $f->where('flat_number', 'like', "%{$search}%")
+                        ->orWhereHas('block', fn ($b) => $b->where('name', 'like', "%{$search}%"));
                 });
             });
         }

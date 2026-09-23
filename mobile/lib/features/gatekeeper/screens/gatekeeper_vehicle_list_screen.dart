@@ -3,16 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/async_view.dart';
+import '../../../core/utils/vehicle_types.dart';
+import '../../../core/widgets/fc/fc.dart';
 import '../data/guard_vehicle.dart';
 import '../providers/gatekeeper_providers.dart';
-
-/// A small palette cycled by vehicle type initial, purely so the list
-/// doesn't read as a flat wall of identical grey icons — mirrors the accent
-/// coloring used on the visitor log and home screen tiles.
-const _vehicleColors = [Color(0xFF1783C0), Color(0xFF8E5FE0), Color(0xFF2AB98A), Color(0xFFF5A623)];
-
-Color _colorForVehicleType(String vehicleType) => _vehicleColors[vehicleType.hashCode.abs() % _vehicleColors.length];
 
 /// Society-wide, read-only vehicle register — lets a guard confirm a
 /// vehicle at the gate is actually registered to a resident. Modeled on
@@ -25,8 +19,7 @@ class GatekeeperVehicleListScreen extends ConsumerWidget {
     final vehicles = ref.watch(guardVehicleListProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F3F7),
-      appBar: AppBar(
+            appBar: AppBar(
         title: const Text('Vehicles'),
         foregroundColor: Colors.white,
         flexibleSpace: const DecoratedBox(decoration: BoxDecoration(gradient: AppTheme.brandGradient)),
@@ -48,43 +41,49 @@ class GatekeeperVehicleListScreen extends ConsumerWidget {
               onRefresh: () => ref.refresh(guardVehicleListProvider.future),
               child: AsyncView<List<GuardVehicle>>(
                 value: vehicles,
+                skeleton: true,
                 onRetry: () => ref.invalidate(guardVehicleListProvider),
                 builder: (context, items) {
                   if (items.isEmpty) {
-                    return const EmptyState(message: 'No vehicles found.', icon: Icons.directions_car_outlined);
+                    return const EmptyState(
+                      title: 'No vehicles found',
+                      message: 'No registered vehicle matches your search.',
+                      icon: Icons.directions_car_filled_rounded,
+                    );
                   }
 
                   return ListView.separated(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      final color = _colorForVehicleType(item.vehicleType);
+                      final style = vehicleTypeStyle(item.vehicleType);
 
-                      return Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Colors.grey.shade200)),
-                        child: ListTile(
-                          onTap: () => context.push('/gatekeeper/vehicles/detail', extra: item),
-                          leading: CircleAvatar(
-                            backgroundColor: color.withValues(alpha: 0.15),
-                            child: Icon(Icons.directions_car_outlined, color: color),
-                          ),
-                          title: Text(item.registrationNumber, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              [
-                                item.vehicleType,
-                                if (item.model != null) item.model!,
-                                if (item.ownerName != null) item.ownerName!,
-                                if (item.flatLabel != null) item.flatLabel!,
-                              ].join(' · '),
-                            ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right, color: Colors.black38),
+                      return FcListCard(
+                        onTap: () => context.push('/gatekeeper/vehicles/detail', extra: item),
+                        leading: FcIconBox(icon: style.icon, color: style.color, size: 52),
+                        title: item.registrationNumber,
+                        titleStyle: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: AppColors.textPrimary,
+                        ),
+                        subtitle: item.model,
+                        meta: [
+                          if (item.ownerName != null) FcMeta(Icons.person_outline_rounded, item.ownerName!),
+                          if (item.flatLabel != null) FcMeta(Icons.apartment_rounded, item.flatLabel!),
+                        ],
+                        badges: [
+                          FcBadge(label: style.label, color: style.color),
+                          if (item.parkingSlot != null && item.parkingSlot!.isNotEmpty)
+                            FcBadge(label: 'Slot ${item.parkingSlot}', icon: Icons.local_parking_rounded),
+                        ],
+                        trailing: const Padding(
+                          padding: EdgeInsets.only(top: 12, right: 4),
+                          child: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
                         ),
                       );
                     },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -99,17 +100,15 @@ class GatekeeperProfileScreen extends ConsumerWidget {
                     label: const Text('Sign out'),
                     onPressed: () async {
                       final authNotifier = ref.read(authControllerProvider.notifier);
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Sign out?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Sign out')),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
+                      final confirmed = await showFcConfirmDialog(
+                  context,
+                  title: 'Sign out?',
+                  message: 'You will stop receiving visitor alerts on this phone until you sign in again.',
+                  confirmLabel: 'Sign out',
+                  icon: Icons.logout_rounded,
+                  danger: true,
+                );
+                if (confirmed) {
                         await authNotifier.logout();
                       }
                     },

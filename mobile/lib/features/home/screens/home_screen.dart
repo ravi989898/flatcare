@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../notifications/providers/notification_providers.dart';
 
 /// One tile in a menu group. `route` is null for features the backend
 /// doesn't expose yet (see routes/api.php) — those still render, matching
@@ -102,13 +104,15 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HomeHeader extends StatelessWidget {
+class _HomeHeader extends ConsumerWidget {
   const _HomeHeader({required this.societyName});
 
   final String societyName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
+
     return Container(
       decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
       padding: const EdgeInsets.fromLTRB(4, 8, 12, 16),
@@ -148,8 +152,17 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () => context.push('/announcements'),
+            tooltip: 'Notifications',
+            icon: Badge(
+              isLabelVisible: unread > 0,
+              label: Text(unread > 99 ? '99+' : '$unread'),
+              backgroundColor: AppColors.danger,
+              child: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+            ),
+            onPressed: () async {
+              await context.push('/notifications');
+              ref.invalidate(unreadNotificationCountProvider);
+            },
           ),
         ],
       ),
@@ -303,17 +316,15 @@ class _HomeDrawer extends ConsumerWidget {
                 // object reference, so it stays safe to call after that.
                 final authNotifier = ref.read(authControllerProvider.notifier);
                 Navigator.of(context).pop();
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Sign out?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Sign out')),
-                    ],
-                  ),
+                final confirmed = await showFcConfirmDialog(
+                  context,
+                  title: 'Sign out?',
+                  message: 'You will stop receiving visitor alerts on this phone until you sign in again.',
+                  confirmLabel: 'Sign out',
+                  icon: Icons.logout_rounded,
+                  danger: true,
                 );
-                if (confirmed == true) {
+                if (confirmed) {
                   await authNotifier.logout();
                 }
               },
