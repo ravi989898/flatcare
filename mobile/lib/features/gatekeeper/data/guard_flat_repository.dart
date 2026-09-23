@@ -20,6 +20,16 @@ class GuardFlatRepository {
 
     return (response['data'] as List).map((item) => Flat.fromJson(item as Map<String, dynamic>)).toList();
   }
+
+  /// Flats whose resident has switched on House Closed, with their residents.
+  Future<List<Flat>> closedHouses({String search = ''}) async {
+    final response = await _client.get('/guard/flats', query: {
+      'closed': 1,
+      if (search.isNotEmpty) 'search': search,
+    });
+
+    return (response['data'] as List).map((item) => Flat.fromJson(item as Map<String, dynamic>)).toList();
+  }
 }
 
 final guardFlatRepositoryProvider = Provider<GuardFlatRepository>((ref) {

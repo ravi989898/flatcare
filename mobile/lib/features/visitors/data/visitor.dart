@@ -27,6 +27,7 @@ class Visitor {
     this.gateKeeperName,
     this.approvedAt,
     this.rejectedAt,
+    this.invitedBy,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
@@ -58,6 +59,7 @@ class Visitor {
       gateKeeperName: (json['gate_keeper'] as Map<String, dynamic>?)?['name'] as String?,
       approvedAt: json['approved_at'] as String?,
       rejectedAt: json['rejected_at'] as String?,
+      invitedBy: json['invited_by'] as String?,
     );
   }
 
@@ -101,6 +103,8 @@ class Visitor {
   final String? gateKeeperName;
   final String? approvedAt;
   final String? rejectedAt;
+  // The resident who issued a gate pass / pre-approval (guard app only).
+  final String? invitedBy;
 
   static const purposes = ['guest', 'delivery', 'cab', 'service', 'other'];
 

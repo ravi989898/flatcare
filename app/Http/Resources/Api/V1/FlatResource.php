@@ -23,6 +23,12 @@ class FlatResource extends JsonResource
             'area_sqft' => $this->area_sqft !== null ? (float) $this->area_sqft : null,
             'owner_name' => $this->owner_name,
             'display_label' => $this->display_label,
+            'house_closed' => (bool) $this->house_closed,
+            'residents' => $this->whenLoaded('residents', fn () => $this->residents->map(fn ($r) => [
+                'name' => $r->user?->name,
+                'phone' => $r->user?->phone,
+                'resident_type' => $r->resident_type,
+            ])->values()),
             'block' => [
                 'id' => $this->block?->id,
                 'name' => $this->block?->name,

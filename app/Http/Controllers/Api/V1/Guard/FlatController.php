@@ -19,6 +19,13 @@ class FlatController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $query = Flat::active()->with('block');
+        $closedOnly = $request->boolean('closed');
+
+        // "Closed houses" list: flats whose resident switched on House
+        // Closed in Visitor Settings - the gate must not let anyone in.
+        if ($closedOnly) {
+            $query->where('house_closed', true)->with(['residents' => fn ($r) => $r->active()->with('user')]);
+        }
 
         if ($search = $request->string('search')->trim()->value()) {
             $query->where(function ($q) use ($search) {
@@ -28,7 +35,7 @@ class FlatController extends ApiController
             });
         }
 
-        $flats = $query->orderBy('flat_number')->limit(50)->get();
+        $flats = $query->orderBy('flat_number')->limit($closedOnly ? 500 : 50)->get();
 
         return $this->ok(FlatResource::collection($flats));
     }

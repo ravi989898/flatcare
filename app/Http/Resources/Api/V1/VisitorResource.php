@@ -41,6 +41,8 @@ class VisitorResource extends JsonResource
             'entered_at' => $this->check_in_at?->toIso8601String(),
             'exited_at' => $this->check_out_at?->toIso8601String(),
             'gate_keeper' => $this->whenLoaded('gateKeeper', fn () => $this->gateKeeper ? ['id' => $this->gateKeeper->id, 'name' => $this->gateKeeper->name] : null),
+            // The resident who issued a gate pass / pre-approval.
+            'invited_by' => $this->whenLoaded('invitedBy', fn () => $this->invitedBy?->name),
             'check_in_at' => $this->check_in_at?->toIso8601String(),
             'check_out_at' => $this->check_out_at?->toIso8601String(),
             'expected_at' => $this->expected_at?->toIso8601String(),

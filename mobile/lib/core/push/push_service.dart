@@ -257,7 +257,9 @@ class PushService with WidgetsBindingObserver {
     _ref.invalidate(visitorListProvider);
     _ref.invalidate(preApprovedListProvider);
     _ref.invalidate(visitorRequestProvider);
-    _ref.invalidate(guardVisitorListProvider);
+    // Gate register, pending requests, passes, log and tile counts.
+    invalidateGateLists(_ref.invalidate);
+    _ref.invalidate(closedHouseListProvider);
     _ref.invalidate(notificationListProvider);
     _ref.invalidate(unreadNotificationCountProvider);
   }

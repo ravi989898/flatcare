@@ -29,6 +29,9 @@ import '../../features/gatekeeper/screens/gatekeeper_vehicle_detail_screen.dart'
 import '../../features/gatekeeper/screens/gatekeeper_vehicle_list_screen.dart';
 import '../../features/gatekeeper/screens/gatekeeper_visitor_checkin_screen.dart';
 import '../../features/gatekeeper/screens/gatekeeper_visitor_list_screen.dart';
+import '../../features/gatekeeper/screens/guard_closed_houses_screen.dart';
+import '../../features/gatekeeper/screens/guard_gate_passes_screen.dart';
+import '../../features/gatekeeper/screens/guard_pending_requests_screen.dart';
 import '../../features/help/screens/help_line_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/my_properties_screen.dart';
@@ -130,6 +133,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'check-in', builder: (context, state) => const GatekeeperVisitorCheckinScreen()),
         ],
       ),
+      GoRoute(path: '/gatekeeper/requests', builder: (context, state) => const GuardPendingRequestsScreen()),
+      GoRoute(path: '/gatekeeper/passes', builder: (context, state) => const GuardGatePassesScreen()),
+      GoRoute(path: '/gatekeeper/closed-houses', builder: (context, state) => const GuardClosedHousesScreen()),
       GoRoute(
         path: '/gatekeeper/vehicles',
         builder: (context, state) => const GatekeeperVehicleListScreen(),

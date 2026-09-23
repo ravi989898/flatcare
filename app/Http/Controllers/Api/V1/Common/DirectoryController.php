@@ -18,6 +18,10 @@ class DirectoryController extends ApiController
             $query->whereHas('flat', fn ($q) => $q->where('block_id', $blockId));
         }
 
+        if (in_array($type = $request->string('resident_type')->value(), ['owner', 'tenant', 'occupant'], true)) {
+            $query->where('resident_type', $type);
+        }
+
         if ($search = $request->string('search')->trim()->value()) {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', function ($u) use ($search) {

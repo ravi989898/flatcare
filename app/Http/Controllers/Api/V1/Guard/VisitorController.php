@@ -33,35 +33,88 @@ class VisitorController extends ApiController
     /**
      * Defaults to the requests the gate still has to act on (pending,
      * approved, currently inside). `status` may also be a single status or
-     * `all`; `search` matches name, phone and vehicle.
+     * `all`; `search` matches name, phone, vehicle, pass code and flat.
+     *
+     * `kind` narrows to one gate-duty list:
+     *  - `requests`: guard-raised entry requests still awaiting the resident
+     *  - `passes`:   residents' gate passes / pre-approvals still usable
+     *                (not yet used, not expired)
+     * `date` (Y-m-d) keeps visitors created or entered on that day - the
+     * Visitor Log's date filter.
      */
     public function index(Request $request): JsonResponse
     {
         $request->validate([
             'status' => ['nullable', 'in:active,all,'.implode(',', Visitor::STATUSES)],
             'search' => ['nullable', 'string', 'max:100'],
+            'kind' => ['nullable', 'in:requests,passes'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $query = Visitor::with(['flat.block', 'gateKeeper', 'checkedInBy']);
+        $query = Visitor::with(['flat.block', 'gateKeeper', 'checkedInBy', 'invitedBy']);
+        $kind = $request->string('kind')->value();
 
-        $status = $request->string('status')->trim()->value() ?: 'active';
-        if ($status === 'active') {
-            $query->activeRequests();
-        } elseif ($status !== 'all') {
-            $query->status($status);
+        if ($kind === 'requests') {
+            $query->where('status', 'pending')->whereNull('invited_by_user_id');
+        } elseif ($kind === 'passes') {
+            $this->usablePasses($query);
+        } else {
+            $status = $request->string('status')->trim()->value() ?: 'active';
+            if ($status === 'active') {
+                $query->activeRequests();
+            } elseif ($status !== 'all') {
+                $query->status($status);
+            }
+        }
+
+        if ($date = $request->string('date')->value()) {
+            $query->where(fn ($q) => $q->whereDate('created_at', $date)->orWhereDate('check_in_at', $date));
         }
 
         if ($search = $request->string('search')->trim()->value()) {
             $query->where(function ($q) use ($search) {
                 $q->where('visitor_name', 'like', "%{$search}%")
                     ->orWhere('visitor_phone', 'like', "%{$search}%")
-                    ->orWhere('vehicle_number', 'like', "%{$search}%");
+                    ->orWhere('vehicle_number', 'like', "%{$search}%")
+                    ->orWhere('pass_code', 'like', "%{$search}%")
+                    ->orWhereHas('flat', fn ($f) => $f->where('flat_number', 'like', "%{$search}%"));
             });
         }
 
-        $visitors = $query->latest('created_at')->latest('id')->paginate(30);
+        $visitors = $kind === 'passes'
+            ? $query->orderByRaw('expected_at IS NULL')->orderBy('expected_at')->latest('id')->paginate(30)
+            : $query->latest('created_at')->latest('id')->paginate(30);
 
         return $this->paginated(VisitorResource::collection($visitors), $visitors);
+    }
+
+    /**
+     * Counts for the gate-duty tiles on the guard home screen.
+     */
+    public function summary(): JsonResponse
+    {
+        $today = now()->toDateString();
+
+        return $this->ok([
+            'pending_requests' => Visitor::where('status', 'pending')->whereNull('invited_by_user_id')
+                ->whereDate('created_at', $today)->count(),
+            'visitors_today' => Visitor::where(fn ($q) => $q->whereDate('created_at', $today)->orWhereDate('check_in_at', $today))
+                ->count(),
+            'inside_now' => Visitor::currentlyIn()->count(),
+            'active_passes' => $this->usablePasses(Visitor::query())->count(),
+            'closed_houses' => Flat::active()->where('house_closed', true)->count(),
+        ]);
+    }
+
+    /**
+     * A resident-issued pass the gate can still honour: not yet used
+     * (pending/approved) and not past its valid-until time.
+     */
+    private function usablePasses($query)
+    {
+        return $query->whereNotNull('invited_by_user_id')
+            ->whereIn('status', ['pending', 'approved'])
+            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()));
     }
 
     public function show(int $id): JsonResponse

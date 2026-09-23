@@ -3,6 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers/core_providers.dart';
 import '../../visitors/data/visitor.dart';
+import 'guard_summary.dart';
+
+class GuardVisitorPage {
+  GuardVisitorPage({required this.items, required this.page, required this.lastPage, this.total});
+
+  final List<Visitor> items;
+  final int page;
+  final int lastPage;
+  final int? total;
+
+  bool get hasMore => page < lastPage;
+}
 
 /// The gate register, from the guard app (Api\V1\Guard\VisitorController) —
 /// society-wide, unlike features/visitors/data/visitor_repository.dart
@@ -19,6 +31,37 @@ class GuardVisitorRepository {
     });
 
     return (response['data'] as List).map((item) => Visitor.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
+  /// One page of the gate register. [kind] is `requests` (awaiting the
+  /// resident) or `passes` (usable gate passes); [date] is `yyyy-MM-dd`.
+  Future<GuardVisitorPage> page({
+    String? status,
+    String? kind,
+    String? date,
+    String? search,
+    int page = 1,
+  }) async {
+    final response = await _client.get('/guard/visitors', query: {
+      if (status != null) 'status': status,
+      if (kind != null) 'kind': kind,
+      if (date != null) 'date': date,
+      if (search != null && search.isNotEmpty) 'search': search,
+      'page': page,
+    });
+    final pagination = response['pagination'] as Map<String, dynamic>?;
+
+    return GuardVisitorPage(
+      items: (response['data'] as List).map((item) => Visitor.fromJson(item as Map<String, dynamic>)).toList(),
+      page: pagination?['current_page'] as int? ?? page,
+      lastPage: pagination?['last_page'] as int? ?? page,
+      total: pagination?['total'] as int?,
+    );
+  }
+
+  Future<GuardSummary> summary() async {
+    final response = await _client.get('/guard/summary');
+    return GuardSummary.fromJson(response['data'] as Map<String, dynamic>);
   }
 
   /// Walk-in check-in — a visitor who wasn't pre-invited by a resident.

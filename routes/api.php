@@ -149,6 +149,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/end', [GuardDutyController::class, 'end'])->name('end');
             });
 
+            Route::get('/summary', [GuardVisitorController::class, 'summary'])->name('summary');
+
             Route::prefix('visitors')->name('visitors.')->group(function () {
                 Route::get('/', [GuardVisitorController::class, 'index'])->name('index');
                 Route::post('/', [GuardVisitorController::class, 'store'])->middleware('throttle:guard-visitor-create')->name('store');

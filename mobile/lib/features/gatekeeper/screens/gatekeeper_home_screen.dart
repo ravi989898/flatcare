@@ -35,20 +35,7 @@ class GatekeeperHomeScreen extends ConsumerWidget {
                 children: const [
                   _DutyStatusCard(),
                   SizedBox(height: 16),
-                  _GroupCard(
-                    title: 'Gate Duty',
-                    items: [
-                      _MenuItem('Visitor Log', '🚪', route: '/gatekeeper/visitors', color: Color(0xFF1E9CE0)),
-                      _MenuItem('Walk-in Check-in', '📝', route: '/gatekeeper/visitors/check-in', color: Color(0xFF2AB98A)),
-                      _MenuItem(
-                        'Expected Visitors',
-                        '⏳',
-                        route: '/gatekeeper/visitors',
-                        initialStatus: 'pending',
-                        color: Color(0xFFF5A623),
-                      ),
-                    ],
-                  ),
+                  _GateDutyPanel(),
                   SizedBox(height: 16),
                   _GroupCard(
                     title: 'Directory',
@@ -254,15 +241,12 @@ class _DutyStatusCardState extends ConsumerState<_DutyStatusCard> {
 }
 
 class _MenuItem {
-  const _MenuItem(this.label, this.emoji, {required this.route, required this.color, this.initialStatus});
+  const _MenuItem(this.label, this.emoji, {required this.route, required this.color});
 
   final String label;
   final String emoji;
   final String route;
   final Color color;
-  // Passed as `extra` to GatekeeperVisitorListScreen to preselect a tab
-  // (e.g. "Expected Visitors" opening straight to the pending tab).
-  final String? initialStatus;
 }
 
 class _GroupCard extends StatelessWidget {
@@ -309,7 +293,7 @@ class _MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => context.push(item.route, extra: item.initialStatus),
+      onTap: () => context.push(item.route),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -394,6 +378,187 @@ class _GatekeeperDrawer extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Gate Duty: the five things a guard does all day, in order of use —
+/// 1 Walk-in Check-in (full width), then 2 Pending Requests, 3 Visitor Log,
+/// 4 Gate Passes and 5 Closed Houses, each with its own color and a live
+/// count from /guard/summary.
+class _GateDutyPanel extends ConsumerWidget {
+  const _GateDutyPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(guardSummaryProvider).valueOrNull;
+
+    Future<void> open(String route) async {
+      await context.push(route);
+      ref.invalidate(guardSummaryProvider);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 10),
+          child: Text('Gate Duty', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        ),
+        _DutyTile(
+          number: 1,
+          label: 'Walk-in Check-in',
+          caption: 'Register a visitor at the gate',
+          icon: Icons.person_add_alt_1_rounded,
+          colors: const [Color(0xFF34C38F), AppColors.success],
+          wide: true,
+          onTap: () => open('/gatekeeper/visitors/check-in'),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.08,
+          children: [
+            _DutyTile(
+              number: 2,
+              label: 'Pending Requests',
+              caption: 'Today · awaiting resident',
+              icon: Icons.hourglass_top_rounded,
+              colors: const [Color(0xFFF6B23C), AppColors.warning],
+              count: summary?.pendingRequests,
+              onTap: () => open('/gatekeeper/requests'),
+            ),
+            _DutyTile(
+              number: 3,
+              label: 'Visitor Log',
+              caption: '${summary?.insideNow ?? 0} inside now',
+              icon: Icons.menu_book_rounded,
+              colors: const [AppColors.secondary, AppColors.primary],
+              count: summary?.visitorsToday,
+              onTap: () => open('/gatekeeper/visitors'),
+            ),
+            _DutyTile(
+              number: 4,
+              label: 'Gate Passes',
+              caption: 'Issued by residents',
+              icon: Icons.confirmation_number_rounded,
+              colors: const [Color(0xFF7B7BE8), AppColors.accentIndigo],
+              count: summary?.activePasses,
+              onTap: () => open('/gatekeeper/passes'),
+            ),
+            _DutyTile(
+              number: 5,
+              label: 'Closed Houses',
+              caption: 'No entry allowed',
+              icon: Icons.lock_rounded,
+              colors: const [Color(0xFFEF6B75), AppColors.danger],
+              count: summary?.closedHouses,
+              onTap: () => open('/gatekeeper/closed-houses'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DutyTile extends StatelessWidget {
+  const _DutyTile({
+    required this.number,
+    required this.label,
+    required this.caption,
+    required this.icon,
+    required this.colors,
+    required this.onTap,
+    this.count,
+    this.wide = false,
+  });
+
+  final int number;
+  final String label;
+  final String caption;
+  final IconData icon;
+  final List<Color> colors;
+  final VoidCallback onTap;
+  final int? count;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconBox = Container(
+      width: wide ? 54 : 46,
+      height: wide ? 54 : 46,
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(15)),
+      child: Icon(icon, color: Colors.white, size: wide ? 30 : 26),
+    );
+    final numberDot = Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), shape: BoxShape.circle),
+      child: Text('$number', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+    );
+    const titleStyle = TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16);
+    final captionStyle = TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 12.5, fontWeight: FontWeight.w500);
+
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: colors.last.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6))],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: wide
+                ? Row(
+                    children: [
+                      iconBox,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label, style: titleStyle.copyWith(fontSize: 18)),
+                            const SizedBox(height: 2),
+                            Text(caption, style: captionStyle),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          iconBox,
+                          const Spacer(),
+                          if (count != null)
+                            Text('$count', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, height: 1))
+                          else
+                            numberDot,
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
+                      const SizedBox(height: 2),
+                      Text(caption, maxLines: 1, overflow: TextOverflow.ellipsis, style: captionStyle),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
