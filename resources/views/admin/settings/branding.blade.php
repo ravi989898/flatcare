@@ -157,7 +157,7 @@
                 <form action="{{ route('admin.settings.branding.contact.update') }}" method="POST" novalidate>
                     @csrf
                     <div class="card-body">
-                        <p class="text-muted small">Shown in the public website footer, the contact page and search-engine data. Phone numbers are also used for the WhatsApp links.</p>
+                        <p class="text-muted small">Shown in the public website footer, the contact page, search-engine data and the mobile app (Help Line and the Terms, Privacy and About pages). Phone numbers are also used for the WhatsApp links.</p>
                         <div class="row">
                             <div class="form-group col-md-4">
                                 <label for="contact_email">Support Email <span class="text-danger">*</span></label>

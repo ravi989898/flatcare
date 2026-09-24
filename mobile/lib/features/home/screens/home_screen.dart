@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/fc/fc_dialogs.dart';
+import '../../../core/widgets/photo_avatar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
@@ -249,6 +254,33 @@ class _MenuTile extends StatelessWidget {
   }
 }
 
+/// Play Store page for this build, derived from the installed package name
+/// so it stays right if the application id ever changes.
+Future<String> _storeWebLink() async {
+  final info = await PackageInfo.fromPlatform();
+  return 'https://play.google.com/store/apps/details?id=${info.packageName}';
+}
+
+/// Opens the store listing in the Play Store app, falling back to the web
+/// page when the Play Store isn't installed.
+Future<void> _openStoreListing(ScaffoldMessengerState messenger) async {
+  final info = await PackageInfo.fromPlatform();
+  final market = Uri.parse('market://details?id=${info.packageName}');
+  final web = Uri.parse(await _storeWebLink());
+  try {
+    if (await launchUrl(market, mode: LaunchMode.externalApplication)) return;
+  } catch (_) {
+    // No Play Store app — fall through to the browser.
+  }
+  if (!await launchUrl(web, mode: LaunchMode.externalApplication)) {
+    messenger.showSnackBar(const SnackBar(content: Text("Couldn't open the store. Please try again.")));
+  }
+}
+
+/// Side drawer styled after the reference screenshot: a blue "View Profile"
+/// header followed by white rounded tiles with tinted circular icons. The
+/// general app items (settings, help, legal, share…) live here rather than
+/// inside the Profile screen.
 class _HomeDrawer extends ConsumerWidget {
   const _HomeDrawer({required this.societyName, required this.unit});
 
@@ -257,80 +289,246 @@ class _HomeDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authControllerProvider);
-    final userName = auth.valueOrNull?.user.name ?? '';
-    final email = auth.valueOrNull?.user.email ?? '';
+    final user = ref.watch(authControllerProvider).valueOrNull?.user;
+    final userName = user?.name ?? '';
+
+    void go(String route) {
+      Navigator.of(context).pop();
+      context.push(route);
+    }
 
     return Drawer(
-      child: SafeArea(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
-              accountName: Text(userName),
-              accountEmail: Text(email),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text(
-                  userName.isNotEmpty ? userName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFFF2F3F7),
+      child: Column(
+        children: [
+          _DrawerProfileHeader(name: userName, photoUrl: user?.profilePhotoUrl, onTap: () => go('/profile')),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              children: [
+                _DrawerTile(icon: Icons.person_outline, accent: AppColors.accentSky, label: 'Profile', onTap: () => go('/profile')),
+                _DrawerTile(
+                  icon: Icons.apartment_outlined, accent: AppColors.accentIndigo,
+                  label: 'My Properties',
+                  subtitle: unit,
+                  onTap: () => go('/my-properties'),
                 ),
-              ),
+                _DrawerTile(
+                  icon: Icons.notifications_none, accent: AppColors.warning,
+                  label: 'Notification Settings',
+                  onTap: () => go('/profile/notification-settings'),
+                ),
+                _DrawerTile(icon: Icons.language_outlined, accent: AppColors.accentTeal, label: 'Language', onTap: () => go('/profile/language')),
+                _DrawerTile(icon: Icons.dark_mode_outlined, accent: AppColors.accentViolet, label: 'Theme', onTap: () => go('/profile/theme')),
+                _DrawerTile(
+                  icon: Icons.support_agent_outlined, accent: AppColors.success,
+                  label: 'Help Line',
+                  subtitle: 'Customer service 24 × 7',
+                  onTap: () => go('/help-line'),
+                ),
+                _DrawerTile(icon: Icons.info_outline, accent: AppColors.info, label: 'About Us', onTap: () => go('/profile/about')),
+                _DrawerTile(icon: Icons.gavel_outlined, accent: AppColors.accentSlate, label: 'Terms & Conditions', onTap: () => go('/profile/terms')),
+                _DrawerTile(
+                  icon: Icons.privacy_tip_outlined, accent: AppColors.accentRose,
+                  label: 'Privacy Policy',
+                  onTap: () => go('/profile/privacy-policy'),
+                ),
+                _DrawerTile(
+                  icon: Icons.star_outline, accent: AppColors.accentAmber,
+                  label: 'Rate Us',
+                  onTap: () {
+                    final messenger = ScaffoldMessenger.of(context);
+                    Navigator.of(context).pop();
+                    _openStoreListing(messenger);
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.share_outlined, accent: AppColors.secondary,
+                  label: 'Share App',
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final link = await _storeWebLink();
+                    await Share.share(
+                      'Manage your society life with FlatCare — visitors, bills, complaints and more in one app.\n\n'
+                      'Download: $link',
+                      subject: 'FlatCare app',
+                    );
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.cleaning_services_outlined, accent: AppColors.primary,
+                  label: 'Clear Cache',
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    Navigator.of(context).pop();
+                    // Downloaded photos on disk, plus the decoded copies
+                    // Flutter keeps in memory — otherwise nothing visibly
+                    // changes until the app restarts.
+                    await DefaultCacheManager().emptyCache();
+                    PaintingBinding.instance.imageCache
+                      ..clear()
+                      ..clearLiveImages();
+                    messenger.showSnackBar(const SnackBar(content: Text('Cache cleared.')));
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.logout,
+                  label: 'Sign out',
+                  color: Theme.of(context).colorScheme.error,
+                  onTap: () async {
+                    // Grab the notifier before closing the drawer — by the time
+                    // the confirm dialog below resolves, this drawer (and the
+                    // `ref` tied to it) will already be disposed, and reading a
+                    // disposed WidgetRef throws. The notifier itself is a plain
+                    // object reference, so it stays safe to call after that.
+                    final authNotifier = ref.read(authControllerProvider.notifier);
+                    Navigator.of(context).pop();
+                    final confirmed = await showFcConfirmDialog(
+                      context,
+                      title: 'Sign out?',
+                      message: 'You will stop receiving visitor alerts on this phone until you sign in again.',
+                      confirmLabel: 'Sign out',
+                      icon: Icons.logout_rounded,
+                      danger: true,
+                    );
+                    if (confirmed) {
+                      await authNotifier.logout();
+                    }
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.apartment_outlined),
-              title: const Text('My Properties'),
-              subtitle: unit != null ? Text(unit!) : null,
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push('/my-properties');
-              },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DrawerProfileHeader extends StatelessWidget {
+  const _DrawerProfileHeader({required this.name, this.photoUrl, required this.onTap});
+
+  final String name;
+  final String? photoUrl;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.only(bottomRight: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(12, MediaQuery.of(context).padding.top + 8, 12, 12),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: PhotoAvatar(url: photoUrl, name: name, radius: 26),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text('View Profile', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Profile'),
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push('/profile');
-              },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerTile extends StatelessWidget {
+  const _DrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+    this.accent = AppColors.primary,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  /// Icon color — each tile gets its own so the menu reads at a glance.
+  final Color accent;
+
+  /// Overrides both icon and label color (used for Sign out).
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = color ?? accent;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [tint.withValues(alpha: 0.75), tint],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 21),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color ?? AppTheme.brandNavy),
+                      ),
+                      if (subtitle != null) Text(subtitle!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: tint.withValues(alpha: 0.6)),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.support_agent_outlined),
-              title: const Text('Help Line'),
-              subtitle: const Text('Customer service 24 × 7'),
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push('/help-line');
-              },
-            ),
-            const Spacer(),
-            const Divider(height: 1),
-            ListTile(
-              leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
-              title: Text('Sign out', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              onTap: () async {
-                // Grab the notifier before closing the drawer — by the time
-                // the confirm dialog below resolves, this drawer (and the
-                // `ref` tied to it) will already be disposed, and reading a
-                // disposed WidgetRef throws. The notifier itself is a plain
-                // object reference, so it stays safe to call after that.
-                final authNotifier = ref.read(authControllerProvider.notifier);
-                Navigator.of(context).pop();
-                final confirmed = await showFcConfirmDialog(
-                  context,
-                  title: 'Sign out?',
-                  message: 'You will stop receiving visitor alerts on this phone until you sign in again.',
-                  confirmLabel: 'Sign out',
-                  icon: Icons.logout_rounded,
-                  danger: true,
-                );
-                if (confirmed) {
-                  await authNotifier.logout();
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );

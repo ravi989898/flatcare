@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/photo_avatar.dart';
 import '../../auth/providers/auth_provider.dart';
 
-/// Redesigned to match the mockup: a gradient header card (avatar, name,
-/// unit, phone) followed by a flat menu list (Edit Profile, Change
-/// Password, Notification Settings, Language, Help & Support, About Us),
-/// rather than the earlier Card-with-ListTiles contact-info layout.
+/// Header card (avatar, name, unit, phone) followed by the account-only
+/// actions. General app items (settings, help, legal, share, cache) live in
+/// the home drawer instead.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -42,66 +40,16 @@ class ProfileScreen extends ConsumerWidget {
                 photoUrl: user.profilePhotoUrl,
               ),
               const SizedBox(height: 20),
-              _ProfileMenuTile(icon: Icons.edit_outlined, label: 'Edit Profile', onTap: () => context.push('/profile/edit')),
-              _ProfileMenuTile(
-                icon: Icons.lock_outline,
-                label: 'Change Password',
-                onTap: () => context.push('/profile/change-password'),
-              ),
-              _ProfileMenuTile(
-                icon: Icons.notifications_none,
-                label: 'Notification Settings',
-                onTap: () => context.push('/profile/notification-settings'),
-              ),
-              _ProfileMenuTile(icon: Icons.language_outlined, label: 'Language', onTap: () => context.push('/profile/language')),
-              _ProfileMenuTile(
-                icon: Icons.help_outline,
-                label: 'Help & Support',
-                onTap: () => context.push('/profile/help-support'),
-              ),
-              _ProfileMenuTile(icon: Icons.info_outline, label: 'About Us', onTap: () => context.push('/profile/about')),
-              _ProfileMenuTile(icon: Icons.dark_mode_outlined, label: 'Theme', onTap: () => context.push('/profile/theme')),
-              _ProfileMenuTile(
-                icon: Icons.privacy_tip_outlined,
-                label: 'Privacy Policy',
-                onTap: () => context.push('/profile/privacy-policy'),
-              ),
-              _ProfileMenuTile(icon: Icons.gavel_outlined, label: 'Terms & Conditions', onTap: () => context.push('/profile/terms')),
-              _ProfileMenuTile(
-                icon: Icons.star_outline,
-                label: 'Rate Us',
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Rate FlatCare'),
-                    content: const Text('Thanks for using FlatCare! The app isn\'t published to an app store yet — check back once it is.'),
-                    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
-                  ),
-                ),
-              ),
-              _ProfileMenuTile(
-                icon: Icons.share_outlined,
-                label: 'Share App',
-                onTap: () => Share.share('Manage your society life with FlatCare — ask your society admin for an account.'),
-              ),
-              _ProfileMenuTile(
-                icon: Icons.cleaning_services_outlined,
-                label: 'Clear Cache',
-                onTap: () async {
-                  await DefaultCacheManager().emptyCache();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache cleared.')));
-                  }
-                },
-              ),
-              const Divider(height: 32),
+              _ProfileMenuTile(icon: Icons.edit_outlined, accent: AppColors.accentSky, label: 'Edit Profile', onTap: () => context.push('/profile/edit')),
               _ProfileMenuTile(
                 icon: Icons.family_restroom_outlined,
+                accent: AppColors.accentRose,
                 label: 'Family Members',
                 onTap: () => context.push('/profile/family-members'),
               ),
               _ProfileMenuTile(
                 icon: Icons.directions_car_outlined,
+                accent: AppColors.accentIndigo,
                 label: 'Vehicles',
                 onTap: () => context.push('/profile/vehicles'),
               ),
@@ -145,23 +93,80 @@ class _ProfileHeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.30), blurRadius: 16, offset: const Offset(0, 6))],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          PhotoAvatar(url: photoUrl, name: name, radius: 36),
-          const SizedBox(height: 12),
-          Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Text([if (unit != null) unit!, society].join(', '), style: const TextStyle(color: Colors.black54)),
-          if (phone != null) ...[
-            const SizedBox(height: 2),
-            Text(phone!, style: const TextStyle(color: Colors.black54)),
-          ],
+          // Soft decorative circles behind the content.
+          Positioned(top: -30, right: -20, child: _Bubble(size: 110, alpha: 0.12)),
+          Positioned(bottom: -40, left: -25, child: _Bubble(size: 120, alpha: 0.10)),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: PhotoAvatar(url: photoUrl, name: name, radius: 36),
+                ),
+                const SizedBox(height: 12),
+                Text(name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoChip(icon: Icons.apartment_rounded, text: [?unit, society].join(', ')),
+                    if (phone != null) _InfoChip(icon: Icons.phone_rounded, text: phone!),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.size, required this.alpha});
+
+  final double size;
+  final double alpha;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: alpha), shape: BoxShape.circle),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 5),
+          Flexible(child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -169,22 +174,65 @@ class _ProfileHeaderCard extends StatelessWidget {
 }
 
 class _ProfileMenuTile extends StatelessWidget {
-  const _ProfileMenuTile({required this.icon, required this.label, required this.onTap, this.color});
+  const _ProfileMenuTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.accent = AppColors.primary,
+    this.color,
+  });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Icon color — each tile gets its own.
+  final Color accent;
+
+  /// Overrides both icon and label color (used for Sign Out).
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
+    final tint = color ?? accent;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [tint.withValues(alpha: 0.75), tint],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color ?? AppColors.textPrimary),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: tint.withValues(alpha: 0.6)),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

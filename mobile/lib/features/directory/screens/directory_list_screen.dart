@@ -489,7 +489,6 @@ class _ResidentSheet extends StatelessWidget {
                 if (flat.blockName != null && flat.blockName!.isNotEmpty) row(Icons.domain_rounded, 'Block', flat.blockName!),
                 row(Icons.door_front_door_rounded, 'Flat', flat.flatNumber),
                 if (entry.phone != null && entry.phone!.isNotEmpty) row(Icons.phone_rounded, 'Phone', entry.phone!),
-                if (entry.email != null && entry.email!.isNotEmpty) row(Icons.email_rounded, 'Email', entry.email!),
               ],
             ),
           ),

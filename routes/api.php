@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
+use App\Http\Controllers\Api\V1\Common\AppConfigController;
 use App\Http\Controllers\Api\V1\Common\DeviceTokenController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
@@ -41,6 +42,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/otp/request', [OtpAuthController::class, 'request'])->middleware('throttle:otp-request')->name('otp.request');
         Route::post('/otp/verify', [OtpAuthController::class, 'verify'])->middleware('throttle:10,1')->name('otp.verify');
     });
+
+    // Public platform config (support contacts) — set by the super admin.
+    Route::get('/app-config', [AppConfigController::class, 'show'])->middleware('throttle:60,1')->name('app_config.show');
 
     Route::middleware(['api.auth', 'throttle:api-auth'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');

@@ -4,19 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
-
-/// FlatCare customer-service contacts — the same numbers and email shown in
-/// the website footer, so an app user and a website visitor reach the same
-/// team.
-class SupportContacts {
-  SupportContacts._();
-
-  static const phones = ['9664653896', '9712423633'];
-  static const email = 'support@flatcare.in';
-
-  /// "9664653896" -> "+91 96646 53896"
-  static String pretty(String phone) => '+91 ${phone.substring(0, 5)} ${phone.substring(5)}';
-}
+import '../data/support_contacts.dart';
 
 /// "Help Line" — 24/7 customer service. Every card is one tap to call,
 /// WhatsApp or e-mail, and the topic chips open WhatsApp with the resident's
@@ -40,11 +28,14 @@ class HelpLineScreen extends ConsumerWidget {
     }
   }
 
-  Uri _whatsApp(String phone, String message) => Uri.parse('https://wa.me/91$phone?text=${Uri.encodeComponent(message)}');
+  Uri _whatsApp(SupportPhone phone, String message) =>
+      Uri.parse('https://wa.me/${phone.whatsapp}?text=${Uri.encodeComponent(message)}');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider).valueOrNull;
+    final contactsAsync = ref.watch(supportContactsProvider);
+    final contacts = contactsAsync.valueOrNull;
     final name = auth?.user.name ?? '';
     final society = auth?.society.name ?? '';
     final unit = auth?.user.primaryResidency?.flat.displayLabel ?? '';
@@ -67,17 +58,23 @@ class HelpLineScreen extends ConsumerWidget {
             sliver: SliverList.list(
               children: [
                 const _SectionTitle('Talk to us right now'),
+                if (contacts == null)
+                  _ContactsPlaceholder(
+                    failed: contactsAsync.hasError,
+                    onRetry: () => ref.invalidate(supportContactsProvider),
+                  )
+                else ...[
                 _ContactCard(
                   icon: Icons.call_rounded,
                   color: AppTheme.brandBlue,
                   title: 'Call customer care',
                   children: [
-                    for (final phone in SupportContacts.phones)
+                    for (final phone in contacts.phones)
                       _ContactRow(
-                        label: SupportContacts.pretty(phone),
+                        label: phone.display,
                         actionIcon: Icons.call_rounded,
                         actionLabel: 'Call',
-                        onTap: () => _open(context, Uri.parse('tel:+91$phone')),
+                        onTap: () => _open(context, Uri.parse('tel:${phone.dial}')),
                       ),
                   ],
                 ),
@@ -87,9 +84,9 @@ class HelpLineScreen extends ConsumerWidget {
                   color: const Color(0xFF25A244),
                   title: 'Chat on WhatsApp',
                   children: [
-                    for (final phone in SupportContacts.phones)
+                    for (final phone in contacts.phones)
                       _ContactRow(
-                        label: SupportContacts.pretty(phone),
+                        label: phone.display,
                         actionIcon: Icons.send_rounded,
                         actionLabel: 'Chat',
                         onTap: () => _open(context, _whatsApp(phone, message('an app question'))),
@@ -103,20 +100,21 @@ class HelpLineScreen extends ConsumerWidget {
                   title: 'Send us an email',
                   children: [
                     _ContactRow(
-                      label: SupportContacts.email,
+                      label: contacts.email,
                       actionIcon: Icons.mail_outline_rounded,
                       actionLabel: 'Email',
                       onTap: () => _open(
                         context,
                         Uri(
                           scheme: 'mailto',
-                          path: SupportContacts.email,
+                          path: contacts.email,
                           query: 'subject=${Uri.encodeComponent('FlatCare app help')}&body=${Uri.encodeComponent(message('\n'))}',
                         ),
                       ),
                     ),
                   ],
                 ),
+                ],
                 const SizedBox(height: 24),
                 const _SectionTitle('What do you need help with?'),
                 const Padding(
@@ -134,7 +132,9 @@ class HelpLineScreen extends ConsumerWidget {
                         backgroundColor: Colors.white,
                         side: BorderSide(color: color.withValues(alpha: 0.35)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                        onPressed: () => _open(context, _whatsApp(SupportContacts.phones.first, message(label))),
+                        onPressed: contacts == null || contacts.phones.isEmpty
+                            ? null
+                            : () => _open(context, _whatsApp(contacts.phones.first, message(label))),
                       ),
                   ],
                 ),
@@ -313,6 +313,38 @@ class _ContactRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Shown in place of the call / WhatsApp / email cards while the latest
+/// support numbers load, or if they couldn't be loaded at all.
+class _ContactsPlaceholder extends StatelessWidget {
+  const _ContactsPlaceholder({required this.failed, required this.onRetry});
+
+  final bool failed;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      child: failed
+          ? Column(
+              children: [
+                const Icon(Icons.wifi_off_rounded, color: AppTheme.brandBlue, size: 32),
+                const SizedBox(height: 8),
+                const Text(
+                  "Couldn't load our contact details. Check your internet connection and try again.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.tonalIcon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded), label: const Text('Try again')),
+              ],
+            )
+          : const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator())),
     );
   }
 }
