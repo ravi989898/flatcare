@@ -75,6 +75,7 @@ class _InviteVisitorScreenState extends ConsumerState<InviteVisitorScreen> {
             photoPath: _photoPath,
           );
       ref.invalidate(visitorListProvider);
+      ref.invalidate(activeGatePassesProvider);
       if (!mounted) return;
       showVisitorSnack(context, 'Gate pass created');
       context.pushReplacement('/visitors/gate-pass', extra: visitor);

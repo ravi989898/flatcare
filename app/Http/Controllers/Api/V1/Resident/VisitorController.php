@@ -39,6 +39,7 @@ class VisitorController extends ApiController
             'search' => ['nullable', 'string', 'max:100'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
+            'active' => ['nullable', 'boolean'],
         ]);
 
         $query = Visitor::with(['flat.block', 'gateKeeper'])
@@ -47,6 +48,12 @@ class VisitorController extends ApiController
 
         if ($kind = $request->string('kind')->trim()->value()) {
             $query->where('entry_kind', $kind)->whereNotNull('invited_by_user_id');
+        }
+
+        // "My Gate Passes": only passes the gate can still honour - a 5-day
+        // pass stays listed until its To date passes, not just until first use.
+        if ($request->boolean('active')) {
+            $query->usablePasses();
         }
 
         if ($search = $request->string('search')->trim()->value()) {
@@ -101,10 +108,24 @@ class VisitorController extends ApiController
             'photo_path' => $request->file('photo')?->store('visitors', 'public'),
             'status' => 'pending',
             'invited_by_user_id' => $this->user()->id,
-            'pass_code' => strtoupper(Str::random(6)),
+            'pass_code' => $this->newPassCode(),
         ]);
 
         return $this->ok(new VisitorResource($visitor->load('flat.block')), 'Visitor invited successfully.', 201);
+    }
+
+    /**
+     * The gate looks a pass up by this code (typed in, or scanned from the
+     * pass's QR), so it must not collide with any other pass - including a
+     * cancelled one, which the scanner still reports as cancelled.
+     */
+    private function newPassCode(): string
+    {
+        do {
+            $code = strtoupper(Str::random(6));
+        } while (Visitor::withTrashed()->where('pass_code', $code)->exists());
+
+        return $code;
     }
 
     /**

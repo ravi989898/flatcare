@@ -14,6 +14,8 @@ class Visitor {
     this.expectedAt,
     this.validUntil,
     this.passCode,
+    this.passStatus,
+    this.passQr,
     this.notes,
     this.photoUrl,
     this.flat,
@@ -46,6 +48,8 @@ class Visitor {
       expectedAt: json['expected_at'] as String?,
       validUntil: json['valid_until'] as String?,
       passCode: json['pass_code'] as String?,
+      passStatus: json['pass_status'] as String?,
+      passQr: json['pass_qr'] as String?,
       notes: json['notes'] as String?,
       photoUrl: json['photo_url'] as String?,
       flat: flatJson != null ? Flat.fromJson(flatJson) : null,
@@ -76,6 +80,12 @@ class Visitor {
   // The "To" end of a Gate Pass's validity window (expectedAt is the "From").
   final String? validUntil;
   final String? passCode;
+  // Where a resident's pass stands right now, from the server: valid /
+  // upcoming / inside / expired / used / cancelled / invalid (null for a
+  // guard-raised request).
+  final String? passStatus;
+  // The text the pass's QR code encodes — what the gate scanner reads.
+  final String? passQr;
   final String? notes;
   // A photo attached at the gate (guard walk-in) or by the resident when
   // creating a Gate Pass / Pre-Approval.
@@ -115,6 +125,10 @@ class Visitor {
 
   /// A resident's own unused pass/pre-approval — the only rows they can cancel.
   bool get isCancellable => isPending && !awaitingApproval;
+
+  /// A resident's pass the gate can still honour — a dated pass stays usable
+  /// for its whole From/To window, even after the visitor has used it once.
+  bool get isPassActive => passStatus == 'valid' || passStatus == 'upcoming' || passStatus == 'inside';
 
   /// The moment shown on a visitor card: when they came in, else when they
   /// are expected, else when the entry was created.

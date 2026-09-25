@@ -157,6 +157,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::prefix('visitors')->name('visitors.')->group(function () {
                 Route::get('/', [GuardVisitorController::class, 'index'])->name('index');
+                Route::post('/verify-pass', [GuardVisitorController::class, 'verifyPass'])->middleware('throttle:60,1')->name('verify_pass');
                 Route::post('/', [GuardVisitorController::class, 'store'])->middleware('throttle:guard-visitor-create')->name('store');
                 Route::get('/{id}', [GuardVisitorController::class, 'show'])->name('show');
                 Route::post('/{id}/entry', [GuardVisitorController::class, 'checkIn'])->name('entry');

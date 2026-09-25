@@ -31,6 +31,7 @@ import '../../features/gatekeeper/screens/gatekeeper_visitor_checkin_screen.dart
 import '../../features/gatekeeper/screens/gatekeeper_visitor_list_screen.dart';
 import '../../features/gatekeeper/screens/guard_closed_houses_screen.dart';
 import '../../features/gatekeeper/screens/guard_gate_passes_screen.dart';
+import '../../features/gatekeeper/screens/guard_pass_scanner_screen.dart';
 import '../../features/gatekeeper/screens/guard_pending_requests_screen.dart';
 import '../../features/help/screens/help_line_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -55,6 +56,7 @@ import '../../features/visitors/screens/daily_helper_form_screen.dart';
 import '../../features/visitors/screens/daily_helper_screen.dart';
 import '../../features/visitors/screens/gate_keeper_screen.dart';
 import '../../features/visitors/screens/gate_pass_screen.dart';
+import '../../features/visitors/screens/my_gate_passes_screen.dart';
 import '../../features/visitors/screens/invite_visitor_screen.dart';
 import '../../features/visitors/screens/pre_approval_request_screen.dart';
 import '../../features/visitors/screens/pre_approved_entry_screen.dart';
@@ -135,6 +137,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/gatekeeper/requests', builder: (context, state) => const GuardPendingRequestsScreen()),
       GoRoute(path: '/gatekeeper/passes', builder: (context, state) => const GuardGatePassesScreen()),
+      GoRoute(path: '/gatekeeper/scan-pass', builder: (context, state) => const GuardPassScannerScreen()),
       GoRoute(path: '/gatekeeper/closed-houses', builder: (context, state) => const GuardClosedHousesScreen()),
       GoRoute(
         path: '/gatekeeper/vehicles',
@@ -176,6 +179,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VisitorListScreen(),
         routes: [
           GoRoute(path: 'invite', builder: (context, state) => const InviteVisitorScreen()),
+          GoRoute(path: 'passes', builder: (context, state) => const MyGatePassesScreen()),
           GoRoute(
             path: 'request/:id',
             builder: (context, state) => VisitorRequestScreen(id: int.parse(state.pathParameters['id']!)),

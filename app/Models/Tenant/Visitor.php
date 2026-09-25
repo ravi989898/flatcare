@@ -34,6 +34,9 @@ class Visitor extends Model
     public const PURPOSES = ['guest', 'delivery', 'cab', 'service', 'other'];
     public const ENTRY_KINDS = ['gate_pass', 'pre_approval'];
 
+    /** What the QR on a resident's gate pass encodes, ahead of the pass code. */
+    public const PASS_QR_PREFIX = 'FCPASS:';
+
     protected $fillable = [
         'flat_id',
         'block_id',
@@ -131,6 +134,20 @@ class Visitor extends Model
         return $this->status === 'checked_in';
     }
 
+    /**
+     * Resident-issued passes the gate can still honour: not cancelled,
+     * rejected or expired. A dated gate pass (valid_until set) stays usable
+     * for its whole window - a visitor with a 5-day pass can come and go
+     * every day - while a single-use pre-approval drops out once used.
+     */
+    public function scopeUsablePasses(Builder $query): Builder
+    {
+        return $query->whereNotNull('invited_by_user_id')
+            ->where(fn ($q) => $q->whereIn('status', ['pending', 'approved'])
+                ->orWhere(fn ($q) => $q->whereNotNull('valid_until')->whereIn('status', ['checked_in', 'checked_out'])))
+            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()));
+    }
+
     public function scopeActiveRequests(Builder $query): Builder
     {
         return $query->whereIn('status', self::ACTIVE_STATUSES);
@@ -153,5 +170,44 @@ class Visitor extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    /**
+     * Where a resident-issued pass stands right now, as the gate scanner
+     * reports it (null for a guard-raised request, which has no pass):
+     *  - valid:     the visitor may be let in now
+     *  - upcoming:  its From day hasn't started yet
+     *  - inside:    the visitor is in the society on this pass right now
+     *  - expired:   its To time has passed
+     *  - used:      a single-use pre-approval that has already been used
+     *  - cancelled: withdrawn by the resident
+     *  - invalid:   anything else (e.g. rejected)
+     */
+    public function passStatus(): ?string
+    {
+        if ($this->isGuardRequest()) {
+            return null;
+        }
+
+        return match (true) {
+            $this->trashed() => 'cancelled',
+            $this->status === 'denied' => 'invalid',
+            $this->valid_until !== null && $this->valid_until->isPast() => 'expired',
+            $this->status === 'checked_in' => 'inside',
+            $this->status === 'checked_out' && $this->valid_until === null => 'used',
+            $this->expected_at !== null && now()->lt($this->expected_at->copy()->startOfDay()) => 'upcoming',
+            default => 'valid',
+        };
+    }
+
+    /**
+     * Whether the gate may let this visitor in now: an APPROVED guard
+     * request, or a resident's pass that is currently valid.
+     */
+    public function canEnter(): bool
+    {
+        return $this->isGuardRequest()
+            ? $this->status === 'approved'
+            : $this->passStatus() === 'valid';
     }
 }

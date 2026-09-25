@@ -16,6 +16,27 @@ class GuardVisitorPage {
   bool get hasMore => page < lastPage;
 }
 
+/// The scanner's verdict on a gate pass (Guard\VisitorController::verifyPass):
+/// `result` is valid / upcoming / inside / expired / used / cancelled /
+/// invalid, `message` says what to do, and `visitor` is the pass (null when
+/// no pass matches the code).
+class PassCheck {
+  PassCheck({required this.result, required this.message, this.visitor});
+
+  factory PassCheck.fromJson(Map<String, dynamic> json) {
+    final visitor = json['visitor'] as Map<String, dynamic>?;
+    return PassCheck(
+      result: json['result'] as String? ?? 'invalid',
+      message: json['message'] as String? ?? '',
+      visitor: visitor != null ? Visitor.fromJson(visitor) : null,
+    );
+  }
+
+  final String result;
+  final String message;
+  final Visitor? visitor;
+}
+
 /// The gate register, from the guard app (Api\V1\Guard\VisitorController) —
 /// society-wide, unlike features/visitors/data/visitor_repository.dart
 /// which is scoped to the resident's own flat(s).
@@ -57,6 +78,12 @@ class GuardVisitorRepository {
       lastPage: pagination?['last_page'] as int? ?? page,
       total: pagination?['total'] as int?,
     );
+  }
+
+  /// Checks a scanned QR (or a pass number typed in by hand).
+  Future<PassCheck> verifyPass(String code) async {
+    final response = await _client.post('/guard/visitors/verify-pass', data: {'code': code});
+    return PassCheck.fromJson(response['data'] as Map<String, dynamic>);
   }
 
   Future<GuardSummary> summary() async {

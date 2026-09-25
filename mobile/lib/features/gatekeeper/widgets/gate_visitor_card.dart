@@ -11,10 +11,14 @@ import '../data/guard_visitor_repository.dart';
 import '../providers/gatekeeper_providers.dart';
 import 'purpose_style.dart';
 
-/// Status → (label, color, icon) as the gate sees it. A resident's unused
-/// pass reads "Gate Pass" rather than Pending.
+/// Status → (label, color, icon) as the gate sees it. A resident's pass that
+/// can be used now — unused, or a multi-day pass whose visitor has left and
+/// may come back — reads "Gate Pass" rather than Pending / Exited.
 (String, Color, IconData) gateStatusStyle(Visitor v) {
-  if (v.isPending && !v.awaitingApproval) return ('Gate Pass', AppColors.accentIndigo, Icons.confirmation_number_rounded);
+  if ((v.isPending && !v.awaitingApproval) || (v.passStatus == 'valid' && !v.isApproved)) {
+    return ('Gate Pass', AppColors.accentIndigo, Icons.confirmation_number_rounded);
+  }
+  if (v.passStatus == 'expired') return ('Expired', AppColors.danger, Icons.timer_off_rounded);
   return switch (v.status) {
     'pending' => ('Waiting', AppColors.warning, Icons.hourglass_top_rounded),
     'approved' => ('Approved', AppColors.success, Icons.verified_rounded),
@@ -40,9 +44,13 @@ String waitingFor(String? iso) {
 /// line, status badge, and the next gate action (Allow Entry / Mark Exit)
 /// straight from the server's can_enter / can_exit.
 class GateVisitorCard extends ConsumerStatefulWidget {
-  const GateVisitorCard({super.key, required this.visitor, this.showWaiting = false});
+  const GateVisitorCard({super.key, required this.visitor, this.showWaiting = false, this.onUpdated});
 
   final Visitor visitor;
+
+  /// Called with the updated visitor after Allow Entry / Mark Exit — for a
+  /// screen holding its own copy (the pass scanner's result).
+  final ValueChanged<Visitor>? onUpdated;
 
   /// Pending Requests shows a live "waiting 5 min" line instead of the time.
   final bool showWaiting;
@@ -58,7 +66,8 @@ class _GateVisitorCardState extends ConsumerState<GateVisitorCard> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await action(ref.read(guardVisitorRepositoryProvider));
+      final updated = await action(ref.read(guardVisitorRepositoryProvider));
+      widget.onUpdated?.call(updated);
       if (mounted) showFcSnack(context, done);
     } on ApiException catch (e) {
       // e.g. 409 — the request changed under us; the refresh shows the current state.
@@ -96,7 +105,7 @@ class _GateVisitorCardState extends ConsumerState<GateVisitorCard> {
       meta: [
         if (flat != null) FcMeta(Icons.apartment_rounded, flat.displayLabel),
         FcMeta(widget.showWaiting ? Icons.hourglass_bottom_rounded : Icons.schedule_rounded, _timeLine(v)),
-        if (v.validUntil != null && (v.isPending || v.isApproved))
+        if (v.validUntil != null && (v.isPending || v.isApproved || v.isPassActive))
           FcMeta(Icons.timer_outlined, 'Valid till ${formatDateTime(v.validUntil)}'),
         if (v.invitedBy != null) FcMeta(Icons.badge_outlined, 'Pass by ${v.invitedBy}'),
         if (v.vehicleNumber != null && v.vehicleNumber!.isNotEmpty) FcMeta(Icons.directions_car_outlined, v.vehicleNumber!),

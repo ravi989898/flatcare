@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/fc/fc.dart';
 import '../../visitors/data/visitor.dart';
@@ -9,8 +10,9 @@ import '../providers/gatekeeper_providers.dart';
 import '../widgets/gate_visitor_card.dart';
 
 /// Gate passes and pre-approvals residents have issued that are still
-/// usable (not used, not expired) — soonest expected first. The guard
-/// matches the visitor by name, phone or pass code and taps Allow Entry.
+/// usable until they expire (a multi-day pass stays listed after each
+/// visit) — soonest expected first. The guard scans the pass QR, or matches
+/// the visitor by name, phone or pass code, and taps Allow Entry.
 class GuardGatePassesScreen extends ConsumerStatefulWidget {
   const GuardGatePassesScreen({super.key});
 
@@ -33,6 +35,11 @@ class _GuardGatePassesScreenState extends ConsumerState<GuardGatePassesScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gate Passes')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/gatekeeper/scan-pass'),
+        icon: const Icon(Icons.qr_code_scanner_rounded),
+        label: const Text('Scan Pass'),
+      ),
       body: Column(
         children: [
           Padding(
@@ -65,13 +72,13 @@ class _GuardGatePassesScreenState extends ConsumerState<GuardGatePassesScreen> {
                       icon: Icons.confirmation_number_outlined,
                       color: AppColors.accentIndigo,
                       title: 'No active gate passes',
-                      message: 'Passes that residents create for their guests will appear here until they are used or expire.',
+                      message: 'Passes that residents create for their guests will appear here until they expire.',
                     );
                   }
 
                   return ListView.separated(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                     itemCount: items.length + 1,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {

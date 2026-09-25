@@ -3,10 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/visitor.dart';
+import '../widgets/pass_qr.dart';
 import '../widgets/visitor_ui.dart';
 
-/// Shows the shareable pass code for a visitor a resident just pre-approved
-/// — reached right after saving a Gate Pass, and from a visitor's "View pass".
+/// Shows the pass number and QR code for a visitor a resident pre-approved
+/// — reached right after saving a Gate Pass, from My Gate Passes and from a
+/// visitor's "View pass". The gate scans the QR (or types the number) to
+/// check the pass is valid.
 class GatePassScreen extends StatelessWidget {
   const GatePassScreen({super.key, required this.visitor});
 
@@ -14,9 +17,9 @@ class GatePassScreen extends StatelessWidget {
 
   String get _shareText =>
       'FlatCare Gate Pass for ${visitor.visitorName}\n'
-      'Pass code: ${visitor.passCode ?? '-'}\n'
+      'Pass No: ${visitor.passCode ?? '-'}\n'
       '${visitor.expectedAt != null ? 'Valid: ${formatVisitorMoment(visitor.expectedAt)}${visitor.validUntil != null ? ' to ${formatVisitorMoment(visitor.validUntil)}' : ''}\n' : ''}'
-      'Show this code at the society gate.';
+      'Show this pass number or its QR code at the society gate.';
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +29,14 @@ class GatePassScreen extends StatelessWidget {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => context.go('/visitors'),
+              onPressed: () => context.go('/visitors/passes'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 foregroundColor: VisitorColors.primary,
                 side: const BorderSide(color: VisitorColors.primary),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Text('My Visitors', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text('My Passes', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(width: 12),
@@ -67,17 +70,30 @@ class GatePassScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(Icons.verified_rounded, color: Colors.white, size: 32)),
-                  const SizedBox(height: 12),
-                  const Text('Visitor Pre-Approved', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.verified_rounded, color: Colors.white, size: 22),
+                      const SizedBox(width: 8),
+                      const Text('Visitor Pre-Approved', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                      if (visitor.passStatus != null) ...[
+                        const SizedBox(width: 10),
+                        _StatusChip(status: visitor.passStatus),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 18),
+                  if (visitor.passCode != null) PassQrCode(visitor: visitor, size: 190),
+                  const SizedBox(height: 16),
+                  const Text('PASS NO.', style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+                  const SizedBox(height: 2),
                   Text(
                     visitor.passCode ?? '——————',
-                    style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: 6),
+                    style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: 6),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Share this code with the visitor or the security desk',
+                    'Show this QR code or pass number at the society gate',
                     style: TextStyle(color: Colors.white70, fontSize: 12.5),
                     textAlign: TextAlign.center,
                   ),
@@ -98,9 +114,7 @@ class GatePassScreen extends StatelessWidget {
                     _InfoRow(
                       icon: Icons.calendar_month_rounded,
                       color: const Color(0xFFF5A623),
-                      title: visitor.validUntil != null
-                          ? '${formatVisitorMoment(visitor.expectedAt).split(',').first}  →  ${formatVisitorMoment(visitor.validUntil).split(',').first}'
-                          : formatVisitorMoment(visitor.expectedAt),
+                      title: visitor.validUntil != null ? passValidityLabel(visitor) : formatVisitorMoment(visitor.expectedAt),
                       subtitle: 'Valid for',
                     ),
                   if (visitor.notes != null && visitor.notes!.isNotEmpty)
@@ -111,6 +125,23 @@ class GatePassScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = passStatusStyle(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 0.3)),
     );
   }
 }

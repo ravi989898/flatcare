@@ -57,6 +57,6 @@
 	<!-- Required by image_picker for the gate app's camera-only visitor
 	     photo (features/gatekeeper/screens/gatekeeper_visitor_checkin_screen.dart) -->
 	<key>NSCameraUsageDescription</key>
-	<string>FlatCare uses the camera to take a photo of a visitor when checking them in at the gate.</string>
+	<string>FlatCare uses the camera to take a photo of a visitor when checking them in at the gate, and to scan visitors' gate pass QR codes.</string>
 </dict>
 </plist>

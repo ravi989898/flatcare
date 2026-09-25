@@ -134,22 +134,23 @@ class VisitorWorkflow
 
     /**
      * The guard lets an APPROVED visitor in (or a visitor holding a
-     * resident's own pre-approved pass). A request still awaiting the
-     * resident's decision, or one they rejected, can never be entered.
+     * resident's pass that is valid right now - a dated gate pass may be
+     * used again after an exit until it expires). A request still awaiting
+     * the resident's decision, or one they rejected, can never be entered.
      */
     public function enter(int $visitorId, User $guard, ?string $ip = null): Visitor
     {
         $visitor = DB::connection('society')->transaction(function () use ($visitorId, $guard, $ip) {
             $visitor = Visitor::lockForUpdate()->findOrFail($visitorId);
 
-            $hasPass = $visitor->isPending() && !$visitor->isGuardRequest();
-
-            if ($visitor->status !== 'approved' && !$hasPass) {
-                throw match ($visitor->status) {
-                    'pending' => VisitorTransitionException::because('The resident has not approved this visitor yet.'),
-                    'denied' => VisitorTransitionException::because('The resident rejected this visitor - do not allow entry.'),
-                    default => VisitorTransitionException::because("This visitor is already {$visitor->status_label}."),
-                };
+            if (!$visitor->canEnter()) {
+                throw $visitor->isGuardRequest()
+                    ? match ($visitor->status) {
+                        'pending' => VisitorTransitionException::because('The resident has not approved this visitor yet.'),
+                        'denied' => VisitorTransitionException::because('The resident rejected this visitor - do not allow entry.'),
+                        default => VisitorTransitionException::because("This visitor is already {$visitor->status_label}."),
+                    }
+                    : VisitorTransitionException::because(self::passMessage($visitor));
             }
 
             $from = $visitor->status;
@@ -187,6 +188,25 @@ class VisitorWorkflow
 
             return $visitor;
         });
+    }
+
+    /**
+     * What the gate is told about a resident's pass - shared by a refused
+     * entry and the QR scanner's verdict.
+     */
+    public static function passMessage(Visitor $visitor): string
+    {
+        $format = 'd M Y, h:i A';
+
+        return match ($visitor->passStatus()) {
+            'valid' => 'Valid gate pass - the visitor may enter.',
+            'upcoming' => 'This pass is not valid yet. It starts on '.$visitor->expected_at->format('d M Y').'.',
+            'inside' => 'This visitor is already inside on this pass.',
+            'expired' => 'This pass expired on '.$visitor->valid_until->format($format).' - do not allow entry.',
+            'used' => 'This pass has already been used.',
+            'cancelled' => 'The resident cancelled this pass - do not allow entry.',
+            default => 'This pass is not valid - do not allow entry.',
+        };
     }
 
     private function isResidentOf(User $user, int $flatId): bool

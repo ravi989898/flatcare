@@ -38,7 +38,8 @@ class VisitorController extends ApiController
      * `kind` narrows to one gate-duty list:
      *  - `requests`: guard-raised entry requests still awaiting the resident
      *  - `passes`:   residents' gate passes / pre-approvals still usable
-     *                (not yet used, not expired)
+     *                (see Visitor::scopeUsablePasses - a dated pass stays
+     *                listed until it expires, even after the visitor used it)
      * `date` (Y-m-d) keeps visitors created or entered on that day - the
      * Visitor Log's date filter.
      */
@@ -57,7 +58,7 @@ class VisitorController extends ApiController
         if ($kind === 'requests') {
             $query->where('status', 'pending')->whereNull('invited_by_user_id');
         } elseif ($kind === 'passes') {
-            $this->usablePasses($query);
+            $query->usablePasses();
         } else {
             $status = $request->string('status')->trim()->value() ?: 'active';
             if ($status === 'active') {
@@ -101,20 +102,9 @@ class VisitorController extends ApiController
             'visitors_today' => Visitor::where(fn ($q) => $q->whereDate('created_at', $today)->orWhereDate('check_in_at', $today))
                 ->count(),
             'inside_now' => Visitor::currentlyIn()->count(),
-            'active_passes' => $this->usablePasses(Visitor::query())->count(),
+            'active_passes' => Visitor::usablePasses()->count(),
             'closed_houses' => Flat::active()->where('house_closed', true)->count(),
         ]);
-    }
-
-    /**
-     * A resident-issued pass the gate can still honour: not yet used
-     * (pending/approved) and not past its valid-until time.
-     */
-    private function usablePasses($query)
-    {
-        return $query->whereNotNull('invited_by_user_id')
-            ->whereIn('status', ['pending', 'approved'])
-            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()));
     }
 
     public function show(int $id): JsonResponse
@@ -122,6 +112,45 @@ class VisitorController extends ApiController
         $visitor = Visitor::with(['flat.block', 'gateKeeper', 'checkedInBy'])->findOrFail($id);
 
         return $this->ok(new VisitorResource($visitor));
+    }
+
+    /**
+     * The gate's QR scanner (or a pass code typed in by hand): looks the
+     * pass up and says whether it is valid right now. Always 200 - `result`
+     * carries the verdict (valid / upcoming / inside / expired / used /
+     * cancelled / invalid) so the app shows one screen for every outcome.
+     * Cancelled passes are looked up too, so the guard is told why.
+     */
+    public function verifyPass(Request $request): JsonResponse
+    {
+        $request->validate(['code' => ['required', 'string', 'max:100']]);
+
+        $code = trim($request->string('code')->value());
+        if (stripos($code, Visitor::PASS_QR_PREFIX) === 0) {
+            $code = substr($code, strlen(Visitor::PASS_QR_PREFIX));
+        }
+        $code = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code));
+
+        $visitor = $code === '' ? null : Visitor::withTrashed()
+            ->with(['flat.block', 'gateKeeper', 'checkedInBy', 'invitedBy'])
+            ->whereNotNull('invited_by_user_id')
+            ->where('pass_code', $code)
+            ->latest('id')
+            ->first();
+
+        if (!$visitor) {
+            return $this->ok([
+                'result' => 'invalid',
+                'message' => 'No gate pass matches this code - do not allow entry.',
+                'visitor' => null,
+            ]);
+        }
+
+        return $this->ok([
+            'result' => $visitor->passStatus(),
+            'message' => VisitorWorkflow::passMessage($visitor),
+            'visitor' => new VisitorResource($visitor),
+        ]);
     }
 
     /**

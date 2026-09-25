@@ -484,6 +484,61 @@ class VisitorApprovalFlowTest extends TestCase
         $this->as($this->guard)->postJson("/api/v1/guard/visitors/{$id}/entry")->assertOk()->assertJsonPath('data.status', 'checked_in');
     }
 
+    // ---------------------------------------------------------------- gate passes / QR scan
+
+    public function test_a_multi_day_gate_pass_stays_listed_and_reusable_until_it_expires(): void
+    {
+        $pass = $this->createGatePass(now()->startOfDay(), now()->addDays(4)->endOfDay());
+        $id = $pass->json('data.id');
+        $pass->assertJsonPath('data.pass_status', 'valid')
+            ->assertJsonPath('data.pass_qr', Visitor::PASS_QR_PREFIX.$pass->json('data.pass_code'));
+
+        $ids = fn ($r) => collect($r->json('data'))->pluck('id')->all();
+
+        // Day 1: in and out - the pass is still on both lists afterwards.
+        $this->as($this->guard)->postJson("/api/v1/guard/visitors/{$id}/entry")->assertOk()->assertJsonPath('data.pass_status', 'inside');
+        $this->postJson("/api/v1/guard/visitors/{$id}/exit")->assertOk()->assertJsonPath('data.can_enter', true);
+        $this->assertSame([$id], $ids($this->getJson('/api/v1/guard/visitors?kind=passes')));
+        $this->assertSame([$id], $ids($this->as($this->residentA)->getJson('/api/v1/visitors?kind=gate_pass&active=1')));
+
+        // Day 2: the same pass lets them in again.
+        $this->as($this->guard)->postJson("/api/v1/guard/visitors/{$id}/entry")->assertOk();
+        $this->postJson("/api/v1/guard/visitors/{$id}/exit")->assertOk();
+
+        // After the To date it drops off both lists and is refused at the gate.
+        Visitor::whereKey($id)->update(['valid_until' => now()->subMinute()]);
+        $this->assertSame([], $ids($this->getJson('/api/v1/guard/visitors?kind=passes')));
+        $this->assertSame([], $ids($this->as($this->residentA)->getJson('/api/v1/visitors?kind=gate_pass&active=1')));
+        $this->as($this->guard)->postJson("/api/v1/guard/visitors/{$id}/entry")->assertStatus(409);
+    }
+
+    public function test_scanning_a_pass_reports_valid_upcoming_expired_cancelled_or_invalid(): void
+    {
+        $verify = fn (string $code) => $this->as($this->guard)->postJson('/api/v1/guard/visitors/verify-pass', ['code' => $code])->assertOk();
+
+        $valid = $this->createGatePass(now()->startOfDay(), now()->addDays(4)->endOfDay())->json('data');
+        $verify(Visitor::PASS_QR_PREFIX.$valid['pass_code'])
+            ->assertJsonPath('data.result', 'valid')->assertJsonPath('data.visitor.id', $valid['id'])->assertJsonPath('data.visitor.can_enter', true);
+        $verify(strtolower($valid['pass_code']))->assertJsonPath('data.result', 'valid'); // typed by hand
+
+        $upcoming = $this->createGatePass(now()->addDays(2)->startOfDay(), now()->addDays(6)->endOfDay())->json('data');
+        $verify($upcoming['pass_code'])->assertJsonPath('data.result', 'upcoming')->assertJsonPath('data.visitor.can_enter', false);
+        $this->postJson("/api/v1/guard/visitors/{$upcoming['id']}/entry")->assertStatus(409);
+
+        $expired = $this->createGatePass(now()->startOfDay(), now()->endOfDay())->json('data');
+        Visitor::whereKey($expired['id'])->update(['valid_until' => now()->subMinute()]);
+        $verify($expired['pass_code'])->assertJsonPath('data.result', 'expired')->assertJsonPath('data.visitor.can_enter', false);
+
+        $cancelled = $this->createGatePass(now()->startOfDay(), now()->endOfDay())->json('data');
+        $this->as($this->residentA)->deleteJson("/api/v1/visitors/{$cancelled['id']}")->assertOk();
+        $verify($cancelled['pass_code'])->assertJsonPath('data.result', 'cancelled');
+
+        $verify('NOPE99')->assertJsonPath('data.result', 'invalid')->assertJsonPath('data.visitor', null);
+
+        // Only the gate can scan passes.
+        $this->as($this->residentA)->postJson('/api/v1/guard/visitors/verify-pass', ['code' => $valid['pass_code']])->assertForbidden();
+    }
+
     // ---------------------------------------------------------------- lists / notifications
 
     public function test_guard_list_defaults_to_active_requests_and_filters_by_status(): void
@@ -524,7 +579,16 @@ class VisitorApprovalFlowTest extends TestCase
 
     // ================================================================ helpers
 
-    private function raiseRequest(int $flatId, string $name = 'Ravi')
+    /** A resident's dated Gate Pass for flat A, valid $from..$to. */
+    private function createGatePass(\DateTimeInterface $from, \DateTimeInterface $to)
+    {
+        return $this->as($this->residentA)->postJson('/api/v1/visitors', [
+            'flat_id' => $this->flatA, 'visitor_name' => 'Uncle', 'visitor_phone' => '9000000002', 'purpose' => 'guest',
+            'entry_kind' => 'gate_pass', 'expected_at' => $from->format('Y-m-d H:i:s'), 'valid_until' => $to->format('Y-m-d H:i:s'),
+        ])->assertCreated();
+    }
+
+        private function raiseRequest(int $flatId, string $name = 'Ravi')
     {
         return $this->as($this->guard)->postJson('/api/v1/guard/visitors', $this->payload($flatId, $name));
     }

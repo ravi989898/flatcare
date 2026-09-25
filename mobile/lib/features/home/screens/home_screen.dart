@@ -64,7 +64,7 @@ const _groups = [
     _MenuItem('My Visitors', '🚪', route: '/visitors'),
     _MenuItem('My Daily Helpers', '🧹', route: '/visitors/helpers'),
     _MenuItem('Gate Keeper', '👮', route: '/visitors/gatekeeper'),
-    _MenuItem('Gate Pass', '🎫', route: '/visitors/invite'),
+    _MenuItem('Gate Pass', '🎫', route: '/visitors/passes'),
     _MenuItem('Pre-Approve', '✅', route: '/visitors/pre-approved'),
     _MenuItem('Settings', '⚙️', route: '/visitors/settings'),
   ]),

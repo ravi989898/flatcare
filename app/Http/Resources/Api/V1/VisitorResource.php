@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\Tenant\Visitor;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -32,8 +33,9 @@ class VisitorResource extends JsonResource
             'awaiting_approval' => $this->status === 'pending' && is_null($this->invited_by_user_id),
             // The resident may still approve/reject; drives the same buttons as awaiting_approval.
             'can_respond' => $this->status === 'pending' && is_null($this->invited_by_user_id),
-            // What the gate may do next: enter (approved / pre-approved pass) or exit (inside).
-            'can_enter' => $this->status === 'approved' || ($this->status === 'pending' && !is_null($this->invited_by_user_id)),
+            // What the gate may do next: enter (approved request / a pass that
+            // is valid right now - see Visitor::canEnter) or exit (inside).
+            'can_enter' => $this->canEnter(),
             'can_exit' => $this->status === 'checked_in',
             'requested_at' => $this->created_at?->toIso8601String(),
             'approved_at' => $this->approved_at?->toIso8601String(),
@@ -49,6 +51,11 @@ class VisitorResource extends JsonResource
             'valid_until' => $this->valid_until?->toIso8601String(),
             'entry_kind' => $this->entry_kind,
             'pass_code' => $this->pass_code,
+            // valid / upcoming / inside / expired / used / cancelled / invalid
+            // for a resident's pass; null for a guard-raised request.
+            'pass_status' => $this->passStatus(),
+            // The text encoded in the pass's QR code (scanned at the gate).
+            'pass_qr' => $this->pass_code && !$this->isGuardRequest() ? Visitor::PASS_QR_PREFIX.$this->pass_code : null,
             'notes' => $this->notes,
             'photo_url' => $this->photo_path ? asset('storage/'.$this->photo_path) : null,
             'flat' => $this->whenLoaded('flat', fn () => new FlatResource($this->flat)),

@@ -30,6 +30,14 @@ class VisitorRepository {
     return (response['data'] as List).map((item) => Visitor.fromJson(item as Map<String, dynamic>)).toList();
   }
 
+  /// "My Gate Passes": the resident's dated gate passes the gate can still
+  /// honour — each stays listed until its To date passes, even after use.
+  Future<List<Visitor>> activeGatePasses() async {
+    final response = await _client.get('/visitors', query: {'kind': 'gate_pass', 'active': 1});
+
+    return (response['data'] as List).map((item) => Visitor.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
   /// One request, e.g. when a push notification is tapped. The server only
   /// returns it if it belongs to one of the caller's own flats.
   Future<Visitor> get(int visitorId) async {

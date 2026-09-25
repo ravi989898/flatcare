@@ -250,6 +250,7 @@ class _VisitorCardState extends ConsumerState<_VisitorCard> {
       await action();
       ref.invalidate(visitorListProvider(widget.query));
       ref.invalidate(preApprovedListProvider);
+      ref.invalidate(activeGatePassesProvider);
       if (mounted) showVisitorSnack(context, successMessage);
     } on ApiException catch (e) {
       if (mounted) showVisitorSnack(context, e.message, error: true);
@@ -376,7 +377,7 @@ class _VisitorMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPhone = visitor.visitorPhone != null && visitor.visitorPhone!.isNotEmpty;
-    final hasPass = visitor.passCode != null && visitor.isPending && !visitor.awaitingApproval;
+    final hasPass = visitor.passCode != null && !visitor.awaitingApproval && (visitor.isPassActive || visitor.isPending);
 
     if (!hasPhone && !hasPass && !visitor.isCancellable) return const SizedBox(width: 8);
 
@@ -390,8 +391,8 @@ class _VisitorMenu extends StatelessWidget {
             context.push('/visitors/gate-pass', extra: visitor);
           case _VisitorAction.share:
             Share.share(
-              'FlatCare Gate Pass for ${visitor.visitorName}: code ${visitor.passCode}. '
-              'Show this code at the society gate.',
+              'FlatCare Gate Pass for ${visitor.visitorName}: Pass No ${visitor.passCode}. '
+              'Show this pass number or its QR code at the society gate.',
             );
           case _VisitorAction.call:
             launchUrl(Uri.parse('tel:${visitor.visitorPhone}'));
