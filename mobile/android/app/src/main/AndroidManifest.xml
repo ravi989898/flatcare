@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Android 13+: runtime permission to show visitor request / decision notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- A visitor waiting at the gate pops up full screen (like an incoming
+         call) instead of only a heads-up banner - see MainActivity. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <!-- allowBackup=false: keeps the login token out of adb/cloud backups.
          usesCleartextTraffic=false: release builds may only talk HTTPS (the
          debug manifest re-enables http for the local emulator/dev server). -->

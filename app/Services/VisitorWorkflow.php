@@ -61,12 +61,26 @@ class VisitorWorkflow
         });
 
         if ($requiresApproval) {
+            [$title, $body] = self::requestMessage($visitor);
+
+            // The extra fields let the app draw its full-screen "at the gate"
+            // card straight from the push, before it has fetched anything.
             $this->notifications->notifyFlatResidents(
                 $flat->id,
                 'visitor_request',
-                'Visitor Approval Request',
-                "{$visitor->visitor_name} is waiting at the gate. Please approve or reject the visitor request.",
-                ['visitor_id' => $visitor->id, 'flat_id' => $flat->id, 'actions' => 'approve,reject'],
+                $title,
+                $body,
+                [
+                    'visitor_id' => $visitor->id,
+                    'flat_id' => $flat->id,
+                    'actions' => 'approve,reject',
+                    'visitor_name' => $visitor->visitor_name,
+                    'visitor_phone' => $visitor->visitor_phone,
+                    'purpose' => $visitor->purpose,
+                    'photo_url' => $photoPath ? asset('storage/'.$photoPath) : null,
+                    'flat_label' => $flat->display_label,
+                    'society_name' => app(TenantService::class)->getCurrentSociety()?->name,
+                ],
                 $visitor->id,
             );
         } else {
@@ -188,6 +202,26 @@ class VisitorWorkflow
 
             return $visitor;
         });
+    }
+
+    /**
+     * The resident's "someone is at the gate" push, worded for the visitor
+     * type: "Your guest, Ravi is at the gate" / "Do you want your guest to
+     * be let in?".
+     *
+     * @return array{0: string, 1: string}  [title, body]
+     */
+    public static function requestMessage(Visitor $visitor): array
+    {
+        $name = $visitor->visitor_name;
+
+        return match ($visitor->purpose) {
+            'guest' => ["Your guest, {$name} is at the gate", 'Do you want your guest to be let in?'],
+            'delivery' => ["Your delivery, {$name} is at the gate", 'Do you want the delivery person to be let in?'],
+            'cab' => ["Your cab, {$name} is at the gate", 'Do you want your cab to be let in?'],
+            'service' => ["Your service provider, {$name} is at the gate", 'Do you want the service provider to be let in?'],
+            default => ["{$name} is at the gate", 'Do you want this visitor to be let in?'],
+        };
     }
 
     /**

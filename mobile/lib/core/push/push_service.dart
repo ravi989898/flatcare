@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -28,14 +29,18 @@ import '../storage/token_storage.dart';
 ///  * Android, visitor request: a high-priority *data-only* FCM message. The
 ///    system can't add buttons to a message it draws itself, so it wakes
 ///    [firebaseMessagingBackgroundHandler] — even with the app closed —
-///    which builds the notification with Accept / Reject buttons. Tapping a
-///    button calls the approve/reject API from a background isolate
-///    ([onBackgroundNotificationResponse]) without opening the app.
+///    which builds the notification with Deny / Approve buttons, the
+///    visitor's photo and a full-screen intent (so a locked phone shows the
+///    gate-approval screen like an incoming call). Tapping a button calls
+///    the approve/reject API from a background isolate
+///    ([onBackgroundNotificationResponse]) without opening the app; tapping
+///    the notification opens the gate-approval screen.
 ///  * Other messages (and iOS): a normal notification the system displays;
 ///    tapping it opens the relevant screen.
 ///  * App open: [PushService] listens to onMessage, shows the same local
-///    notification, and invalidates the visitor/notification providers so
-///    open screens reload immediately.
+///    notification (and, for a visitor request, opens the gate-approval
+///    screen straight away), and invalidates the visitor/notification
+///    providers so open screens reload immediately.
 ///
 /// Everything here is a no-op until Firebase is configured for the build
 /// (android/app/google-services.json — see mobile/FCM_SETUP.md), so the app
@@ -102,12 +107,15 @@ Future<void> _initLocalNotifications({DidReceiveNotificationResponseCallback? on
 Future<void> _showNotification(Map<String, dynamic> data, {String? title, String? body}) async {
   final visitorId = int.tryParse('${data['visitor_id'] ?? ''}');
   final actionable = '${data['actions'] ?? ''}'.contains(_actionApprove);
+  final text = body ?? data['body']?.toString();
+  final flatLabel = data['flat_label']?.toString();
+  final photo = actionable ? await _downloadPhoto(data['photo_url']?.toString()) : null;
 
   await _local.show(
     // One notification per visitor: a decision replaces the original request.
     id: visitorId ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
     title: title ?? data['title']?.toString() ?? 'FlatCare',
-    body: body ?? data['body']?.toString(),
+    body: text,
     payload: jsonEncode(data),
     notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
@@ -115,17 +123,57 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
         'Visitor requests',
         importance: Importance.max,
         priority: Priority.high,
-        category: AndroidNotificationCategory.message,
+        // A visitor waiting at the gate: rings through like a call and, on a
+        // locked phone, opens the gate-approval screen full screen (see
+        // MainActivity). Android may still show it as a heads-up banner.
+        category: actionable ? AndroidNotificationCategory.call : AndroidNotificationCategory.message,
+        fullScreenIntent: actionable,
+        subText: flatLabel,
+        largeIcon: photo == null ? null : ByteArrayAndroidBitmap(photo),
+        styleInformation: text == null ? null : BigTextStyleInformation(text),
         actions: actionable
             ? const [
-                AndroidNotificationAction(_actionApprove, 'Accept', cancelNotification: true),
-                AndroidNotificationAction(_actionReject, 'Reject', cancelNotification: true),
+                AndroidNotificationAction(_actionReject, 'Deny', cancelNotification: true),
+                AndroidNotificationAction(_actionApprove, 'Approve', cancelNotification: true),
               ]
             : null,
       ),
       iOS: const DarwinNotificationDetails(),
     ),
   );
+}
+
+/// The visitor's gate photo for the notification's large icon. Kept short
+/// so a slow network never delays the alert itself - it is simply shown
+/// without the photo.
+Future<Uint8List?> _downloadPhoto(String? url) async {
+  if (url == null || url.isEmpty) return null;
+
+  try {
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        sendTimeout: const Duration(seconds: 4),
+        receiveTimeout: const Duration(seconds: 4),
+      ),
+    );
+    final bytes = response.data;
+    return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Removes a visitor's request notification once it has been answered in the app.
+Future<void> cancelVisitorNotification(int visitorId) async {
+  if (!firebaseReady) return;
+
+  try {
+    await _local.cancel(id: visitorId);
+  } catch (_) {
+    // Nothing to remove.
+  }
 }
 
 Map<String, dynamic> _decode(String? payload) {
@@ -192,6 +240,8 @@ class PushService with WidgetsBindingObserver {
         body: message.notification?.body,
       );
       refreshData();
+      // Someone is at the gate while the app is open: pop the approval screen up at once.
+      if (message.data['type'] == 'visitor_request') unawaited(_open(router, message.data));
     });
     FirebaseMessaging.onMessageOpenedApp.listen((message) => _open(router, message.data));
     FirebaseMessaging.instance.onTokenRefresh.listen((token) {
@@ -279,7 +329,9 @@ class PushService with WidgetsBindingObserver {
     final visitorId = int.tryParse('${data['visitor_id'] ?? ''}');
 
     if (data['type'] == 'visitor_request' && visitorId != null) {
-      router.push('/visitors/request/$visitorId');
+      final target = '/visitors/approve/$visitorId';
+      // Already showing it (e.g. the push and a tap on its notification both arrived).
+      if (router.routerDelegate.currentConfiguration.uri.path != target) router.push(target);
     } else if ('${data['type'] ?? ''}'.startsWith('visitor_request_')) {
       router.push('/gatekeeper/visitors');
     } else {

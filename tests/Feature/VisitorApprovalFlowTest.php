@@ -101,8 +101,8 @@ class VisitorApprovalFlowTest extends TestCase
         $this->assertSame($this->guard->id, $visitor->gate_keeper_id);
 
         $note = ResidentNotification::where('user_id', $this->residentA->id)->firstOrFail();
-        $this->assertSame('Visitor Approval Request', $note->title);
-        $this->assertSame('Ravi is waiting at the gate. Please approve or reject the visitor request.', $note->body);
+        $this->assertSame('Your guest, Ravi is at the gate', $note->title);
+        $this->assertSame('Do you want your guest to be let in?', $note->body);
         $this->assertSame('visitor_request', $note->type);
         $this->assertSame($visitor->id, $note->visitor_id);
         $this->assertNull($note->read_at);
@@ -131,14 +131,17 @@ class VisitorApprovalFlowTest extends TestCase
         $android = $byToken['good-A-android']['payload'];
         $this->assertArrayNotHasKey('notification', $android['android']);
         $this->assertSame('HIGH', $android['android']['priority']);
-        $this->assertSame('Visitor Approval Request', $android['data']['title']);
+        $this->assertSame('Your guest, Ravi is at the gate', $android['data']['title']);
+        $this->assertSame('Ravi', $android['data']['visitor_name']);
+        $this->assertSame('guest', $android['data']['purpose']);
+        $this->assertArrayHasKey('flat_label', $android['data']);
         $this->assertSame('approve,reject', $android['data']['actions']);
         $this->assertSame('visitor_request', $android['data']['type']);
         $this->assertArrayHasKey('visitor_id', $android['data']);
         $this->assertArrayNotHasKey('notification', $android);
 
         $ios = $byToken['good-A2-iphone']['payload'];
-        $this->assertSame('Visitor Approval Request', $ios['apns']['payload']['aps']['alert']['title']);
+        $this->assertSame('Your guest, Ravi is at the gate', $ios['apns']['payload']['aps']['alert']['title']);
     }
 
     public function test_every_authorised_resident_of_the_flat_is_notified(): void
