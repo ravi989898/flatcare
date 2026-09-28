@@ -1,99 +1,60 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/async_view.dart';
-import '../../../core/widgets/status_chip.dart';
 import '../data/bill.dart';
 import '../data/bill_repository.dart';
+import '../data/razorpay_order.dart';
 import '../providers/bill_providers.dart';
+import '../widgets/bill_ui.dart';
+import 'payment_success_screen.dart';
 
-class BillDetailScreen extends ConsumerWidget {
-  const BillDetailScreen({super.key, required this.id});
+/// Where the payment is: nothing running, creating the Razorpay order,
+/// Razorpay's own checkout on screen, or the backend verifying it.
+enum _PayStage { idle, starting, checkout, verifying }
+
+/// One maintenance bill: the amount due up top, then the flat, bill
+/// information, an itemised breakdown, notes and payment history - with a
+/// sticky bar at the bottom that always shows the amount due and a large
+/// Pay Now button, so nobody has to scroll to find how to pay.
+///
+/// [autoPay] (`/bills/{id}?pay=1`, the Pay Now button on My Bills) starts
+/// the payment as soon as the bill has loaded.
+///
+/// Payment is the existing Razorpay flow: the backend creates the order
+/// from the bill's own balance, Razorpay Checkout takes the money, and only
+/// the backend's verification of that result counts as paid - then the
+/// confirmation screen shows the transaction.
+class BillDetailScreen extends ConsumerStatefulWidget {
+  const BillDetailScreen({super.key, required this.id, this.autoPay = false});
 
   final int id;
+  final bool autoPay;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bill = ref.watch(billDetailProvider(id));
-
-    return Scaffold(
-      backgroundColor: AppTheme.pageBackground,
-      body: Column(
-        children: [
-          const _BlueHeaderBar(),
-          Expanded(
-            child: AsyncView<Bill>(
-              value: bill,
-              onRetry: () => ref.invalidate(billDetailProvider(id)),
-              builder: (context, item) => _BillDetailBody(bill: item),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  ConsumerState<BillDetailScreen> createState() => _BillDetailScreenState();
 }
 
-/// Back button + title only — kept outside AsyncView so the way back stays
-/// on screen even while the bill is loading or failed to load, matching
-/// bill_list_screen.dart's header.
-class _BlueHeaderBar extends StatelessWidget {
-  const _BlueHeaderBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 16, 16),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => context.pop(),
-              ),
-              const Text(
-                'Maintenance Bill',
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BillDetailBody extends ConsumerStatefulWidget {
-  const _BillDetailBody({required this.bill});
-
-  final Bill bill;
-
-  @override
-  ConsumerState<_BillDetailBody> createState() => _BillDetailBodyState();
-}
-
-class _BillDetailBodyState extends ConsumerState<_BillDetailBody> {
+class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
   // razorpay_flutter is a native Android/iOS plugin with no web
   // implementation at all — constructing it unconditionally throws
   // MissingPluginException the moment this screen mounts in a browser.
   // Only ever created outside web, so Pay Now can fail with one clear
   // message on web instead of the whole screen erroring on load.
   Razorpay? _razorpay;
-  bool _isPaying = false;
-  bool _isDownloading = false;
+  _PayStage _stage = _PayStage.idle;
+  RazorpayOrderInfo? _order;
+  Bill? _payingBill;
+  bool _autoPayHandled = false;
+  bool _downloading = false;
+
+  bool get _busy => _stage != _PayStage.idle;
 
   @override
   void initState() {
@@ -112,18 +73,32 @@ class _BillDetailBodyState extends ConsumerState<_BillDetailBody> {
     super.dispose();
   }
 
-  Future<void> _payNow() async {
+  void _setStage(_PayStage stage) {
+    if (mounted) setState(() => _stage = stage);
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+  }
+
+  Future<void> _payNow(Bill bill) async {
+    if (_busy || !bill.isPending || bill.balance <= 0) return;
+
     if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Online payment is available in the FlatCare mobile app.')),
-      );
+      _snack('Online payment is available in the FlatCare mobile app.');
       return;
     }
 
-    setState(() => _isPaying = true);
+    _payingBill = bill;
+    _setStage(_PayStage.starting);
 
     try {
-      final order = await ref.read(billRepositoryProvider).createPaymentOrder(widget.bill.id);
+      final order = await ref.read(billRepositoryProvider).createPaymentOrder(bill.id);
+      _order = order;
+      _setStage(_PayStage.checkout);
 
       _razorpay!.open({
         'key': order.key,
@@ -137,22 +112,21 @@ class _BillDetailBodyState extends ConsumerState<_BillDetailBody> {
           if (order.prefillEmail != null) 'email': order.prefillEmail,
           if (order.prefillContact != null) 'contact': order.prefillContact,
         },
-        'theme': {'color': '#1E9CE0'},
+        'theme': {'color': '#0E7C9B'},
       });
-      // _isPaying stays true — Razorpay's native checkout is now in
-      // control; one of the three event handlers below always fires next
-      // and clears it.
+      // The stage stays `checkout` — Razorpay's native checkout is now in
+      // control; one of the three event handlers below always fires next.
     } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _isPaying = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
+      _setStage(_PayStage.idle);
+      _showFailure(title: "Couldn't start the payment", message: e.message, bill: bill);
+    } catch (_) {
       // Razorpay.open() can throw synchronously for malformed options
-      // (e.g. no key configured yet).
-      if (!mounted) return;
-      setState(() => _isPaying = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the payment screen. Please try again.')),
+      // (e.g. no key configured yet), or the network may be down.
+      _setStage(_PayStage.idle);
+      _showFailure(
+        title: "Couldn't start the payment",
+        message: 'Please check your internet connection and try again.',
+        bill: bill,
       );
     }
   }
@@ -164,270 +138,291 @@ class _BillDetailBodyState extends ConsumerState<_BillDetailBody> {
     final orderId = response.orderId;
     final paymentId = response.paymentId;
     final signature = response.signature;
+    final bill = _payingBill;
 
-    if (orderId == null || paymentId == null || signature == null) {
-      _onVerificationFailed();
+    if (orderId == null || paymentId == null || signature == null || bill == null) {
+      _setStage(_PayStage.idle);
+      _showUnconfirmed(paymentId);
       return;
     }
 
-    _showVerifyingDialog();
+    _setStage(_PayStage.verifying);
 
     try {
-      await ref.read(billRepositoryProvider).verifyPayment(
-            widget.bill.id,
+      final updated = await ref.read(billRepositoryProvider).verifyPayment(
+            bill.id,
             orderId: orderId,
             paymentId: paymentId,
             signature: signature,
           );
 
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      _dismissVerifyingDialog();
-      setState(() => _isPaying = false);
-
-      ref.invalidate(billDetailProvider(widget.bill.id));
+      ref.invalidate(billDetailProvider(bill.id));
       ref.invalidate(billListProvider(null));
-
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Payment successful!'), backgroundColor: Color(0xFF2AB930)),
-      );
-    } on ApiException catch (e) {
       if (!mounted) return;
-      _dismissVerifyingDialog();
-      setState(() => _isPaying = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), showCloseIcon: true));
-    }
-  }
 
-  void _onVerificationFailed() {
-    if (!mounted) return;
-    setState(() => _isPaying = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment could not be confirmed. Please contact support if money was deducted.')),
-    );
+      final payment = updated.payments.where((p) => p.referenceNumber == paymentId).firstOrNull;
+      final receipt = PaymentReceipt(
+        billId: bill.id,
+        billHeading: bill.heading,
+        amount: payment?.amount ?? (_order?.amountPaise ?? 0) / 100,
+        transactionId: paymentId,
+        paymentDate: payment?.paymentDate ?? DateTime.now().toIso8601String(),
+        paymentMethod: payment?.paymentMethod,
+        fullyPaid: !updated.isPending,
+        balance: updated.balance,
+      );
+
+      _stage = _PayStage.idle;
+      context.pushReplacement('/bills/${bill.id}/paid', extra: receipt);
+    } on ApiException catch (e) {
+      _setStage(_PayStage.idle);
+      _showUnconfirmed(paymentId, reason: e.message);
+    } catch (_) {
+      _setStage(_PayStage.idle);
+      _showUnconfirmed(paymentId);
+    }
   }
 
   void _onPaymentError(PaymentFailureResponse response) {
-    if (!mounted) return;
-    setState(() => _isPaying = false);
-    final message = response.code == Razorpay.PAYMENT_CANCELLED
-        ? 'Payment cancelled.'
-        : (response.message ?? 'Payment failed. Please try again.');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
+    _setStage(_PayStage.idle);
 
-  void _onExternalWallet(ExternalWalletResponse response) {
-    if (!mounted) return;
-    setState(() => _isPaying = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opened ${response.walletName ?? 'external wallet'} — complete payment there.')),
-    );
-  }
-
-  void _showVerifyingDialog() {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => PopScope(
-        canPop: false,
-        child: Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Flexible(child: Text('Verifying payment…')),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _dismissVerifyingDialog() {
-    Navigator.of(context, rootNavigator: true).pop();
-  }
-
-  Future<void> _downloadReceipt() async {
-    // path_provider's directories and dart:io's File are both unavailable
-    // on web — same reasoning as the Pay Now guard above.
-    if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Receipt download is available in the FlatCare mobile app.')),
-      );
+    if (response.code == Razorpay.PAYMENT_CANCELLED) {
+      _snack('Payment cancelled. You have not been charged.');
       return;
     }
 
-    setState(() => _isDownloading = true);
+    _showFailure(
+      title: 'Payment failed',
+      message: response.message?.trim().isNotEmpty == true
+          ? response.message!
+          : 'The payment could not be completed. No money has been taken for this attempt.',
+      bill: _payingBill,
+    );
+  }
 
-    try {
-      final bytes = await ref.read(billRepositoryProvider).downloadReceipt(widget.bill.id);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/bill-${widget.bill.id}-receipt.pdf');
-      await file.writeAsBytes(bytes);
+  void _onExternalWallet(ExternalWalletResponse response) {
+    _setStage(_PayStage.idle);
+    _snack('Opened ${response.walletName ?? 'your wallet'} — complete the payment there.');
+  }
 
-      if (!mounted) return;
-      await Share.shareXFiles([XFile(file.path)], text: 'Maintenance bill receipt');
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => _isDownloading = false);
+  /// A failed attempt: why, and a Try Again that runs the whole flow again.
+  void _showFailure({required String title, required String message, Bill? bill}) {
+    if (!mounted) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (sheet) => _ResultSheet(
+        icon: Icons.error_outline_rounded,
+        color: AppTheme.statusDue,
+        title: title,
+        message: message,
+        primaryLabel: bill == null ? 'Close' : 'Try Again',
+        onPrimary: () {
+          Navigator.of(sheet).pop();
+          if (bill != null) _payNow(bill);
+        },
+        secondaryLabel: bill == null ? null : 'Close',
+        onSecondary: () => Navigator.of(sheet).pop(),
+      ),
+    );
+  }
+
+  /// Razorpay reported success but the backend couldn't confirm it. Never
+  /// offers to pay again (that could charge twice) - only to re-check.
+  void _showUnconfirmed(String? paymentId, {String? reason}) {
+    if (!mounted) return;
+
+    final id = widget.id;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (sheet) => _ResultSheet(
+        icon: Icons.hourglass_top_rounded,
+        color: AppTheme.statusPending,
+        title: "We couldn't confirm your payment yet",
+        message: [
+          ?reason,
+          'Please do not pay again. If money was deducted, the bill will be updated shortly or the amount refunded by your bank.',
+          if (paymentId != null) 'Payment ID: $paymentId',
+        ].join('\n\n'),
+        primaryLabel: 'Check Bill Status',
+        onPrimary: () {
+          Navigator.of(sheet).pop();
+          ref.invalidate(billDetailProvider(id));
+          ref.invalidate(billListProvider(null));
+        },
+      ),
+    );
+  }
+
+  /// Leaving mid-payment could lose track of it, so ask first.
+  Future<void> _confirmLeave() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded, color: AppTheme.statusPending, size: 36),
+        title: const Text('Payment in progress'),
+        content: Text(
+          _stage == _PayStage.verifying
+              ? "We're confirming your payment with the bank. If you leave now, the bill may take a little longer to show as paid."
+              : 'Your payment is still being set up. Do you want to leave this screen?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialog).pop(true), child: const Text('Leave')),
+          FilledButton(onPressed: () => Navigator.of(dialog).pop(false), child: const Text('Stay')),
+        ],
+      ),
+    );
+
+    if (leave == true && mounted) {
+      _stage = _PayStage.idle;
+      context.canPop() ? context.pop() : context.go('/bills');
     }
   }
 
+  Future<void> _download(Bill bill) async {
+    setState(() => _downloading = true);
+    await shareBillPdf(context, ref, bill.id, receipt: !bill.isPending);
+    if (mounted) setState(() => _downloading = false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bill = widget.bill;
-    final flat = bill.flat;
+    final billValue = ref.watch(billDetailProvider(widget.id));
+    final bill = billValue.valueOrNull;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _HeaderCard(bill: bill),
-        const SizedBox(height: 16),
-        _SummaryTiles(bill: bill),
-        const SizedBox(height: 20),
-        _SectionCard(
-          title: 'Bill Details',
-          child: Column(
-            children: [
-              if (flat != null) ...[
-                _DetailRow(icon: Icons.home_outlined, label: 'Flat No.', value: flat.flatNumber),
-                if (flat.blockName != null)
-                  _DetailRow(icon: Icons.apartment_outlined, label: 'Tower / Building', value: flat.blockName!),
-                if (flat.floorNumber != null)
-                  _DetailRow(icon: Icons.layers_outlined, label: 'Floor', value: flat.floorNumber!),
-                if (flat.flatType != null)
-                  _DetailRow(icon: Icons.sell_outlined, label: 'Type', value: flat.flatType!),
-                if (flat.areaSqft != null)
-                  _DetailRow(
-                    icon: Icons.open_in_full,
-                    label: 'Area',
-                    value: '${flat.areaSqft!.toStringAsFixed(0)} Sq. Ft.',
-                  ),
-              ],
-              if (bill.billingPeriod != null)
-                _DetailRow(icon: Icons.event_outlined, label: 'Billing Period', value: bill.billingPeriod!),
-              _DetailRow(icon: Icons.calendar_today_outlined, label: 'Bill Date', value: formatDate(bill.billDate)),
-              _DetailRow(
-                icon: Icons.event_busy_outlined,
-                label: 'Due Date',
-                value: formatDate(bill.dueDate),
-                valueColor: bill.isPending ? Theme.of(context).colorScheme.error : null,
+    if (widget.autoPay && !_autoPayHandled && bill != null) {
+      _autoPayHandled = true;
+      if (bill.isPending) WidgetsBinding.instance.addPostFrameCallback((_) => _payNow(bill));
+    }
+
+    return PopScope(
+      canPop: !_busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmLeave();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.pageBackground,
+        bottomNavigationBar: bill == null
+            ? null
+            : _PayBar(
+                bill: bill,
+                stage: _stage,
+                downloading: _downloading,
+                onPay: () => _payNow(bill),
+                onDownload: () => _download(bill),
               ),
-              if (flat?.ownerName != null)
-                _DetailRow(icon: Icons.person_outline, label: 'Owner Name', value: flat!.ownerName!),
-              if (bill.mobileNumber != null)
-                _DetailRow(icon: Icons.phone_outlined, label: 'Mobile Number', value: bill.mobileNumber!),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _SectionCard(
-          title: 'Bill Breakdown',
-          padded: false,
-          child: _BreakdownTable(bill: bill),
-        ),
-        if (bill.notes != null && bill.notes!.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _SectionCard(title: 'Notes', child: Text(bill.notes!)),
-        ],
-        if (bill.payments.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text('Payment History', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ...bill.payments.map(
-            (payment) => Card(
-              child: ListTile(
-                leading: const Icon(Icons.check_circle_outline, color: Color(0xFF2AB930)),
-                title: Text(formatCurrency(payment.amount)),
-                // Reference numbers used to be short manual entries (e.g.
-                // "UPI2026070512345"); a Razorpay payment id
-                // ("pay_xxxxxxxxxxxxxxxxxx") is longer, and ListTile's
-                // `trailing` has no width limit of its own — putting it
-                // there squeezed the title/subtitle column down to nothing.
-                // Wrapping in the subtitle column instead lets it wrap
-                // naturally.
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      [
-                        if (payment.paymentMethod != null) payment.paymentMethod!.replaceAll('_', ' '),
-                        formatDate(payment.paymentDate),
-                      ].join(' · '),
-                    ),
-                    if (payment.referenceNumber != null)
-                      Text(
-                        payment.referenceNumber!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        overflow: TextOverflow.ellipsis,
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                BillHeaderBar(
+                  title: 'Maintenance Bill',
+                  actions: [
+                    if (bill != null)
+                      IconButton(
+                        tooltip: bill.isPending ? 'Download Bill' : 'Download Receipt',
+                        onPressed: _downloading ? null : () => _download(bill),
+                        icon: const Icon(Icons.download_rounded, color: Colors.white),
                       ),
                   ],
                 ),
-                isThreeLine: payment.referenceNumber != null,
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isDownloading ? null : _downloadReceipt,
-                icon: _isDownloading
-                    ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.description_outlined),
-                label: Text(bill.isPending ? 'Download Bill' : 'Download Receipt'),
-              ),
-            ),
-            if (bill.isPending) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isPaying ? null : _payNow,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.brandBlue, foregroundColor: Colors.white),
-                  icon: _isPaying
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.payments_outlined),
-                  label: const Text('Pay Now'),
+                Expanded(
+                  child: AsyncView<Bill>(
+                    value: billValue,
+                    onRetry: () => ref.invalidate(billDetailProvider(widget.id)),
+                    builder: (context, bill) => RefreshIndicator(
+                      onRefresh: () => ref.refresh(billDetailProvider(widget.id).future),
+                      child: _BillBody(bill: bill, downloading: _downloading, onDownload: () => _download(bill)),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            if (_stage == _PayStage.verifying) const _VerifyingOverlay(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BillBody extends StatelessWidget {
+  const _BillBody({required this.bill, required this.downloading, required this.onDownload});
+
+  final Bill bill;
+  final bool downloading;
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        _SummaryCard(bill: bill),
+        if (bill.flat != null) ...[
+          const SizedBox(height: 14),
+          _PropertySection(bill: bill),
+        ],
+        const SizedBox(height: 14),
+        _BillInfoSection(bill: bill),
+        const SizedBox(height: 14),
+        _BreakdownSection(bill: bill),
+        if (bill.notes != null && bill.notes!.trim().isNotEmpty) ...[
+          const SizedBox(height: 14),
+          BillSection(
+            title: 'Notes',
+            icon: Icons.sticky_note_2_outlined,
+            child: Text(bill.notes!, style: const TextStyle(fontSize: 14, height: 1.45, color: AppTheme.brandNavy)),
+          ),
+        ],
+        if (bill.payments.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _PaymentHistorySection(bill: bill),
+        ],
         const SizedBox(height: 16),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            foregroundColor: AppTheme.brandBlue,
+            side: BorderSide(color: AppTheme.brandBlue.withValues(alpha: 0.5)),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          onPressed: downloading ? null : onDownload,
+          icon: downloading
+              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.picture_as_pdf_outlined),
+          label: Text(bill.isPending ? 'Download Bill (PDF)' : 'Download Receipt (PDF)', style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
       ],
     );
   }
 }
 
-class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.bill});
+/// Top card: month, status, the amount due in large type and the due date.
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.bill});
 
   final Bill bill;
 
   @override
   Widget build(BuildContext context) {
-    final amountColor = AppTheme.billStatusColor(bill.status);
+    final color = bill.statusColor;
+    final hint = bill.dueHint;
+    final paidOn = bill.lastPayment?.paymentDate;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
+        borderRadius: BorderRadius.circular(22),
+        border: Border(top: BorderSide(color: color, width: 4)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 18, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,54 +430,112 @@ class _HeaderCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.12),
-                child: const Icon(Icons.home_repair_service_outlined, color: AppTheme.brandBlue, size: 26),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.receipt_long_rounded, color: AppTheme.brandBlue, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(bill.title, style: Theme.of(context).textTheme.titleLarge),
-                    if (bill.billingPeriod != null)
-                      Text(bill.billingPeriod!, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      bill.heading,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
+                    ),
+                    Text(
+                      bill.subheading ?? 'Maintenance bill',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    ),
                   ],
                 ),
               ),
-              StatusChip(label: bill.status),
+              const SizedBox(width: 8),
+              BillStatusBadge(bill: bill, large: true),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _DateChip(icon: Icons.calendar_today_outlined, label: 'Bill Date', date: bill.billDate),
+          const SizedBox(height: 18),
+          Text(
+            bill.isPending ? 'Amount Due' : 'Amount Paid',
+            style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: BillAmount(bill.isPending ? bill.balance : bill.amount, size: 34, color: color, weight: FontWeight.w800),
+          ),
+          if (bill.isPartiallyPaid) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: bill.amount <= 0 ? 0 : (bill.paidAmount / bill.amount).clamp(0, 1).toDouble(),
+                minHeight: 8,
+                backgroundColor: AppColors.border,
+                color: AppTheme.statusPaid,
               ),
-              Expanded(
-                child: _DateChip(
-                  icon: Icons.event_busy_outlined,
-                  label: 'Due Date',
-                  date: bill.dueDate,
-                  highlight: bill.isPending,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${formatCurrency(bill.paidAmount)} of ${formatCurrency(bill.amount)} paid',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.brandBlue).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  bill.isPending ? Icons.event_outlined : Icons.event_available_outlined,
+                  size: 20,
+                  color: bill.isOverdue ? AppTheme.statusDue : AppTheme.brandBlue,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(bill.isPending ? 'Amount Due' : 'Total Amount', style: Theme.of(context).textTheme.bodySmall),
-              Text(
-                formatCurrency(bill.isPending ? bill.balance : bill.amount),
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold, color: amountColor),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bill.isPending ? 'Payment Due Date' : 'Paid On',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                      Text(
+                        formatDate(bill.isPending ? bill.dueDate : (paidOn ?? bill.dueDate)),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: bill.isOverdue ? AppTheme.statusDue : AppTheme.brandNavy,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hint != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      hint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -490,132 +543,102 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-class _DateChip extends StatelessWidget {
-  const _DateChip({required this.icon, required this.label, required this.date, this.highlight = false});
-
-  final IconData icon;
-  final String label;
-  final String? date;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = highlight ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color)),
-            Text(
-              formatDate(date),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryTiles extends StatelessWidget {
-  const _SummaryTiles({required this.bill});
+/// Flat, tower, floor and type as a 2-column grid of tiles.
+class _PropertySection extends StatelessWidget {
+  const _PropertySection({required this.bill});
 
   final Bill bill;
 
   @override
   Widget build(BuildContext context) {
+    final flat = bill.flat!;
     final tiles = [
-      (icon: Icons.description_outlined, label: 'Total Amount', value: bill.amount, color: AppTheme.brandBlue),
-      (icon: Icons.check_circle_outline, label: 'Paid Amount', value: bill.paidAmount, color: AppTheme.statusPaid),
-      (icon: Icons.hourglass_bottom_outlined, label: 'Pending Amount', value: bill.balance, color: AppTheme.statusPending),
-      (icon: Icons.currency_rupee, label: 'Late Fee', value: bill.lateFee, color: AppTheme.statusDue),
+      (Icons.home_outlined, 'Flat No.', flat.flatNumber),
+      if (flat.blockName != null) (Icons.apartment_outlined, 'Tower / Building', flat.blockName!),
+      if (flat.floorNumber != null) (Icons.layers_outlined, 'Floor', flat.floorNumber!),
+      if (flat.flatType != null) (Icons.sell_outlined, 'Flat Type', flat.flatType!),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 2.6,
-      children: tiles.map((tile) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-          child: Row(
+    return BillSection(
+      title: 'Property Details',
+      icon: Icons.location_city_outlined,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = (constraints.maxWidth - 10) / 2;
+
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: tile.color.withValues(alpha: 0.12),
-                child: Icon(tile.icon, size: 16, color: tile.color),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      tile.label,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      formatCurrency(tile.value),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+              for (final (icon, label, value) in tiles)
+                Container(
+                  width: width,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: AppTheme.pageBackground, borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      Icon(icon, size: 20, color: AppTheme.brandBlue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                            Text(
+                              value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.brandNavy),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child, this.padded = true});
+class _BillInfoSection extends StatelessWidget {
+  const _BillInfoSection({required this.bill});
 
-  final String title;
-  final Widget child;
-  final bool padded;
+  final Bill bill;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      padding: const EdgeInsets.all(16),
+    final flat = bill.flat;
+
+    return BillSection(
+      title: 'Bill Information',
+      icon: Icons.info_outline_rounded,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.brandBlue,
-                  fontWeight: FontWeight.bold,
-                ),
+          _InfoRow(label: 'Bill No.', value: '#${bill.id}'),
+          if (bill.billingPeriod != null) _InfoRow(label: 'Billing Period', value: bill.billingPeriod!),
+          _InfoRow(label: 'Bill Date', value: formatDate(bill.billDate)),
+          _InfoRow(
+            label: 'Due Date',
+            value: formatDate(bill.dueDate),
+            valueColor: bill.isOverdue ? AppTheme.statusDue : null,
           ),
-          const Divider(height: 20),
-          padded ? child : Padding(padding: const EdgeInsets.only(top: 0), child: child),
+          _InfoRow(label: 'Status', value: bill.statusLabel, valueColor: bill.statusColor),
+          if (flat?.ownerName != null) _InfoRow(label: 'Owner Name', value: flat!.ownerName!),
+          if (flat?.areaSqft != null) _InfoRow(label: 'Area', value: '${flat!.areaSqft!.toStringAsFixed(0)} sq. ft.'),
+          if (bill.mobileNumber != null) _InfoRow(label: 'Mobile Number', value: bill.mobileNumber!),
         ],
       ),
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, required this.value, this.valueColor});
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value, this.valueColor});
 
-  final IconData icon;
   final String label;
   final String value;
   final Color? valueColor;
@@ -623,18 +646,18 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: AppTheme.brandBlue),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: valueColor,
-                ),
+          Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: valueColor ?? AppTheme.brandNavy),
+            ),
           ),
         ],
       ),
@@ -642,57 +665,361 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _BreakdownTable extends StatelessWidget {
-  const _BreakdownTable({required this.bill});
+/// Itemised charges, any late fee or discount, the total, what has been
+/// paid and what is left to pay.
+class _BreakdownSection extends StatelessWidget {
+  const _BreakdownSection({required this.bill});
 
   final Bill bill;
 
   @override
   Widget build(BuildContext context) {
-    final headerStyle = Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold);
+    return BillSection(
+      title: 'Bill Breakdown',
+      icon: Icons.format_list_bulleted_rounded,
+      child: Column(
+        children: [
+          for (final line in bill.breakdown)
+            _MoneyRow(
+              label: line.amount < 0 ? '${line.label} (Discount)' : line.label,
+              amount: line.amount,
+              color: line.amount < 0 ? AppTheme.statusPaid : null,
+            ),
+          if (bill.lateFee > 0) _MoneyRow(label: 'Late Fee', amount: bill.lateFee, color: AppTheme.statusDue),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider(height: 1)),
+          _MoneyRow(label: 'Total Amount', amount: bill.amount, bold: true),
+          if (bill.paidAmount > 0) _MoneyRow(label: 'Amount Paid', amount: -bill.paidAmount, color: AppTheme.statusPaid),
+          if (bill.isPending) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(color: AppTheme.statusDue.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('Balance Payable', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.brandNavy)),
+                  ),
+                  BillAmount(bill.balance, size: 17, color: AppTheme.statusDue, weight: FontWeight.w800),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
-          child: Row(
-            children: [
-              Expanded(child: Text('Particulars', style: headerStyle)),
-              Text('Amount (₹)', style: headerStyle),
-            ],
-          ),
-        ),
-        ...bill.breakdown.map(
-          (line) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-            child: Row(
+class _MoneyRow extends StatelessWidget {
+  const _MoneyRow({required this.label, required this.amount, this.color, this.bold = false});
+
+  final String label;
+  final double amount;
+  final Color? color;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: bold ? 15 : 14,
+      fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+      color: color ?? AppTheme.brandNavy,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(label, style: style.copyWith(color: color ?? (bold ? AppTheme.brandNavy : AppColors.textSecondary)))),
+          const SizedBox(width: 12),
+          Text(amount < 0 ? '- ${formatCurrency(-amount)}' : formatCurrency(amount), style: style),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentHistorySection extends StatelessWidget {
+  const _PaymentHistorySection({required this.bill});
+
+  final Bill bill;
+
+  @override
+  Widget build(BuildContext context) {
+    return BillSection(
+      title: 'Payment History',
+      icon: Icons.history_rounded,
+      child: Column(
+        children: [
+          for (final (index, payment) in bill.payments.indexed) ...[
+            if (index > 0) const Divider(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: Text(line.label)),
-                Text(line.amount.toStringAsFixed(2)),
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppTheme.statusPaid.withValues(alpha: 0.12),
+                  child: const Icon(Icons.check_rounded, color: AppTheme.statusPaid, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        [
+                          formatDate(payment.paymentDate),
+                          if (payment.paymentMethod != null) paymentMethodLabel(payment.paymentMethod!),
+                        ].join(' · '),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.brandNavy),
+                      ),
+                      // A Razorpay payment id ("pay_xxxxxxxxxxxxxx") is long,
+                      // so it gets its own line and may wrap.
+                      if (payment.referenceNumber != null)
+                        SelectableText(
+                          'Txn ID: ${payment.referenceNumber}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                BillAmount(payment.amount, size: 15, color: AppTheme.statusPaid),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The sticky bottom bar: amount due + Pay Now while money is owed, or the
+/// receipt download once the bill is paid.
+class _PayBar extends StatelessWidget {
+  const _PayBar({
+    required this.bill,
+    required this.stage,
+    required this.downloading,
+    required this.onPay,
+    required this.onDownload,
+  });
+
+  final Bill bill;
+  final _PayStage stage;
+  final bool downloading;
+  final VoidCallback onPay;
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = stage != _PayStage.idle;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, -4))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          child: bill.isPending
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Amount Due', maxLines: 1, style: TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: BillAmount(bill.balance, size: 22, color: bill.statusColor, weight: FontWeight.w800),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 5,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(56),
+                              backgroundColor: AppTheme.brandBlue,
+                              disabledBackgroundColor: AppTheme.brandBlue.withValues(alpha: 0.6),
+                              disabledForegroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: busy ? null : onPay,
+                            child: busy
+                                ? const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white)),
+                                      SizedBox(width: 10),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text('Please wait…', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.lock_rounded, size: 20),
+                                      SizedBox(width: 8),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text('Pay Now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.verified_user_outlined, size: 14, color: AppColors.textMuted),
+                        SizedBox(width: 4),
+                        Text('Secure payment · UPI, cards & net banking', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ],
+                )
+              : FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: AppTheme.statusPaid,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: downloading ? null : onDownload,
+                  icon: downloading
+                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.download_rounded),
+                  label: const Text('Download Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VerifyingOverlay extends StatelessWidget {
+  const _VerifyingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black54,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 44, width: 44, child: CircularProgressIndicator(strokeWidth: 3.5)),
+                SizedBox(height: 18),
+                Text('Confirming your payment…', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.brandNavy)),
+                SizedBox(height: 6),
+                Text(
+                  'This takes a few seconds. Please don\'t close the app.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),
         ),
-        const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Total',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.brandBlue),
+      ),
+    );
+  }
+}
+
+class _ResultSheet extends StatelessWidget {
+  const _ResultSheet({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.message,
+    required this.primaryLabel,
+    required this.onPrimary,
+    this.secondaryLabel,
+    this.onSecondary,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String message;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(radius: 32, backgroundColor: color.withValues(alpha: 0.12), child: Icon(icon, color: color, size: 36)),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
+            ),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, height: 1.45, color: AppColors.textSecondary)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                if (secondaryLabel != null) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      onPressed: onSecondary,
+                      child: Text(secondaryLabel!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      backgroundColor: AppTheme.brandBlue,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: onPrimary,
+                    child: Text(primaryLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
                 ),
-              ),
-              Text(
-                bill.amount.toStringAsFixed(2),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.brandBlue),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

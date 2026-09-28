@@ -13,6 +13,7 @@ import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/bills/screens/bill_detail_screen.dart';
 import '../../features/bills/screens/bill_list_screen.dart';
+import '../../features/bills/screens/payment_success_screen.dart';
 import '../../features/committee/screens/committee_members_screen.dart';
 import '../../features/complaints/screens/complaint_detail_screen.dart';
 import '../../features/complaints/screens/complaint_form_screen.dart';
@@ -156,7 +157,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: ':id',
-            builder: (context, state) => BillDetailScreen(id: int.parse(state.pathParameters['id']!)),
+            // ?pay=1 (Pay Now on My Bills) starts the payment once the bill loads.
+            builder: (context, state) => BillDetailScreen(
+              id: int.parse(state.pathParameters['id']!),
+              autoPay: state.uri.queryParameters['pay'] == '1',
+            ),
+            routes: [
+              // The confirmation after a verified payment; without its data
+              // (e.g. restored after the app was killed) it shows the bill.
+              GoRoute(
+                path: 'paid',
+                builder: (context, state) => state.extra is PaymentReceipt
+                    ? PaymentSuccessScreen(receipt: state.extra! as PaymentReceipt)
+                    : BillDetailScreen(id: int.parse(state.pathParameters['id']!)),
+              ),
+            ],
           ),
         ],
       ),
