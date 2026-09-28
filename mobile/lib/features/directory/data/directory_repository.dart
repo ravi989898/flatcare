@@ -25,7 +25,7 @@ class DirectoryRepository {
   Future<DirectoryPage> list({String? search, String? residentType, int page = 1}) async {
     final response = await _client.get('/directory', query: {
       if (search != null && search.isNotEmpty) 'search': search,
-      if (residentType != null) 'resident_type': residentType,
+      'resident_type': ?residentType,
       'page': page,
     });
 

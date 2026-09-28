@@ -15,8 +15,6 @@ class ApiException implements Exception {
   /// `errors: {field: [messages]}` map.
   final Map<String, List<String>>? fieldErrors;
 
-  bool get isUnauthorized => statusCode == 401;
-
   @override
   String toString() => message;
 }

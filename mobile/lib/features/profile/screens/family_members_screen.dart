@@ -99,7 +99,7 @@ class FamilyMembersScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: items.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index == 0) return _HouseholdBanner(count: items.length);
                 final member = items[index - 1];

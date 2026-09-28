@@ -14,7 +14,7 @@ class BillRepository {
 
   Future<List<Bill>> list({String? status}) async {
     final response = await _client.get('/bills', query: {
-      if (status != null) 'status': status,
+      'status': ?status,
     });
 
     return (response['data'] as List).map((item) => Bill.fromJson(item as Map<String, dynamic>)).toList();

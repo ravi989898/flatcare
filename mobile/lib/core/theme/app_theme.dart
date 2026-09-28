@@ -33,14 +33,6 @@ class AppTheme {
   static const statusPaid = AppColors.success;
   static const statusPending = AppColors.warning;
 
-  static Color billStatusColor(String status) {
-    return switch (status) {
-      'paid' => statusPaid,
-      'overdue' => statusDue,
-      _ => statusPending,
-    };
-  }
-
   static const seedColor = AppColors.primary;
 
   static ThemeData light() {

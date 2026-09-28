@@ -34,8 +34,8 @@ class AuthRepository {
     final response = await _client.post('/auth/login', data: {
       'email': email,
       'password': password,
-      if (deviceId != null) 'device_id': deviceId,
-      if (devicePlatform != null) 'device_platform': devicePlatform,
+      'device_id': ?deviceId,
+      'device_platform': ?devicePlatform,
     });
 
     final data = response['data'] as Map<String, dynamic>;
@@ -63,8 +63,8 @@ class AuthRepository {
     final response = await _client.post('/auth/otp/verify', data: {
       'mobile_number': mobileNumber,
       'otp': otp,
-      if (deviceId != null) 'device_id': deviceId,
-      if (devicePlatform != null) 'device_platform': devicePlatform,
+      'device_id': ?deviceId,
+      'device_platform': ?devicePlatform,
     });
 
     final data = response['data'] as Map<String, dynamic>;

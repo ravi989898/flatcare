@@ -121,7 +121,6 @@ class Visitor {
   bool get isPending => status == 'pending';
   bool get isApproved => status == 'approved';
   bool get isCheckedIn => status == 'checked_in';
-  bool get isDenied => status == 'denied';
 
   /// A resident's own unused pass/pre-approval — the only rows they can cancel.
   bool get isCancellable => isPending && !awaitingApproval;

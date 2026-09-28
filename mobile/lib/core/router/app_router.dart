@@ -69,7 +69,7 @@ import '../../features/visitors/screens/visitor_settings_screen.dart';
 /// immediately instead of only on the next route push.
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
-    ref.listen(authControllerProvider, (_, __) => notifyListeners());
+    ref.listen(authControllerProvider, (_, _) => notifyListeners());
   }
 }
 

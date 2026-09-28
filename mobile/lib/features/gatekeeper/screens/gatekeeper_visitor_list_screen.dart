@@ -116,7 +116,7 @@ class _GatekeeperVisitorListScreenState extends ConsumerState<GatekeeperVisitorL
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _statusFilters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final f = _statusFilters[i];
                 final selected = filter.status == f.status;
@@ -159,7 +159,7 @@ class _GatekeeperVisitorListScreenState extends ConsumerState<GatekeeperVisitorL
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                     itemCount: state.items.length + 1 + (state.hasMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         final total = state.total ?? state.items.length;

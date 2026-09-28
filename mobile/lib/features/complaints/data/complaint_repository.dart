@@ -11,7 +11,7 @@ class ComplaintRepository {
 
   Future<List<Complaint>> list({String? status}) async {
     final response = await _client.get('/complaints', query: {
-      if (status != null) 'status': status,
+      'status': ?status,
     });
 
     return (response['data'] as List)

@@ -20,40 +20,33 @@ class PhotoAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
 
-    if (url == null || url!.isEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.15),
-        child: Text(
-          initial,
-          style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w700, fontSize: radius * 0.7),
-        ),
-      );
-    }
+    final fallback = CircleAvatar(
+      radius: radius,
+      backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.15),
+      child: Text(
+        initial,
+        style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w700, fontSize: radius * 0.7),
+      ),
+    );
+
+    if (url == null || url!.isEmpty) return fallback;
+    // Decode at the size it is drawn, not the uploaded photo's full
+    // resolution (up to 1280px+) - keeps long lists like the Directory
+    // light on memory and smooth to scroll. Width only: setting both would
+    // squash a non-square photo (the resize is exact, not aspect-fit).
+    final cacheWidth = (radius * 2 * MediaQuery.devicePixelRatioOf(context)).round();
 
     return ClipOval(
       child: CachedNetworkImage(
         imageUrl: url!,
         width: radius * 2,
         height: radius * 2,
+        memCacheWidth: cacheWidth,
         fit: BoxFit.cover,
-        placeholder: (context, url) => CircleAvatar(
-          radius: radius,
-          backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.15),
-          child: SizedBox(
-            width: radius * 0.7,
-            height: radius * 0.7,
-            child: const CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-        errorWidget: (context, url, error) => CircleAvatar(
-          radius: radius,
-          backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.15),
-          child: Text(
-            initial,
-            style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w700, fontSize: radius * 0.7),
-          ),
-        ),
+        // The initial while loading too: a spinner per avatar meant dozens
+        // of running animations in a long list.
+        placeholder: (context, url) => fallback,
+        errorWidget: (context, url, error) => fallback,
       ),
     );
   }

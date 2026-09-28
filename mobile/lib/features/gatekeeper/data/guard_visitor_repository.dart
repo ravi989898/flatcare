@@ -47,7 +47,7 @@ class GuardVisitorRepository {
 
   Future<List<Visitor>> list({String? status, String? search}) async {
     final response = await _client.get('/guard/visitors', query: {
-      if (status != null) 'status': status,
+      'status': ?status,
       if (search != null && search.isNotEmpty) 'search': search,
     });
 
@@ -64,9 +64,9 @@ class GuardVisitorRepository {
     int page = 1,
   }) async {
     final response = await _client.get('/guard/visitors', query: {
-      if (status != null) 'status': status,
-      if (kind != null) 'kind': kind,
-      if (date != null) 'date': date,
+      'status': ?status,
+      'kind': ?kind,
+      'date': ?date,
       if (search != null && search.isNotEmpty) 'search': search,
       'page': page,
     });

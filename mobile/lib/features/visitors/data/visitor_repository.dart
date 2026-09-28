@@ -9,8 +9,6 @@ import 'visitor.dart';
 /// the key of a Riverpod `family` (records compare by value).
 typedef VisitorQuery = ({String? status, String? search, DateTime? from, DateTime? to, String? kind});
 
-const noVisitorFilter = (status: null, search: null, from: null, to: null, kind: null);
-
 final _apiDate = DateFormat('yyyy-MM-dd');
 
 class VisitorRepository {

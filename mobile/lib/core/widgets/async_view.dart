@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_exception.dart';
 import '../theme/app_colors.dart';
 
-/// Renders an AsyncValue<T> with a consistent loading/error/empty pattern
+/// Renders an `AsyncValue<T>` with a consistent loading/error/empty pattern
 /// across every feature screen, so each screen only has to describe its
 /// success state. Pass [skeleton] on list screens to show shimmer-free
 /// placeholder cards instead of a bare spinner while loading.
@@ -188,7 +188,7 @@ class ListSkeleton extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: count,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(

@@ -11,7 +11,7 @@ class DocumentRepository {
 
   Future<List<AppDocument>> list({String? category}) async {
     final response = await _client.get('/documents', query: {
-      if (category != null) 'category': category,
+      'category': ?category,
     });
 
     return (response['data'] as List).map((item) => AppDocument.fromJson(item as Map<String, dynamic>)).toList();

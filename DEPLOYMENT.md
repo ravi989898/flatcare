@@ -138,11 +138,18 @@ Build it with:
 ```bash
 cd mobile
 flutter build apk --release --split-per-abi \
+  --split-debug-info=build/symbols \
   --dart-define=API_BASE_URL=https://flatcare.in/api/v1
 # upload build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-# to the server as public/downloads/flatcare-app.apk  (~19 MB, fits every
+# to the server as public/downloads/flatcare-app.apk  (~20 MB, fits every
 # phone since ~2019)
 ```
+
+`--split-debug-info` keeps the Dart debug symbols out of the APK (~1 MB
+smaller); keep `build/symbols` from that build if you need to read a crash
+stack trace (`flutter symbolize`). The QR scanner's ML Kit engine is not
+bundled either - it comes from Google Play Services
+(`mobile/android/gradle.properties`), saving ~6 MB.
 
 (a wrong/missing value makes release builds fall back to the emulator-only
 `10.0.2.2` and never reach the server.)
