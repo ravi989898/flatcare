@@ -40,6 +40,15 @@ return [
     // GOOGLE_SITE_VERIFICATION in .env to the content= value Search Console gives you.
     'google_verification' => env('GOOGLE_SITE_VERIFICATION'),
 
+    // Bing Webmaster Tools "meta tag" verification token (optional).
+    'bing_verification' => env('BING_SITE_VERIFICATION'),
+
+    // The brand's official profiles (Google Business Profile, Facebook,
+    // Instagram, LinkedIn, YouTube, Play Store, JustDial, ...), comma-separated
+    // in SEO_SAME_AS. They go into the Organization schema's `sameAs`, which
+    // tells Google these profiles and flatcare.in are the same "FlatCare".
+    'same_as' => array_values(array_filter(array_map('trim', explode(',', (string) env('SEO_SAME_AS', ''))))),
+
     // Date the content of the sitemap entries was last reviewed (YYYY-MM-DD).
     'lastmod' => '2026-09-19',
 

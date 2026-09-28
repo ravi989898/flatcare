@@ -135,6 +135,28 @@ class SeoTest extends TestCase
         }
     }
 
+    public function test_search_console_tokens_and_brand_profiles_are_output_when_configured(): void
+    {
+        $html = $this->get('/')->getContent();
+        $this->assertStringNotContainsString('google-site-verification', $html);
+        $this->assertStringNotContainsString('msvalidate.01', $html);
+        $this->assertStringNotContainsString('"sameAs"', $html);
+
+        config([
+            'seo.google_verification' => 'g-token-123',
+            'seo.bing_verification' => 'b-token-456',
+            'seo.same_as' => ['https://www.facebook.com/flatcare', 'https://www.instagram.com/flatcare'],
+        ]);
+        $html = $this->get('/')->getContent();
+
+        $this->assertStringContainsString('<meta name="google-site-verification" content="g-token-123">', $html);
+        $this->assertStringContainsString('<meta name="msvalidate.01" content="b-token-456">', $html);
+
+        preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m);
+        $organization = collect(json_decode($m[1], true)['@graph'])->firstWhere('@type', 'Organization');
+        $this->assertSame(['https://www.facebook.com/flatcare', 'https://www.instagram.com/flatcare'], $organization['sameAs']);
+    }
+
     public function test_sitemap_lists_every_public_page_and_nothing_private(): void
     {
         $response = $this->get('/sitemap.xml')->assertOk();

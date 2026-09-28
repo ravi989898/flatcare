@@ -18,6 +18,9 @@
     @if (config('seo.google_verification'))
         <meta name="google-site-verification" content="{{ config('seo.google_verification') }}">
     @endif
+    @if (config('seo.bing_verification'))
+        <meta name="msvalidate.01" content="{{ config('seo.bing_verification') }}">
+    @endif
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1c3f2b">
     <meta name="application-name" content="FlatCare">

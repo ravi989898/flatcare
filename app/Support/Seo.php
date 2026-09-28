@@ -106,7 +106,7 @@ class Seo
                 'areaServed' => 'IN',
                 'availableLanguage' => ['English'],
             ]],
-        ];
+        ] + (config('seo.same_as') ? ['sameAs' => config('seo.same_as')] : []);
     }
 
     /** @return array<string, mixed> */
