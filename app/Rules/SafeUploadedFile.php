@@ -32,22 +32,37 @@ use Illuminate\Http\UploadedFile;
 class SafeUploadedFile implements ValidationRule
 {
     /**
-     * Magic-byte / leading-text signatures that must never be accepted,
-     * whatever extension or MIME type the upload claims. Matched
-     * case-insensitively anywhere in the file.
+     * Script/markup signatures that must never be accepted, whatever
+     * extension or MIME type the upload claims. Matched case-insensitively
+     * anywhere in the file. Long enough (5+ characters) that they never
+     * turn up by chance inside compressed binary data.
      *
      * @var array<int, string>
      */
     private const DANGEROUS_SIGNATURES = [
         '<?php',
-        '<?=',
         '<script',
-        '<%',           // ASP/JSP script tags
         'javascript:',
         '<iframe',
         '<object',
         '<embed',
     ];
+
+    /**
+     * Short script openers, checked only in text formats (e.g. SVG). In a
+     * JPEG/PNG/PDF body two or three arbitrary bytes like these occur by
+     * pure chance - "<%" appears dozens of times in a typical 2 MB camera
+     * photo - so scanning binary files for them rejected ordinary photos.
+     *
+     * @var array<int, string>
+     */
+    private const TEXT_ONLY_SIGNATURES = [
+        '<?=',
+        '<%',           // ASP/JSP script tags
+    ];
+
+    /** Formats whose body is compressed/binary data, not text. */
+    private const BINARY_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
 
     /** Binary headers that mark an executable, checked at offset 0 only. */
     private const EXECUTABLE_MAGIC = [
@@ -140,8 +155,11 @@ class SafeUploadedFile implements ValidationRule
         // Office/zip formats are compressed, so signatures don't appear as
         // plain text there — their type is enforced by the finfo check above.
         $body = (string) file_get_contents($realPath, false, null, 0, self::MAX_SCAN_BYTES);
+        $signatures = in_array($extension, self::BINARY_EXTENSIONS, true)
+            ? self::DANGEROUS_SIGNATURES
+            : [...self::DANGEROUS_SIGNATURES, ...self::TEXT_ONLY_SIGNATURES];
 
-        foreach (self::DANGEROUS_SIGNATURES as $signature) {
+        foreach ($signatures as $signature) {
             if (stripos($body, $signature) !== false) {
                 $this->reject($fail, $attribute, 'script_signature', 'The :attribute contains content that is not allowed.', $extension, $actualMime);
 

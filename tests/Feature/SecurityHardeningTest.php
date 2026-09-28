@@ -81,6 +81,24 @@ class SecurityHardeningTest extends TestCase
         $this->assertTrue($this->validate($file, ['png', 'jpg']));
     }
 
+    /**
+     * Compressed image bytes contain short sequences like "<%" and "<?=" by
+     * pure chance; a real camera photo must not be rejected for that.
+     */
+    public function test_a_photo_whose_binary_data_happens_to_contain_short_script_openers_is_accepted(): void
+    {
+        $img = imagecreatetruecolor(64, 64);
+        ob_start();
+        imagejpeg($img);
+        $jpeg = (string) ob_get_clean();
+        // Splice the bytes into the compressed data (after the SOI/APP0 headers).
+        $jpeg = substr($jpeg, 0, -2)."\x00<%\x10<?=\x7f".substr($jpeg, -2);
+
+        $file = UploadedFile::fake()->createWithContent('gate.jpg', $jpeg);
+
+        $this->assertTrue($this->validate($file, ['jpg', 'jpeg', 'png']));
+    }
+
     public function test_php_renamed_to_an_image_is_rejected(): void
     {
         $file = UploadedFile::fake()->createWithContent('shell.jpg', '<?php echo "test"; ?>');
