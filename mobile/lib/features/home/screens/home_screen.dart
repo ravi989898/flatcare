@@ -304,7 +304,7 @@ class _HomeDrawer extends ConsumerWidget {
           _DrawerProfileHeader(name: userName, photoUrl: user?.profilePhotoUrl, onTap: () => go('/profile')),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
               children: [
                 _DrawerTile(icon: Icons.person_outline, accent: AppColors.accentSky, label: 'Profile', onTap: () => go('/profile')),
                 _DrawerTile(
@@ -420,7 +420,7 @@ class _DrawerProfileHeader extends StatelessWidget {
         gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.only(bottomRight: Radius.circular(28)),
       ),
-      padding: EdgeInsets.fromLTRB(12, MediaQuery.of(context).padding.top + 8, 12, 12),
+      padding: EdgeInsets.fromLTRB(12, MediaQuery.of(context).padding.top + 8, 12, 10),
       child: Material(
         color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(18),
@@ -428,13 +428,13 @@ class _DrawerProfileHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: PhotoAvatar(url: photoUrl, name: name, radius: 26),
+                  child: PhotoAvatar(url: photoUrl, name: name, radius: 21),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -445,14 +445,14 @@ class _DrawerProfileHeader extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 2),
-                      Text('View Profile', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                      Text('View Profile', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Colors.white),
+                const Icon(Icons.chevron_right, color: Colors.white, size: 20),
               ],
             ),
           ),
@@ -487,7 +487,7 @@ class _DrawerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = color ?? accent;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -495,37 +495,37 @@ class _DrawerTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [tint.withValues(alpha: 0.75), tint],
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.30), blurRadius: 6, offset: const Offset(0, 2))],
                   ),
-                  child: Icon(icon, color: Colors.white, size: 21),
+                  child: Icon(icon, color: Colors.white, size: 17),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         label,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color ?? AppTheme.brandNavy),
+                        style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: color ?? AppTheme.brandNavy),
                       ),
-                      if (subtitle != null) Text(subtitle!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      if (subtitle != null) Text(subtitle!, style: const TextStyle(fontSize: 11, color: Colors.black54)),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: tint.withValues(alpha: 0.6)),
+                Icon(Icons.chevron_right, color: tint.withValues(alpha: 0.6), size: 20),
               ],
             ),
           ),
