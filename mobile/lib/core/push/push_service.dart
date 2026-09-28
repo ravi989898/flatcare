@@ -305,7 +305,6 @@ class PushService with WidgetsBindingObserver {
   /// while the app is open and when it returns to the foreground.
   void refreshData() {
     _ref.invalidate(visitorListProvider);
-    _ref.invalidate(preApprovedListProvider);
     _ref.invalidate(visitorRequestProvider);
     // Gate register, pending requests, passes, log and tile counts.
     invalidateGateLists(_ref.invalidate);

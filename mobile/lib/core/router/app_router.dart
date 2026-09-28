@@ -59,8 +59,6 @@ import '../../features/visitors/screens/gate_pass_screen.dart';
 import '../../features/visitors/screens/my_gate_passes_screen.dart';
 import '../../features/visitors/screens/invite_visitor_screen.dart';
 import '../../features/visitors/screens/gate_approval_screen.dart';
-import '../../features/visitors/screens/pre_approval_request_screen.dart';
-import '../../features/visitors/screens/pre_approved_entry_screen.dart';
 import '../../features/visitors/screens/visitor_list_screen.dart';
 import '../../features/visitors/screens/visitor_request_screen.dart';
 import '../../features/visitors/screens/visitor_settings_screen.dart';
@@ -190,8 +188,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'approve/:id',
             builder: (context, state) => GateApprovalScreen(id: int.parse(state.pathParameters['id']!)),
           ),
-          GoRoute(path: 'pre-approved', builder: (context, state) => const PreApprovedEntryScreen()),
-          GoRoute(path: 'pre-approval', builder: (context, state) => const PreApprovalRequestScreen()),
           GoRoute(
             path: 'helpers',
             builder: (context, state) => const DailyHelperScreen(),

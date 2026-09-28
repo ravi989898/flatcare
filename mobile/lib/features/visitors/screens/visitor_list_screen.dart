@@ -249,7 +249,6 @@ class _VisitorCardState extends ConsumerState<_VisitorCard> {
     try {
       await action();
       ref.invalidate(visitorListProvider(widget.query));
-      ref.invalidate(preApprovedListProvider);
       ref.invalidate(activeGatePassesProvider);
       if (mounted) showVisitorSnack(context, successMessage);
     } on ApiException catch (e) {

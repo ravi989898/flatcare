@@ -12,12 +12,6 @@ final visitorListProvider = FutureProvider.autoDispose.family<List<Visitor>, Vis
   return ref.watch(visitorRepositoryProvider).list(query);
 });
 
-/// Only the quick Pre-Approvals that haven't been used yet — the "Pre-Approved
-/// Entry" screen.
-final preApprovedListProvider = FutureProvider.autoDispose<List<Visitor>>((ref) {
-  return ref.watch(visitorRepositoryProvider).list((status: 'pending', search: null, from: null, to: null, kind: 'pre_approval'));
-});
-
 /// The resident's gate passes that haven't expired — "My Gate Passes".
 final activeGatePassesProvider = FutureProvider.autoDispose<List<Visitor>>((ref) {
   return ref.watch(visitorRepositoryProvider).activeGatePasses();
