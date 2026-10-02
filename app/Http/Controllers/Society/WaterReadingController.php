@@ -34,7 +34,7 @@ class WaterReadingController extends Controller
 {
     public function index(Request $request): View
     {
-        $readings = WaterReading::with(['flat.block', 'bill'])
+        $readings = WaterReading::with(['flat.block', 'bill.payments'])
             ->latest('reading_month')
             ->orderBy('flat_id')
             ->paginate(20);
