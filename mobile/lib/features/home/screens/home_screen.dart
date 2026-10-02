@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -324,7 +323,6 @@ class _HomeDrawer extends ConsumerWidget {
                   label: 'Notification Settings',
                   onTap: () => go('/profile/notification-settings'),
                 ),
-                _DrawerTile(icon: Icons.language_outlined, accent: AppColors.accentTeal, label: 'Language', onTap: () => go('/profile/language')),
                 _DrawerTile(icon: Icons.dark_mode_outlined, accent: AppColors.accentViolet, label: 'Theme', onTap: () => go('/profile/theme')),
                 _DrawerTile(
                   icon: Icons.support_agent_outlined, accent: AppColors.success,
@@ -359,22 +357,6 @@ class _HomeDrawer extends ConsumerWidget {
                       'Download: $link',
                       subject: 'FlatCare app',
                     );
-                  },
-                ),
-                _DrawerTile(
-                  icon: Icons.cleaning_services_outlined, accent: AppColors.primary,
-                  label: 'Clear Cache',
-                  onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    Navigator.of(context).pop();
-                    // Downloaded photos on disk, plus the decoded copies
-                    // Flutter keeps in memory — otherwise nothing visibly
-                    // changes until the app restarts.
-                    await DefaultCacheManager().emptyCache();
-                    PaintingBinding.instance.imageCache
-                      ..clear()
-                      ..clearLiveImages();
-                    messenger.showSnackBar(const SnackBar(content: Text('Cache cleared.')));
                   },
                 ),
                 _DrawerTile(
