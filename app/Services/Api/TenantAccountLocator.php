@@ -137,6 +137,33 @@ class TenantAccountLocator
     }
 
     /**
+     * Find the society + account for a society admin's app OTP login: an
+     * active user with the 'admin' role and this phone - the same account
+     * (and role) the Super Admin set up for the society's web login
+     * (Admin\SocietyAdminController). Lets an admin whose number isn't on
+     * any flat sign in to the app by mobile number too.
+     *
+     * @return array{society: Society, user: TenantUser}|null
+     */
+    public function findSocietyAdminByMobileNumber(string $mobileNumber): ?array
+    {
+        foreach ($this->activeSocieties() as $society) {
+            $this->tenantService->setTenant($society);
+
+            $user = TenantUser::where('phone', $mobileNumber)
+                ->where('status', 'active')
+                ->whereHas('roles', fn ($query) => $query->where('name', 'admin'))
+                ->first();
+
+            if ($user) {
+                return ['society' => $society, 'user' => $user];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return \Illuminate\Support\Collection<int, Society>
      */
     private function activeSocieties()

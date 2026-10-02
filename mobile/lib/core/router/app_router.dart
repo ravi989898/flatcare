@@ -52,6 +52,9 @@ import '../../features/profile/screens/terms_screen.dart';
 import '../../features/profile/screens/theme_screen.dart';
 import '../../features/profile/screens/vehicles_screen.dart';
 import '../../features/service_providers/screens/service_provider_list_screen.dart';
+import '../../features/society_admin/screens/payment_status_screen.dart';
+import '../../features/society_admin/screens/water_reading_entry_screen.dart';
+import '../../features/society_admin/screens/water_readings_screen.dart';
 import '../../features/visitors/data/visitor.dart';
 import '../../features/visitors/screens/daily_helper_form_screen.dart';
 import '../../features/visitors/screens/daily_helper_screen.dart';
@@ -99,6 +102,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && (isAuthRoute || path == '/')) return homePath;
       if (!isLoggedIn && path == '/') return '/login';
+      // Society admin screens: only for the admin (the API refuses everyone else too).
+      if (path.startsWith('/admin') && !(auth.valueOrNull?.user.isSocietyAdmin ?? false)) return homePath;
 
       return null;
     },
@@ -150,6 +155,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/gatekeeper/profile', builder: (context, state) => const GatekeeperProfileScreen()),
+
+      GoRoute(
+        path: '/admin/water-readings',
+        builder: (context, state) => const WaterReadingsScreen(),
+        routes: [
+          GoRoute(
+            path: ':blockId',
+            builder: (context, state) => WaterReadingEntryScreen(
+              blockId: int.parse(state.pathParameters['blockId']!),
+              month: state.uri.queryParameters['month'] ?? monthKey(DateTime.now()),
+              blockName: state.uri.queryParameters['name'],
+            ),
+          ),
+        ],
+      ),
+      GoRoute(path: '/admin/payments', builder: (context, state) => const PaymentStatusScreen()),
 
       GoRoute(
         path: '/bills',

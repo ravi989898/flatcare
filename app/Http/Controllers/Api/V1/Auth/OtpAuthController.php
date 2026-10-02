@@ -29,7 +29,11 @@ use Illuminate\Validation\ValidationException;
  * society admin only has to add them to the guard roster
  * (Society\SecurityGuardController::store) — whoever verifies one of those
  * numbers here is signed in as that flat's resident or as that guard, with
- * the account created on first login if it doesn't exist yet.
+ * the account created on first login if it doesn't exist yet. A society
+ * admin signs in with their existing admin account (matched by its phone),
+ * so the app gets the same 'admin' role as the web panel - and with it the
+ * Society Admin screens. Phone numbers are unique per society, so an admin
+ * whose number is also a flat's is that same account on the resident path.
  */
 class OtpAuthController extends ApiController
 {
@@ -46,7 +50,8 @@ class OtpAuthController extends ApiController
         $mobileNumber = $request->string('mobile_number')->value();
 
         $registered = $locator->findFlatByMobileNumber($mobileNumber)
-            || $locator->findSecurityGuardByMobileNumber($mobileNumber);
+            || $locator->findSecurityGuardByMobileNumber($mobileNumber)
+            || $locator->findSocietyAdminByMobileNumber($mobileNumber);
 
         if (!$registered) {
             throw ValidationException::withMessages([
@@ -65,9 +70,11 @@ class OtpAuthController extends ApiController
         $society = $found['society'];
         $mobileNumber = $request->string('mobile_number')->value();
 
-        $user = $found['guard']
-            ? $this->findOrCreateGuardUser($found['guard'], $mobileNumber)
-            : $this->findOrCreateResident($found['flat'], $mobileNumber);
+        $user = match (true) {
+            (bool) $found['admin'] => $found['admin'],
+            (bool) $found['guard'] => $this->findOrCreateGuardUser($found['guard'], $mobileNumber),
+            default => $this->findOrCreateResident($found['flat'], $mobileNumber),
+        };
 
         $user->forceFill([
             'last_login_at' => now(),

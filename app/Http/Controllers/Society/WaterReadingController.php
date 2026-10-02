@@ -6,14 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\StoreWaterReadingsRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
-use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\WaterReading;
-use App\Services\NotificationService;
+use App\Services\WaterBillingService;
 use Carbon\Carbon;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -100,79 +99,19 @@ class WaterReadingController extends Controller
         ]);
     }
 
-    public function store(StoreWaterReadingsRequest $request, NotificationService $notifications): RedirectResponse
+    public function store(StoreWaterReadingsRequest $request, WaterBillingService $billing): RedirectResponse
     {
         $validated = $request->validated();
 
-        $month = Carbon::parse($validated['month'].'-01')->startOfMonth();
-        $dueDate = $month->copy()->addMonthNoOverflow()->startOfMonth()->addDays(4);
-
-        $society = $request->attributes->get('society');
-        $fixedMaintenance = (float) ($society->fixed_maintenance ?? 0);
-        $waterUnitRate = (float) ($society->water_unit_rate ?? 0);
-
-        $userId = Auth::guard('society')->id();
-        $billed = 0;
-
-        foreach ($validated['readings'] as $row) {
-            if (! isset($row['current_reading']) || $row['current_reading'] === '') {
-                continue; // this flat's reading wasn't entered this round — skip it
-            }
-
-            $prior = WaterReading::priorTo((int) $row['flat_id'], $month);
-            $previousReading = $prior?->current_reading ?? $row['previous_reading'] ?? null;
-
-            if ($previousReading === null) {
-                return back()->withInput()->with('error', 'Every flat needs a previous reading the first time it\'s billed — fill in the "Previous" column for any flat missing one.');
-            }
-
-            if ((float) $row['current_reading'] < (float) $previousReading) {
-                return back()->withInput()->with('error', 'A current reading can\'t be lower than the previous one.');
-            }
-
-            DB::connection('society')->transaction(function () use ($row, $month, $previousReading, $userId, $fixedMaintenance, $waterUnitRate, $dueDate, $notifications, &$billed) {
-                $reading = WaterReading::updateOrCreate(
-                    ['flat_id' => $row['flat_id'], 'reading_month' => $month->toDateString()],
-                    [
-                        'previous_reading' => $previousReading,
-                        'current_reading' => $row['current_reading'],
-                        'recorded_by_user_id' => $userId,
-                    ]
-                );
-
-                $units = $reading->units;
-                $amount = round(($units * $waterUnitRate) + $fixedMaintenance, 2);
-
-                $bill = MaintenanceBill::updateOrCreate(
-                    ['water_reading_id' => $reading->id],
-                    [
-                        'flat_id' => $row['flat_id'],
-                        'title' => $month->format('F Y').' Maintenance',
-                        'amount' => $amount,
-                        'due_date' => $dueDate,
-                        'notes' => "Water: {$units} units × ₹{$waterUnitRate} + Fixed ₹{$fixedMaintenance}",
-                        'created_by_user_id' => $userId,
-                    ]
-                );
-
-                // Only on first creation — re-saving the same month's readings
-                // (e.g. correcting a typo) shouldn't re-notify the resident.
-                if ($bill->wasRecentlyCreated) {
-                    $notifications->notifyFlats(
-                        [$row['flat_id']],
-                        'maintenance_due',
-                        "{$bill->title} due on ".$dueDate->format('d M Y'),
-                        '₹'.number_format($amount, 2),
-                        ['bill_id' => $bill->id],
-                    );
-                }
-
-                $billed++;
-            });
-        }
-
-        if ($billed === 0) {
-            return back()->withInput()->with('error', 'Enter at least one flat\'s current reading before saving.');
+        try {
+            $billed = $billing->record(
+                Carbon::parse($validated['month'].'-01'),
+                $validated['readings'],
+                $request->attributes->get('society'),
+                Auth::guard('society')->id(),
+            );
+        } catch (DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         return redirect()

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V1\Auth;
 use App\Models\Society;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\SecurityGuard;
+use App\Models\Tenant\User as TenantUser;
 use App\Services\Api\OtpService;
 use App\Services\Api\TenantAccountLocator;
 use App\Support\SecurityLog;
@@ -15,8 +16,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Resident/gate-security app OTP login. Same rate-limiting shape as
- * LoginRequest, but resolves a Flat or a SecurityGuard by mobile_number
+ * Resident/gate-security/society-admin app OTP login. Same rate-limiting
+ * shape as LoginRequest, but resolves a Flat, a SecurityGuard or a society
+ * admin's account by mobile_number
  * instead of a User by email - the OTP controller is the one that
  * finds-or-creates the actual account once this confirms the number and
  * code check out.
@@ -42,7 +44,7 @@ class OtpVerifyRequest extends FormRequest
     }
 
     /**
-     * @return array{society: Society, flat: Flat|null, guard: SecurityGuard|null}
+     * @return array{society: Society, flat: Flat|null, guard: SecurityGuard|null, admin: TenantUser|null}
      *
      * @throws ValidationException
      */
@@ -64,12 +66,16 @@ class OtpVerifyRequest extends FormRequest
 
         // A resident's flat takes precedence over a guard roster entry on
         // the off chance the same number was ever registered as both.
+        // A society admin whose number is on neither signs in with their
+        // admin account (the role set up for the society's web login).
         $residentFound = $locator->findFlatByMobileNumber($mobileNumber);
         $guardFound = $residentFound ? null : $locator->findSecurityGuardByMobileNumber($mobileNumber);
+        $adminFound = $residentFound || $guardFound ? null : $locator->findSocietyAdminByMobileNumber($mobileNumber);
 
         $found = match (true) {
-            (bool) $residentFound => ['society' => $residentFound['society'], 'flat' => $residentFound['flat'], 'guard' => null],
-            (bool) $guardFound => ['society' => $guardFound['society'], 'flat' => null, 'guard' => $guardFound['guard']],
+            (bool) $residentFound => ['society' => $residentFound['society'], 'flat' => $residentFound['flat'], 'guard' => null, 'admin' => null],
+            (bool) $guardFound => ['society' => $guardFound['society'], 'flat' => null, 'guard' => $guardFound['guard'], 'admin' => null],
+            (bool) $adminFound => ['society' => $adminFound['society'], 'flat' => null, 'guard' => null, 'admin' => $adminFound['user']],
             default => null,
         };
 

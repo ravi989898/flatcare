@@ -36,6 +36,12 @@ class _MenuGroup {
   final List<_MenuItem> items;
 }
 
+/// Shown first, and only to the society admin.
+const _adminGroup = _MenuGroup('Society Admin', [
+  _MenuItem('Water Readings', '💧', route: '/admin/water-readings'),
+  _MenuItem('Payment Status', '💰', route: '/admin/payments'),
+]);
+
 const _groups = [
   _MenuGroup('Quick Access', [
     _MenuItem('My Bills', '🧾', route: '/bills'),
@@ -81,6 +87,7 @@ class HomeScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final societyName = auth.valueOrNull?.society.name ?? 'FlatCare';
     final unit = auth.valueOrNull?.user.primaryResidency?.flat.displayLabel;
+    final groups = [if (auth.valueOrNull?.user.isSocietyAdmin ?? false) _adminGroup, ..._groups];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F3F7),
@@ -94,7 +101,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
                 children: [
-                  for (final group in _groups) ...[
+                  for (final group in groups) ...[
                     _GroupCard(group: group),
                     const SizedBox(height: 16),
                   ],

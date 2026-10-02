@@ -66,4 +66,9 @@ class UserProfile {
   /// on first login) — the router uses this to send them to the Gatekeeper
   /// home instead of the resident one.
   bool get isGatekeeper => roles.contains('security');
+
+  /// The society's admin (same 'admin' role as the web panel) - sees the
+  /// Society Admin tiles on the home screen (water readings, payment
+  /// status). The backend enforces it too (role:admin on /api/v1/admin/*).
+  bool get isSocietyAdmin => roles.contains('admin');
 }

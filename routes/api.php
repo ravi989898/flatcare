@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Api\V1\Admin\WaterReadingController as AdminWaterReadingController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
@@ -169,6 +171,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::get('/flats', [GuardFlatController::class, 'index'])->name('flats.index');
             Route::get('/vehicles', [GuardVehicleController::class, 'index'])->name('vehicles.index');
+        });
+
+        // Society admin screens in the app - same 'role' check, admin only.
+        Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+            Route::get('/water-readings/blocks', [AdminWaterReadingController::class, 'blocks'])->name('water_readings.blocks');
+            Route::get('/water-readings', [AdminWaterReadingController::class, 'index'])->name('water_readings.index');
+            Route::post('/water-readings', [AdminWaterReadingController::class, 'store'])->middleware('throttle:30,1')->name('water_readings.store');
+
+            Route::get('/payments/periods', [AdminPaymentController::class, 'periods'])->name('payments.periods');
+            Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
         });
     });
 });
