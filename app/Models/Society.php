@@ -53,7 +53,27 @@ class Society extends Model
         'settings' => 'array',
         'fixed_maintenance' => 'decimal:2',
         'water_unit_rate' => 'decimal:2',
+        'razorpay_key_secret' => 'encrypted',
     ];
+
+    /**
+     * Never in toArray()/JSON - Society rows are written to audit logs and
+     * cached. Set only through Admin\SocietyPaymentGatewayController, so
+     * not mass-assignable either.
+     */
+    protected $hidden = ['razorpay_key_secret'];
+
+    /** Online payment is possible once both Razorpay keys are set. */
+    public function hasRazorpay(): bool
+    {
+        return !empty($this->razorpay_key_id) && !empty($this->razorpay_key_secret);
+    }
+
+    /** `rzp_test_...` keys take test payments only - no real money moves. */
+    public function razorpayTestMode(): bool
+    {
+        return str_starts_with((string) $this->razorpay_key_id, 'rzp_test_');
+    }
 
     protected $appends = [
         'is_active',

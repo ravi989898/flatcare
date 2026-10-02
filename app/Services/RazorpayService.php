@@ -8,12 +8,12 @@ use App\Models\Tenant\Payment;
 use App\Models\Tenant\RazorpayOrder;
 use App\Models\Tenant\User as TenantUser;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Razorpay\Api\Api;
-use Razorpay\Api\Errors\SignatureVerificationError;
-use Razorpay\Api\Utility;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -26,17 +26,36 @@ use Throwable;
  * "payment succeeded" claim from the app is never trusted on its own —
  * every success is independently re-derived from Razorpay's own servers
  * (signature + a live payment re-fetch) before the ledger is touched.
+ *
+ * Money taken must always end up on the bill, even when the app never
+ * reports back (killed mid-checkout, network drop, a verify that failed on
+ * a transient error): reconcileOrder() asks Razorpay directly which
+ * payments an order has and records a captured one. It runs from
+ * `payments:reconcile` (scheduled) and when a resident re-opens the bill.
+ *
+ * Each society has its own Razorpay account: the keys come from the
+ * current society (set by the Super Admin, see
+ * Admin\SocietyPaymentGatewayController), so a resident's money goes
+ * straight to their society. Test keys (`rzp_test_`) take test payments.
+ *
+ * Every Razorpay API call goes through the small protected methods at the
+ * bottom, which return plain arrays (tests override them).
  */
 class RazorpayService
 {
-    private ?Api $api = null;
+    /** @var array<string, Api> one client per key id (reconcile walks every society) */
+    private array $apis = [];
 
-    private function api(): Api
+    /** Whether the current society can take online payments. */
+    public function isConfigured(): bool
     {
-        return $this->api ??= new Api(
-            config('services.razorpay.key'),
-            config('services.razorpay.secret'),
-        );
+        return $this->credentials() !== null;
+    }
+
+    /** The current society's public key id, which the app's checkout needs. */
+    public function keyId(): ?string
+    {
+        return $this->credentials()[0] ?? null;
     }
 
     /**
@@ -54,10 +73,14 @@ class RazorpayService
             throw new \DomainException('This bill is already fully paid.');
         }
 
+        if (!$this->isConfigured()) {
+            throw new \DomainException('Online payment is not available for your society yet. Please pay at the society office.');
+        }
+
         $amountPaise = (int) round($bill->balance * 100);
 
         try {
-            $razorpayOrder = $this->api()->order->create([
+            $razorpayOrderId = $this->createRemoteOrder([
                 'amount' => $amountPaise,
                 'currency' => 'INR',
                 // Unique per attempt (not per bill) so a resident can retry a
@@ -82,7 +105,7 @@ class RazorpayService
 
         return RazorpayOrder::create([
             'bill_id' => $bill->id,
-            'razorpay_order_id' => $razorpayOrder->id,
+            'razorpay_order_id' => $razorpayOrderId,
             'amount' => $bill->balance,
             'currency' => 'INR',
             'status' => 'created',
@@ -127,10 +150,17 @@ class RazorpayService
                 );
             }
 
+            // Already recorded (e.g. reconciliation got there first, or a
+            // client retry): nothing to do, the caller just gets the bill.
+            if ($order->status === 'paid') {
+                return $order;
+            }
+
             if ($order->status !== 'created') {
-                // Replay guard #1: a captured order can never be re-claimed,
-                // whether that's an accidental client retry or a deliberate
-                // resubmission of an intercepted success response.
+                // Replay guard: an order being verified right now, or one
+                // that already failed, is never re-claimed from a client
+                // claim. reconcileOrder() still settles it from Razorpay's
+                // own records if money was actually taken.
                 throw new PaymentVerificationFailedException(
                     "Order {$orderId} is already '{$order->status}', refusing to re-verify.",
                 );
@@ -141,93 +171,30 @@ class RazorpayService
             return $order;
         });
 
+        if ($order->status === 'paid') {
+            return $order->bill()->with('payments')->first();
+        }
+
         // Phase 2 — verify against Razorpay's own servers. No DB lock is
         // held during this network I/O.
-        try {
-            (new Utility)->verifyPaymentSignature([
-                'razorpay_order_id' => $orderId,
-                'razorpay_payment_id' => $paymentId,
-                'razorpay_signature' => $signature,
-            ]);
-        } catch (SignatureVerificationError $e) {
-            $this->failOrder($order, 'signature_mismatch: ' . $e->getMessage());
-            throw new PaymentVerificationFailedException("Signature verification failed for order {$orderId}: {$e->getMessage()}");
+        if (!$this->signatureIsValid($orderId, $paymentId, $signature)) {
+            $this->failOrder($order, 'signature_mismatch');
+            throw new PaymentVerificationFailedException("Signature verification failed for order {$orderId}.");
         }
 
         try {
-            $payment = $this->api()->payment->fetch($paymentId);
+            $payment = $this->ensureCaptured($this->fetchPayment($paymentId), $order);
+        } catch (PaymentVerificationFailedException $e) {
+            $this->failOrder($order, $e->getMessage());
+            throw $e;
         } catch (Throwable $e) {
             $this->failOrder($order, 'razorpay_fetch_failed: ' . $e->getMessage());
             throw new PaymentVerificationFailedException("Could not fetch payment {$paymentId} from Razorpay: {$e->getMessage()}");
         }
 
-        // The signature alone proves Razorpay issued this pairing, not
-        // that the payment is currently in a captured state (it could be
-        // merely 'authorized', or later refunded) — this re-fetch is what
-        // actually confirms the money moved.
-        if (($payment->status ?? null) !== 'captured') {
-            $this->failOrder($order, 'payment_status_not_captured: ' . ($payment->status ?? 'unknown'));
-            throw new PaymentVerificationFailedException("Payment {$paymentId} status is '{$payment->status}', not captured.");
-        }
-
-        if (($payment->order_id ?? null) !== $order->razorpay_order_id) {
-            $this->failOrder($order, 'order_id_mismatch');
-            throw new PaymentVerificationFailedException("Payment {$paymentId}'s order_id does not match order {$order->razorpay_order_id}.");
-        }
-
-        // The concrete enforcement of "never trust a client-supplied
-        // amount": this compares what Razorpay says was actually captured
-        // against the amount *we* set when the order was created (itself
-        // only ever derived from the bill's balance) — nothing here reads
-        // an amount from the request at all.
-        $expectedPaise = (int) round(((float) $order->amount) * 100);
-        if ((int) $payment->amount !== $expectedPaise) {
-            $this->failOrder($order, "amount_mismatch: expected {$expectedPaise}, got {$payment->amount}");
-            throw new PaymentVerificationFailedException("Captured amount for payment {$paymentId} does not match the billed amount.");
-        }
-
         // Phase 3 — finalize under a fresh lock.
         try {
-            return DB::transaction(function () use ($order, $paymentId, $signature, $payment) {
-                $order = RazorpayOrder::whereKey($order->id)->lockForUpdate()->first();
-
-                if ($order->status !== 'processing') {
-                    throw new PaymentVerificationFailedException(
-                        "Order {$order->razorpay_order_id} unexpectedly in status '{$order->status}' during finalize.",
-                    );
-                }
-
-                $paymentRow = Payment::create([
-                    'bill_id' => $order->bill_id,
-                    'amount' => $order->amount,
-                    'payment_date' => now()->toDateString(),
-                    'payment_method' => 'online',
-                    'reference_number' => $paymentId,
-                    'notes' => 'Paid online via Razorpay.',
-                    'recorded_by_user_id' => null,
-                ]);
-
-                $order->update([
-                    'status' => 'paid',
-                    'razorpay_payment_id' => $paymentId,
-                    'razorpay_signature' => $signature,
-                    'payment_id' => $paymentRow->id,
-                    'verified_at' => now(),
-                    'meta' => $payment->toArray(),
-                ]);
-
-                $bill = $order->bill()->with('payments')->first();
-
-                app(NotificationService::class)->notifyFlats(
-                    [$bill->flat_id],
-                    'payment_received',
-                    'Payment received',
-                    'Your payment of ₹' . number_format((float) $order->amount, 2) . " for \"{$bill->title}\" was received.",
-                    ['bill_id' => $bill->id, 'payment_id' => $paymentRow->id],
-                );
-
-                return $bill;
-            });
+            return $this->recordCapturedPayment($order, $payment, $signature);
         } catch (QueryException $e) {
             // Belt-and-braces: the unique constraint on razorpay_payment_id
             // is a DB-level replay guard independent of the app-level
@@ -238,6 +205,178 @@ class RazorpayService
         }
     }
 
+    /**
+     * Settles one order from Razorpay's own records, without any claim from
+     * the app: if Razorpay holds a payment for it that is (or can be)
+     * captured for the right amount, it is recorded on the bill. Safe to
+     * run any number of times and alongside a verify — recording is
+     * idempotent under a row lock. Never throws.
+     *
+     * @return bool  whether a payment was recorded
+     */
+    public function reconcileOrder(RazorpayOrder $order): bool
+    {
+        if ($order->status === 'paid') {
+            return false;
+        }
+
+        try {
+            foreach ($this->fetchOrderPayments($order->razorpay_order_id) as $payment) {
+                if (!in_array($payment['status'] ?? null, ['authorized', 'captured'], true)) {
+                    continue;
+                }
+
+                $this->recordCapturedPayment($order, $this->ensureCaptured($payment, $order), null);
+
+                return true;
+            }
+        } catch (Throwable $e) {
+            Log::warning('razorpay.reconcile_failed', [
+                'order_id' => $order->razorpay_order_id,
+                'bill_id' => $order->bill_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return false;
+    }
+
+    /**
+     * Reconciles a bill's recent unsettled orders — called when a resident
+     * opens the bill, so "Check Bill Status" after an unconfirmed payment
+     * shows it paid straight away. Each order is asked about at most once a
+     * minute so opening the screen stays fast.
+     */
+    public function reconcileBill(MaintenanceBill $bill): bool
+    {
+        $recorded = false;
+
+        $orders = RazorpayOrder::where('bill_id', $bill->id)
+            ->where('status', '!=', 'paid')
+            ->where('created_at', '>=', now()->subDay())
+            ->get();
+
+        foreach ($orders as $order) {
+            if (Cache::add("razorpay.reconciled.{$order->razorpay_order_id}", true, 60)) {
+                $recorded = $this->reconcileOrder($order) || $recorded;
+            }
+        }
+
+        return $recorded;
+    }
+
+    /**
+     * Checks a Razorpay payment really belongs to this order and is for its
+     * full amount, and captures it if it is only authorized (when automatic
+     * capture is off in the Razorpay dashboard an authorized payment would
+     * otherwise be refunded by Razorpay after a few days).
+     *
+     * @param  array<string, mixed>  $payment
+     * @return array<string, mixed>  the captured payment
+     *
+     * @throws PaymentVerificationFailedException
+     */
+    private function ensureCaptured(array $payment, RazorpayOrder $order): array
+    {
+        $paymentId = $payment['id'] ?? 'unknown';
+
+        if (($payment['order_id'] ?? null) !== $order->razorpay_order_id) {
+            throw new PaymentVerificationFailedException("order_id_mismatch: payment {$paymentId} is not for order {$order->razorpay_order_id}.");
+        }
+
+        // The concrete enforcement of "never trust a client-supplied
+        // amount": what Razorpay holds is compared against the amount *we*
+        // set when the order was created (itself only ever derived from the
+        // bill's balance) — nothing here reads an amount from the request.
+        $expectedPaise = (int) round(((float) $order->amount) * 100);
+
+        if ((int) ($payment['amount'] ?? 0) !== $expectedPaise) {
+            throw new PaymentVerificationFailedException("amount_mismatch: expected {$expectedPaise}, got " . ($payment['amount'] ?? 'none') . " for payment {$paymentId}.");
+        }
+
+        if (($payment['status'] ?? null) === 'authorized') {
+            $payment = $this->capturePayment($paymentId, $expectedPaise, $order->currency ?: 'INR');
+        }
+
+        if (($payment['status'] ?? null) !== 'captured') {
+            throw new PaymentVerificationFailedException('payment_status_not_captured: ' . ($payment['status'] ?? 'unknown') . " for payment {$paymentId}.");
+        }
+
+        return $payment;
+    }
+
+    /**
+     * Writes the payment to the bill's ledger exactly once: under a lock on
+     * the order, an order that is already paid is left as it is.
+     *
+     * @param  array<string, mixed>  $payment  a captured Razorpay payment
+     */
+    private function recordCapturedPayment(RazorpayOrder $order, array $payment, ?string $signature): MaintenanceBill
+    {
+        [$bill, $paymentRow] = DB::transaction(function () use ($order, $payment, $signature) {
+            $order = RazorpayOrder::whereKey($order->id)->lockForUpdate()->first();
+
+            if ($order->status === 'paid') {
+                return [$order->bill()->with('payments')->first(), null];
+            }
+
+            $paymentRow = Payment::create([
+                'bill_id' => $order->bill_id,
+                'amount' => $order->amount,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => 'online',
+                'reference_number' => $payment['id'],
+                'notes' => 'Paid online via Razorpay.',
+                'recorded_by_user_id' => null,
+            ]);
+
+            $order->update([
+                'status' => 'paid',
+                'razorpay_payment_id' => $payment['id'],
+                'razorpay_signature' => $signature,
+                'payment_id' => $paymentRow->id,
+                'verified_at' => now(),
+                'failure_reason' => null,
+                'meta' => $payment,
+            ]);
+
+            return [$order->bill()->with('payments')->first(), $paymentRow];
+        });
+
+        // After the commit, and never able to undo it: the money is
+        // recorded whether or not the "payment received" push goes out.
+        if ($paymentRow) {
+            try {
+                app(NotificationService::class)->notifyFlats(
+                    [$bill->flat_id],
+                    'payment_received',
+                    'Payment received',
+                    'Your payment of ₹' . number_format((float) $paymentRow->amount, 2) . " for \"{$bill->title}\" was received.",
+                    ['bill_id' => $bill->id, 'payment_id' => $paymentRow->id],
+                );
+            } catch (Throwable $e) {
+                Log::warning('razorpay.payment_notification_failed', ['bill_id' => $bill->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $bill;
+    }
+
+    /**
+     * Razorpay signs "{order_id}|{payment_id}" with the key secret. Checked
+     * here directly: the SDK's Utility::verifyPaymentSignature() reads the
+     * secret from a static that is only set once an Api object has been
+     * built, so on a fresh request it compared against an empty secret and
+     * rejected every genuine payment.
+     */
+    private function signatureIsValid(string $orderId, string $paymentId, string $signature): bool
+    {
+        $secret = (string) ($this->credentials()[1] ?? '');
+
+        return $secret !== ''
+            && hash_equals(hash_hmac('sha256', $orderId . '|' . $paymentId, $secret), $signature);
+    }
+
     private function failOrder(RazorpayOrder $order, string $reason): void
     {
         Log::warning('razorpay.verify_failed', [
@@ -246,6 +385,57 @@ class RazorpayService
             'reason' => $reason,
         ]);
 
-        $order->update(['status' => 'failed', 'failure_reason' => Str::limit($reason, 250)]);
+        // A concurrent reconcile may already have recorded it - never
+        // downgrade a paid order.
+        RazorpayOrder::whereKey($order->id)
+            ->where('status', '!=', 'paid')
+            ->update(['status' => 'failed', 'failure_reason' => Str::limit($reason, 250)]);
+    }
+
+    /**
+     * The current society's [key id, key secret], or null when the Super
+     * Admin hasn't set them up.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    protected function credentials(): ?array
+    {
+        $society = app(TenantService::class)->getCurrentSociety();
+
+        return $society?->hasRazorpay() ? [$society->razorpay_key_id, $society->razorpay_key_secret] : null;
+    }
+
+    private function api(): Api
+    {
+        [$key, $secret] = $this->credentials()
+            ?? throw new RuntimeException('Razorpay keys are not set up for this society.');
+
+        return $this->apis[$key] ??= new Api($key, $secret);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    protected function createRemoteOrder(array $attributes): string
+    {
+        return $this->api()->order->create($attributes)->id;
+    }
+
+    /** @return array<string, mixed> */
+    protected function fetchPayment(string $paymentId): array
+    {
+        return $this->api()->payment->fetch($paymentId)->toArray();
+    }
+
+    /** @return array<string, mixed> */
+    protected function capturePayment(string $paymentId, int $amountPaise, string $currency): array
+    {
+        return $this->api()->payment->fetch($paymentId)
+            ->capture(['amount' => $amountPaise, 'currency' => $currency])
+            ->toArray();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function fetchOrderPayments(string $orderId): array
+    {
+        return $this->api()->order->fetch($orderId)->payments()->toArray()['items'] ?? [];
     }
 }

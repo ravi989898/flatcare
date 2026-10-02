@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PlatformSettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SocietyAdminController;
 use App\Http\Controllers\Admin\SocietyController;
+use App\Http\Controllers\Admin\SocietyPaymentGatewayController;
 use App\Http\Controllers\Admin\SocietySecurityController;
 use App\Http\Controllers\Admin\SocietyStructureController;
 use App\Http\Controllers\Admin\SocietyUserController;
@@ -135,6 +136,11 @@ Route::middleware(['auth', 'verified', 'admin', 'throttle:panel'])->prefix('admi
     Route::delete('/societies/{id}', [SocietyController::class, 'destroy'])->name('societies.destroy');
     Route::post('/societies/{id}/modules/{moduleId}/toggle', [SocietyController::class, 'toggleModule'])->name('societies.modules.toggle');
     Route::post('/societies/{id}/retry-provisioning', [SocietyController::class, 'retryProvisioning'])->name('societies.retry_provisioning');
+
+    // The society's own Razorpay account for residents' online bill payments
+    Route::get('/societies/{id}/payment-gateway', [SocietyPaymentGatewayController::class, 'edit'])->name('societies.payment_gateway.edit');
+    Route::put('/societies/{id}/payment-gateway', [SocietyPaymentGatewayController::class, 'update'])->name('societies.payment_gateway.update');
+    Route::delete('/societies/{id}/payment-gateway', [SocietyPaymentGatewayController::class, 'destroy'])->name('societies.payment_gateway.destroy');
 
     // Society admin management
     Route::get('/societies/{id}/admins', [SocietyAdminController::class, 'index'])->name('societies.admins.index');

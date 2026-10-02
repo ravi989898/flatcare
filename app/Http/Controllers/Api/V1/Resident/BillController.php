@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Resident;
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Resources\Api\V1\BillResource;
 use App\Models\Tenant\MaintenanceBill;
+use App\Services\RazorpayService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,11 +48,19 @@ class BillController extends ApiController
         return $this->paginated(BillResource::collection($paginated), $paginated);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(int $id, RazorpayService $razorpay): JsonResponse
     {
         $bill = MaintenanceBill::with(['flat.block', 'payments', 'waterReading'])
             ->whereIn('flat_id', $this->myFlatIds())
             ->findOrFail($id);
+
+        // A payment Razorpay took but the app never confirmed (app closed,
+        // network drop) is picked up here, so re-opening the bill - or
+        // "Check Bill Status" - shows it paid without waiting for the
+        // scheduled payments:reconcile.
+        if ($bill->balance > 0 && $razorpay->reconcileBill($bill)) {
+            $bill->load('payments');
+        }
 
         return $this->ok(new BillResource($bill));
     }

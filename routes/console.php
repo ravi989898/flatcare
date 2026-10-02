@@ -10,3 +10,7 @@ Artisan::command('inspire', function () {
 // Re-send visitor-approval pushes that failed to reach FCM. Needs the usual
 // `* * * * * php artisan schedule:run` cron entry (see DEPLOYMENT.md).
 Schedule::command('notifications:retry-push')->everyMinute()->withoutOverlapping();
+
+// Record online bill payments Razorpay took but the app never confirmed
+// (app closed / network lost after paying). See RazorpayService::reconcileOrder().
+Schedule::command('payments:reconcile')->everyFiveMinutes()->withoutOverlapping();

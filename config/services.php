@@ -36,16 +36,6 @@ return [
     ],
 
     /*
-    | Resident online-payment gateway. Test-mode keys for now — going live
-    | later is only ever a matter of swapping these two env values for the
-    | account's live-mode keys, never a code change (see RazorpayService).
-    */
-    'razorpay' => [
-        'key' => env('RAZORPAY_KEY_ID'),
-        'secret' => env('RAZORPAY_KEY_SECRET'),
-    ],
-
-    /*
     | Firebase Cloud Messaging (HTTP v1) for mobile push notifications.
     | FCM_CREDENTIALS is the path to a Firebase service-account JSON (kept
     | outside version control, e.g. storage/app/firebase/service-account.json);

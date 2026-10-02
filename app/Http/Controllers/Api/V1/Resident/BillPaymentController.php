@@ -48,7 +48,8 @@ class BillPaymentController extends ApiController
             'razorpay_order_id' => $order->razorpay_order_id,
             'amount' => (int) round($order->amount * 100),
             'currency' => $order->currency,
-            'key' => config('services.razorpay.key'),
+            // The society's own account - the money goes straight to it.
+            'key' => $this->razorpay->keyId(),
             'name' => $society?->name ?? 'FlatCare',
             'description' => $bill->title,
             'bill_id' => $bill->id,

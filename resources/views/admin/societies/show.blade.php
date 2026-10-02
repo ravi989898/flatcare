@@ -20,6 +20,9 @@
             <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-building"></i> Blocks
             </a>
+            <a href="{{ route('admin.societies.payment_gateway.edit', $society->id) }}" class="btn btn-secondary">
+                <i class="fas fa-credit-card"></i> Online Payments
+            </a>
             <a href="{{ route('admin.societies.edit', $society->id) }}" class="btn btn-primary">
                 <i class="fas fa-edit"></i> Edit
             </a>
@@ -137,6 +140,8 @@
                     @endif
                 </div>
             </div>
+
+            @include('admin.societies._razorpay_card')
         </div>
     </div>
 

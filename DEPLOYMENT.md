@@ -65,12 +65,13 @@ MAIL_USERNAME=<smtp user>
 MAIL_PASSWORD=<smtp password>
 MAIL_FROM_ADDRESS=<real from address>
 MAIL_FROM_NAME="${APP_NAME}"
-
-# Switch to LIVE-mode keys (Razorpay Dashboard > Live Mode > Settings > API Keys).
-# Test-mode keys will not accept real payments.
-RAZORPAY_KEY_ID=<live key id>
-RAZORPAY_KEY_SECRET=<live key secret>
 ```
+
+Razorpay keys are not in `.env`: every society collects into its own
+Razorpay account, so the Super Admin enters each society's keys under
+*Societies → (society) → Online Payments* (`rzp_test_` keys for testing,
+`rzp_live_` for real money). `payments:reconcile` runs from the scheduler, so
+the `schedule:run` cron entry must be in place.
 
 SSL is already active on flatcare.in (recommended anyway — this app takes
 real payments via Razorpay); make sure `.htaccess` has an http→https
