@@ -37,15 +37,21 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'blocks', 'label' => 'Blocks', 'route_name' => 'society.blocks.index', 'icon' => 'bi-building', 'display_order' => 6],
             ['key' => 'security', 'label' => 'Security', 'route_name' => 'society.security.index', 'icon' => 'bi-shield-lock', 'display_order' => 7],
             ['key' => 'visitors', 'label' => 'Visitors', 'route_name' => 'society.visitors.index', 'icon' => 'bi-person-badge', 'display_order' => 8],
-            ['key' => 'complaints', 'label' => 'Complaints', 'route_name' => 'society.complaints.index', 'icon' => 'bi-exclamation-circle', 'display_order' => 9],
-            ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 10],
-            ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 11],
-            ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 12],
-            ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 13],
-            ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 14],
-            ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 15],
-            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 16],
-            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 17],
+            // Parent group for the sidebar's "Reports" submenu (see
+            // SetSocietyContext::configureAdminlteSidebar). Its own
+            // route_name doubles as the first child's route so active_pattern
+            // still highlights the group when a report page is open.
+            ['key' => 'reports', 'label' => 'Reports', 'route_name' => 'society.reports.payments', 'icon' => 'bi-file-earmark-bar-graph', 'display_order' => 9],
+            ['key' => 'complaints', 'label' => 'Complaints', 'route_name' => 'society.complaints.index', 'icon' => 'bi-exclamation-circle', 'display_order' => 10],
+            ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 11],
+            ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 12],
+            ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 13],
+            ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 14],
+            ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 15],
+            ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 16],
+            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 17],
+            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 18],
+            ['key' => 'payment-report', 'parent_key' => 'reports', 'label' => 'Payment Report', 'route_name' => 'society.reports.payments', 'icon' => 'bi-receipt-cutoff', 'display_order' => 1],
         ];
 
         foreach ($menuItems as $item) {

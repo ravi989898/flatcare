@@ -32,7 +32,7 @@ class EnsureMenuItemVisible
     ];
 
     /** menu_items.key values that only an admin may ever reach, whatever the visibility catalog says. */
-    private const ADMIN_ONLY_KEYS = ['admins', 'blocks', 'security', 'payments', 'extra-charges', 'water-readings'];
+    private const ADMIN_ONLY_KEYS = ['admins', 'blocks', 'security', 'payments', 'extra-charges', 'water-readings', 'reports', 'payment-report'];
 
     public function handle(Request $request, Closure $next): Response
     {

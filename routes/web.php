@@ -30,6 +30,7 @@ use App\Http\Controllers\Society\ExtraChargeController;
 use App\Http\Controllers\Society\FeeTypeController;
 use App\Http\Controllers\Society\PaymentController;
 use App\Http\Controllers\Society\PollController;
+use App\Http\Controllers\Society\ReportController;
 use App\Http\Controllers\Society\SecurityGuardController as SocietyPortalSecurityGuardController;
 use App\Http\Controllers\Society\ServiceProviderController;
 use App\Http\Controllers\Society\WaterReadingController;
@@ -403,6 +404,11 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/', [WaterReadingController::class, 'index'])->name('index');
             Route::get('/create', [WaterReadingController::class, 'create'])->name('create');
             Route::post('/', [WaterReadingController::class, 'store'])->name('store');
+        });
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
+            Route::get('/payments/export', [ReportController::class, 'exportPayments'])->name('payments.export');
         });
     });
 });
