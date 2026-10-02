@@ -52,4 +52,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         applyFilter();
     });
+
+    // Copies a data attribute off the chosen <option> into another field,
+    // e.g. filling a resident's Phone input from the selected flat's
+    // mobile_number (see admin.societies.users.create/edit). Only fires on
+    // an explicit change, so it never touches a phone number already saved
+    // when the page first loads - but once the user does pick a different
+    // flat, the field is fully replaced (cleared if that flat has no
+    // mobile_number) rather than left stale from the previous selection.
+    document.querySelectorAll('select[data-autofill-target]').forEach(function (sourceSelect) {
+        var targetInput = document.getElementById(sourceSelect.getAttribute('data-autofill-target'));
+        var attr = sourceSelect.getAttribute('data-autofill-attr');
+
+        if (!targetInput || !attr) {
+            return;
+        }
+
+        sourceSelect.addEventListener('change', function () {
+            var selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
+            targetInput.value = selectedOption ? (selectedOption.getAttribute(attr) || '') : '';
+        });
+    });
 });

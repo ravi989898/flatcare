@@ -28,10 +28,10 @@
 
                     <div class="form-group col-md-6">
                         <label for="flat_id">Flat No. <span class="text-danger">*</span></label>
-                        <select name="flat_id" id="flat_id" class="form-control @error('flat_id') is-invalid @enderror" data-filtered-by="block_select" required>
+                        <select name="flat_id" id="flat_id" class="form-control @error('flat_id') is-invalid @enderror" data-filtered-by="block_select" data-autofill-target="phone" data-autofill-attr="data-mobile-number" required>
                             <option value="">— Select a block first —</option>
                             @foreach ($flats as $flat)
-                                <option value="{{ $flat->id }}" data-block-id="{{ $flat->block_id }}" {{ old('flat_id', $residency?->flat_id) == $flat->id ? 'selected' : '' }}>
+                                <option value="{{ $flat->id }}" data-block-id="{{ $flat->block_id }}" data-mobile-number="{{ $flat->mobile_number }}" {{ old('flat_id', $residency?->flat_id) == $flat->id ? 'selected' : '' }}>
                                     {{ $flat->flat_number }}
                                 </option>
                             @endforeach

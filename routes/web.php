@@ -181,6 +181,7 @@ Route::middleware(['auth', 'verified', 'admin', 'throttle:panel'])->prefix('admi
     Route::post('/societies/{id}/blocks', [SocietyStructureController::class, 'blocksStore'])->name('societies.blocks.store');
     Route::get('/societies/{id}/blocks/{blockId}/edit', [SocietyStructureController::class, 'blocksEdit'])->name('societies.blocks.edit');
     Route::put('/societies/{id}/blocks/{blockId}', [SocietyStructureController::class, 'blocksUpdate'])->name('societies.blocks.update');
+    Route::post('/societies/{id}/blocks/{blockId}/toggle-status', [SocietyStructureController::class, 'blocksToggleStatus'])->name('societies.blocks.toggle_status');
     Route::delete('/societies/{id}/blocks/{blockId}', [SocietyStructureController::class, 'blocksDestroy'])->name('societies.blocks.destroy');
 
     Route::get('/societies/{id}/blocks/{blockId}/flats', [SocietyStructureController::class, 'flatsIndex'])->name('societies.blocks.flats.index');
