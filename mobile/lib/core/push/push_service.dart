@@ -10,7 +10,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/announcements/providers/announcement_providers.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/bills/providers/bill_providers.dart';
+import '../../features/events/providers/event_providers.dart';
 import '../../features/gatekeeper/providers/gatekeeper_providers.dart';
 import '../../features/notifications/providers/notification_providers.dart';
 import '../../features/visitors/data/visitor_repository.dart';
@@ -311,6 +314,10 @@ class PushService with WidgetsBindingObserver {
     _ref.invalidate(closedHouseListProvider);
     _ref.invalidate(notificationListProvider);
     _ref.invalidate(unreadNotificationCountProvider);
+    // New bill / payment received, new announcement or event.
+    _ref.invalidate(billListProvider);
+    _ref.invalidate(announcementListProvider);
+    _ref.invalidate(eventListProvider);
   }
 
   @override
@@ -325,7 +332,8 @@ class PushService with WidgetsBindingObserver {
     final auth = await _ref.read(authControllerProvider.future);
     if (auth == null) return;
 
-    final visitorId = int.tryParse('${data['visitor_id'] ?? ''}');
+    int? id(String key) => int.tryParse('${data[key] ?? ''}');
+    final visitorId = id('visitor_id');
 
     if (data['type'] == 'visitor_request' && visitorId != null) {
       final target = '/visitors/approve/$visitorId';
@@ -333,6 +341,13 @@ class PushService with WidgetsBindingObserver {
       if (router.routerDelegate.currentConfiguration.uri.path != target) router.push(target);
     } else if ('${data['type'] ?? ''}'.startsWith('visitor_request_')) {
       router.push('/gatekeeper/visitors');
+    } else if (id('bill_id') case final billId?) {
+      // A new bill, or "payment received" for one.
+      router.push('/bills/$billId');
+    } else if (id('announcement_id') case final announcementId?) {
+      router.push('/announcements/$announcementId');
+    } else if (id('event_id') case final eventId?) {
+      router.push('/events/$eventId');
     } else {
       router.push('/notifications');
     }

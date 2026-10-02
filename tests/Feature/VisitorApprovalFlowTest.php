@@ -580,6 +580,61 @@ class VisitorApprovalFlowTest extends TestCase
         $this->assertNotNull(ResidentNotification::findOrFail($ids[0])->read_at);
     }
 
+    // ------------------------------------------------- bills / announcements
+
+    public function test_a_new_bill_is_pushed_to_that_flats_residents_only(): void
+    {
+        $this->registerDevice($this->residentA, 'good-A-phone');
+        $this->registerDevice($this->residentB, 'good-B-phone');
+
+        app(\App\Services\NotificationService::class)->notifyFlats(
+            [$this->flatA], 'maintenance_due', 'October 2026 Maintenance due on 10 Oct 2026', '₹750.00', ['bill_id' => 42],
+        );
+
+        $this->assertSame(['good-A-phone'], $this->fcmTokens());
+        $this->assertSame('42', $this->fcmCalls[0]['payload']['data']['bill_id']);
+        $this->assertSame('sent', ResidentNotification::where('user_id', $this->residentA->id)->sole()->push_status);
+    }
+
+    public function test_an_announcement_is_pushed_to_everyone_after_the_response_is_sent(): void
+    {
+        $this->registerDevice($this->residentA, 'good-A-phone');
+        $this->registerDevice($this->residentB, 'good-B-phone');
+
+        // As in a web request (not the console): the admin's page must not wait on the pushes.
+        $console = new \ReflectionProperty(app(), 'isRunningInConsole');
+        $console->setValue(app(), false);
+
+        try {
+            app(\App\Services\NotificationService::class)->notifyAllResidents('new_notice', 'Water cut on Sunday', 'No water 10am-2pm.', ['announcement_id' => 7]);
+
+            $this->assertSame([], $this->fcmTokens());
+            $this->assertSame('pending', ResidentNotification::where('user_id', $this->residentA->id)->sole()->push_status);
+
+            app()->terminate(); // the response has gone out
+        } finally {
+            $console->setValue(app(), true);
+        }
+
+        $this->assertEqualsCanonicalizing(['good-A-phone', 'good-B-phone'], $this->fcmTokens());
+        $this->assertSame('sent', ResidentNotification::where('user_id', $this->residentA->id)->sole()->push_status);
+    }
+
+    public function test_a_push_that_never_went_out_is_sent_by_the_retry(): void
+    {
+        $this->registerDevice($this->residentA, 'good-A-phone');
+        $note = ResidentNotification::create([
+            'user_id' => $this->residentA->id, 'type' => 'new_notice', 'title' => 'Water cut', 'push_status' => 'pending',
+        ]);
+        ResidentNotification::whereKey($note->id)->update(['created_at' => now()->subMinutes(5)]);
+
+        // What notifications:retry-push runs for each society.
+        $this->assertSame(1, app(\App\Services\NotificationService::class)->retryPending());
+
+        $this->assertSame(['good-A-phone'], $this->fcmTokens());
+        $this->assertSame('sent', $note->fresh()->push_status);
+    }
+
     // ================================================================ helpers
 
     /** A resident's dated Gate Pass for flat A, valid $from..$to. */

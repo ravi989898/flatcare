@@ -18,15 +18,21 @@ use Throwable;
  * App\Services\VisitorWorkflow).
  *
  * Every notification is stored first (that row is what the app's
- * Notifications screen lists); a push to the user's registered devices is
- * then attempted only when the caller asks for it ($push) - used for the
- * time-critical visitor approval flow. A push can never fail the caller:
+ * Notifications screen lists), then pushed to the user's registered
+ * devices so they actually find out: straight away for the time-critical
+ * visitor approval flow ($push), and after the response has been sent for
+ * everything else (notifyFlats / notifyAllResidents - a new bill,
+ * announcement, event...), so raising bills for every flat never makes the
+ * admin wait on hundreds of pushes. A push can never fail the caller:
  * the outcome is recorded on the row (push_status / push_error) so it can
  * be retried with `php artisan notifications:retry-push`.
  */
 class NotificationService
 {
     public const MAX_PUSH_ATTEMPTS = 5;
+
+    /** @var array<int, ResidentNotification> pushes waiting for the response to be sent */
+    private array $deferred = [];
 
     public function __construct(private FcmService $fcm) {}
 
@@ -171,7 +177,7 @@ class NotificationService
             ->unique();
 
         foreach ($userIds as $userId) {
-            $this->notify($userId, $type, $title, $body, $data);
+            $this->pushLater($this->notify($userId, $type, $title, $body, $data));
         }
     }
 
@@ -186,7 +192,73 @@ class NotificationService
         $userIds = User::query()->active()->pluck('id');
 
         foreach ($userIds as $userId) {
-            $this->notify($userId, $type, $title, $body, $data);
+            $this->pushLater($this->notify($userId, $type, $title, $body, $data));
         }
+    }
+
+    /**
+     * Re-sends, for the current society, pushes that failed (FCM outage,
+     * timeout) or never went out (still `pending`, see pushLater()), up to
+     * MAX_PUSH_ATTEMPTS and only for notifications newer than $maxAgeMinutes
+     * - nobody wants "approve this visitor" for someone who left long ago.
+     * Used by notifications:retry-push.
+     *
+     * @return int  how many were pushed
+     */
+    public function retryPending(int $maxAgeMinutes = 30): int
+    {
+        $retried = 0;
+
+        ResidentNotification::query()
+            ->where(fn ($query) => $query
+                ->where(fn ($failed) => $failed->where('push_status', 'failed')->where('push_attempts', '<', self::MAX_PUSH_ATTEMPTS))
+                ->orWhere(fn ($stuck) => $stuck->where('push_status', 'pending')->where('created_at', '<=', now()->subMinutes(2))))
+            ->where('created_at', '>=', now()->subMinutes($maxAgeMinutes))
+            ->with('visitor')
+            ->get()
+            ->each(function (ResidentNotification $notification) use (&$retried) {
+                // A request that has since been decided needn't be pushed as "please decide".
+                if ($notification->type === 'visitor_request' && $notification->visitor?->status !== 'pending') {
+                    $notification->update(['push_status' => 'skipped', 'push_error' => 'Request no longer pending.']);
+
+                    return;
+                }
+
+                $this->push($notification);
+                $retried++;
+            });
+
+        return $retried;
+    }
+
+    /**
+     * Pushes a stored notification once the HTTP response has gone out
+     * (PHP-FPM/LiteSpeed finish the request first, so the admin's page
+     * isn't held up). The row is `pending` until then; should the process
+     * die first, notifications:retry-push picks it up.
+     *
+     * From the console (scheduler, artisan commands) it is pushed right
+     * away instead: a command may switch to another society's database
+     * before it ends, and the push must read this society's devices.
+     */
+    private function pushLater(ResidentNotification $notification): void
+    {
+        if (app()->runningInConsole()) {
+            $this->push($notification);
+
+            return;
+        }
+
+        $notification->update(['push_status' => 'pending']);
+
+        if ($this->deferred === []) {
+            app()->terminating(function () {
+                while ($pending = array_shift($this->deferred)) {
+                    $this->push($pending);
+                }
+            });
+        }
+
+        $this->deferred[] = $notification;
     }
 }

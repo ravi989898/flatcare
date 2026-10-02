@@ -8,16 +8,23 @@ import '../data/app_notification.dart';
 import '../data/notification_repository.dart';
 import '../providers/notification_providers.dart';
 
-/// A visitor notification opens what it is about: the request for a resident
-/// to answer, the gate register for a guard's approved/rejected result.
+/// A notification opens what it is about: the request for a resident to
+/// answer, the gate register for a guard's approved/rejected result, or the
+/// bill / announcement / event it announces.
 void _openTarget(BuildContext context, AppNotification item) {
   final visitorId = item.visitorId;
-  if (visitorId == null) return;
+  int? id(String key) => int.tryParse('${item.data?[key] ?? ''}');
 
-  if (item.type == 'visitor_request') {
+  if (item.type == 'visitor_request' && visitorId != null) {
     context.push('/visitors/request/$visitorId');
-  } else if (item.type.startsWith('visitor_request_')) {
+  } else if (item.type.startsWith('visitor_request_') && visitorId != null) {
     context.push('/gatekeeper/visitors');
+  } else if (id('bill_id') case final billId?) {
+    context.push('/bills/$billId');
+  } else if (id('announcement_id') case final announcementId?) {
+    context.push('/announcements/$announcementId');
+  } else if (id('event_id') case final eventId?) {
+    context.push('/events/$eventId');
   }
 }
 
