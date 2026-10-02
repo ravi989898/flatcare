@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Composer\CaBundle\CaBundle;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +16,8 @@ use Throwable;
  * a service-account JSON (FCM_CREDENTIALS) signs a short JWT that is
  * exchanged for an OAuth2 access token, cached until shortly before expiry.
  * No Google SDK is needed — just openssl and Laravel's HTTP client.
+ * TLS is verified against composer/ca-bundle, so it works on hosts whose
+ * php.ini has no curl.cainfo (cURL error 60) as well as on ones that do.
  *
  * send() never throws: it returns a result so a Firebase outage can never
  * break the request that triggered the notification.
@@ -52,8 +56,8 @@ class FcmService
         $data = array_merge($data, ['title' => $title, 'body' => $body]);
 
         try {
-            $response = Http::withToken($this->accessToken())
-                ->timeout((int) config('services.fcm.timeout', 5))
+            $response = $this->http()
+                ->withToken($this->accessToken())
                 ->acceptJson()
                 ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId()}/messages:send", [
                     'message' => [
@@ -119,17 +123,54 @@ class FcmService
                 throw new RuntimeException('Could not sign the FCM auth JWT.');
             }
 
-            $response = Http::asForm()->timeout((int) config('services.fcm.timeout', 5))->post($tokenUri, [
+            $response = $this->http()->asForm()->post($tokenUri, [
                 'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
                 'assertion' => $unsigned.'.'.$this->base64Url($signature),
             ]);
 
             if (!$response->successful() || !$response->json('access_token')) {
-                throw new RuntimeException('FCM OAuth token request failed: '.$response->status());
+                throw new RuntimeException('FCM OAuth token request failed: HTTP '.$response->status().' '.$response->json('error_description', $response->json('error', '')));
             }
 
             return $response->json('access_token');
         });
+    }
+
+    /**
+     * Checks the setup end to end without sending anything: credentials
+     * readable, Google reachable, OAuth token issued. Returns null when all
+     * is well, otherwise what is wrong (used by `php artisan fcm:test`).
+     */
+    public function diagnose(): ?string
+    {
+        $path = config('services.fcm.credentials');
+
+        if (!$path) {
+            return 'FCM_CREDENTIALS is not set in .env.';
+        }
+
+        if ($this->credentials() === null) {
+            return "The service-account JSON at [{$path}] is missing, unreadable or not a service-account key.";
+        }
+
+        if (empty($this->projectId())) {
+            return 'No Firebase project id (FCM_PROJECT_ID, or project_id in the service-account JSON).';
+        }
+
+        try {
+            Cache::forget('fcm.access_token');
+            $this->accessToken();
+        } catch (Throwable $e) {
+            return $e->getMessage();
+        }
+
+        return null;
+    }
+
+    private function http(): PendingRequest
+    {
+        return Http::timeout((int) config('services.fcm.timeout', 5))
+            ->withOptions(['verify' => CaBundle::getSystemCaRootBundlePath()]);
     }
 
     /**

@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "composer/ca-bundle": "^1.5",
         "jeroennoten/laravel-adminlte": "^3.16",
         "laravel/framework": "^12.60",
         "laravel/tinker": "^2.9",

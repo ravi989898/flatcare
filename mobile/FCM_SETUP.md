@@ -80,3 +80,24 @@ Android 13+ the app asks for notification permission after login.
 If it doesn't arrive, look at the `resident_notifications` row for that
 request: `push_status` (`sent`, `failed`, `skipped`) and `push_error` say why
 (no registered device, FCM not configured, or Google's error message).
+
+## Checking a live server
+
+The service-account JSON is git-ignored, so it is **not** deployed with the
+code: upload it to the server yourself (same path as `FCM_CREDENTIALS`), then:
+
+```bash
+composer install --no-dev           # pulls composer/ca-bundle (TLS to Google)
+php artisan config:clear
+php artisan fcm:test                         # credentials, Google login, devices + last pushes per society
+php artisan fcm:test --society=1 --user=5    # also sends a test push to that user's phones
+```
+
+Each step prints what is wrong. Common answers:
+
+| Output | Fix |
+| --- | --- |
+| `FCM_CREDENTIALS is not set` / `JSON ... is missing` | Upload the JSON, set the path in `.env`, `config:clear` |
+| `FCM OAuth token request failed: HTTP 400 invalid_grant` | Server clock is wrong, or the key was deleted in Firebase — generate a new one |
+| `Active registered devices: 0` | Log out and back in on the phone (the app must be built with `google-services.json` and point at the live API) |
+| `SENDER_ID_MISMATCH` / `registration token is not valid` | The app was built with a different Firebase project's `google-services.json` than the server key |
