@@ -57,6 +57,13 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 18],
             ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 19],
             ['key' => 'payment-report', 'parent_key' => 'reports', 'label' => 'Payment Report', 'route_name' => 'society.reports.payments', 'icon' => 'bi-receipt-cutoff', 'display_order' => 1],
+            // Children of the "Permissions" parent group (see
+            // 2026_10_03_000004_split_permissions_into_web_and_app): Web
+            // Permission is the original per-society menu-visibility page
+            // (society_role_menu_item); App Permission is its mobile-app
+            // counterpart (society_role_app_menu_item).
+            ['key' => 'web-permission', 'parent_key' => 'permissions', 'label' => 'Web Permission', 'route_name' => 'society.permissions.index', 'icon' => 'bi-display', 'display_order' => 1],
+            ['key' => 'app-permission', 'parent_key' => 'permissions', 'label' => 'App Permission', 'route_name' => 'society.app-permissions.index', 'icon' => 'bi-phone', 'display_order' => 2],
         ];
 
         foreach ($menuItems as $item) {

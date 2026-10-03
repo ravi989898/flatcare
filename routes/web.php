@@ -30,6 +30,7 @@ use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\ExtraChargeController;
 use App\Http\Controllers\Society\FeeTypeController;
 use App\Http\Controllers\Society\PaymentController;
+use App\Http\Controllers\Society\AppPermissionSettingController;
 use App\Http\Controllers\Society\PermissionSettingController;
 use App\Http\Controllers\Society\PollController;
 use App\Http\Controllers\Society\ReportController;
@@ -266,6 +267,11 @@ Route::prefix('society')->name('society.')->group(function () {
         Route::prefix('permissions')->name('permissions.')->group(function () {
             Route::get('/', [PermissionSettingController::class, 'edit'])->name('index');
             Route::post('/', [PermissionSettingController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('app-permissions')->name('app-permissions.')->group(function () {
+            Route::get('/', [AppPermissionSettingController::class, 'edit'])->name('index');
+            Route::post('/', [AppPermissionSettingController::class, 'update'])->name('update');
         });
 
         Route::prefix('directory')->name('directory.')->group(function () {

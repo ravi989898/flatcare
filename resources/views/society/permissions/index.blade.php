@@ -1,11 +1,11 @@
 @extends('society.layout')
 
-@section('title', 'Permissions')
+@section('title', 'Web Permission')
 
 @section('content_header')
     <div>
-        <h1 class="h3 mb-1">Permissions</h1>
-        <p class="text-muted mb-0">Choose which sidebar menus Treasurer, Vice Chairman, Secretary, Committee Member and Resident can see in this society.</p>
+        <h1 class="h3 mb-1">Web Permission</h1>
+        <p class="text-muted mb-0">Choose which Society-portal sidebar menus Treasurer, Vice Chairman, Secretary, Committee Member and Resident can see in this society.</p>
     </div>
 @stop
 
