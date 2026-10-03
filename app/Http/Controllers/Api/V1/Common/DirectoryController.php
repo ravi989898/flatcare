@@ -36,10 +36,9 @@ class DirectoryController extends ApiController
 
         $residencies = $query->orderByDesc('is_primary')->latest()->paginate(20);
         $viewer = $this->user();
-        $viewerIsGuard = $viewer->hasRole('security');
 
         $items = $residencies->getCollection()->map(
-            fn ($residency) => new DirectoryResource($residency, $viewer->id, $viewerIsGuard)
+            fn ($residency) => new DirectoryResource($residency, $viewer->id)
         );
 
         return $this->paginated($items, $residencies);
@@ -53,6 +52,6 @@ class DirectoryController extends ApiController
 
         $viewer = $this->user();
 
-        return $this->ok(new DirectoryResource($residency, $viewer->id, $viewer->hasRole('security')));
+        return $this->ok(new DirectoryResource($residency, $viewer->id));
     }
 }

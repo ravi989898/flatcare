@@ -7,18 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * One row per active residency (FlatResident), matching Society\DirectoryController.
- * Phone/email are masked for everyone except the viewer's own row —
- * ARCHITECTURE.md §5.1 lists the resident directory as "masked". The
- * Gatekeeper/security role is the one exception: they need a resident's
- * real phone number to call them at the gate, so their view always gets
- * the unmasked phone (email masking is unaffected — nothing in their
- * workflow needs it).
+ * Phone numbers are shown in full so society members can call or
+ * WhatsApp each other from the directory. Email stays masked for
+ * everyone except the viewer's own row.
  *
  * @mixin \App\Models\Tenant\FlatResident
  */
 class DirectoryResource extends JsonResource
 {
-    public function __construct(private $residency, private int $viewerUserId, private bool $viewerIsGuard = false)
+    public function __construct(private $residency, private int $viewerUserId)
     {
         parent::__construct($residency);
     }
@@ -29,7 +26,6 @@ class DirectoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         $isSelf = $this->residency->user_id === $this->viewerUserId;
-        $showFullPhone = $isSelf || $this->viewerIsGuard;
 
         return [
             'residency_id' => $this->residency->id,
@@ -37,25 +33,10 @@ class DirectoryResource extends JsonResource
             'is_primary' => $this->residency->is_primary,
             'user_id' => $this->residency->user_id,
             'name' => $this->residency->user?->name,
-            'phone' => $this->mask($this->residency->user?->phone, $showFullPhone, keepEnd: 4),
+            'phone' => $this->residency->user?->phone,
             'email' => $isSelf ? $this->residency->user?->email : $this->maskEmail($this->residency->user?->email),
             'flat' => new FlatResource($this->residency->flat),
         ];
-    }
-
-    private function mask(?string $value, bool $isSelf, int $keepEnd): ?string
-    {
-        if ($value === null || $isSelf) {
-            return $value;
-        }
-
-        $length = strlen($value);
-
-        if ($length <= $keepEnd) {
-            return str_repeat('*', $length);
-        }
-
-        return str_repeat('*', $length - $keepEnd).substr($value, -$keepEnd);
     }
 
     private function maskEmail(?string $email): ?string

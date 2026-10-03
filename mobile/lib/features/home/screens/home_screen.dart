@@ -8,7 +8,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/widgets/photo_avatar.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../bills/data/bill.dart';
+import '../../bills/providers/bill_providers.dart';
 import '../../notifications/providers/notification_providers.dart';
 
 /// One tile in a menu group. `route` is null for features the backend
@@ -21,11 +24,14 @@ import '../../notifications/providers/notification_providers.dart';
 /// emoji glyphs render as full-color art on every platform, so this needs no
 /// bundled icon assets to look right.
 class _MenuItem {
-  const _MenuItem(this.label, this.emoji, {this.route});
+  const _MenuItem(this.label, this.emoji, {this.route, this.showsPendingBills = false});
 
   final String label;
   final String emoji;
   final String? route;
+
+  /// Shows a red badge with the number of unpaid bills.
+  final bool showsPendingBills;
 }
 
 class _MenuGroup {
@@ -43,7 +49,7 @@ const _adminGroup = _MenuGroup('Society Admin', [
 
 const _groups = [
   _MenuGroup('Quick Access', [
-    _MenuItem('My Bills', '🧾', route: '/bills'),
+    _MenuItem('My Bills', '🧾', route: '/bills', showsPendingBills: true),
     _MenuItem('Complaints', '⚠️', route: '/complaints'),
   ]),
   _MenuGroup('Directory', [
@@ -100,6 +106,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
                 children: [
+                  const _PendingDueCard(),
                   for (final group in groups) ...[
                     _GroupCard(group: group),
                     const SizedBox(height: 16),
@@ -180,6 +187,131 @@ class _HomeHeader extends ConsumerWidget {
   }
 }
 
+/// Unpaid bills, oldest due first. Shares billListProvider with My Bills, so
+/// paying a bill (which invalidates it) drops it from here too.
+final _pendingBillsProvider = Provider.autoDispose<List<Bill>>((ref) {
+  final bills = ref.watch(billListProvider(null)).valueOrNull ?? const <Bill>[];
+  return bills.where((bill) => bill.isPending && bill.balance > 0).toList()
+    ..sort((a, b) => (a.dueDate ?? '').compareTo(b.dueDate ?? ''));
+});
+
+/// "Pending Due" - one row per unpaid bill with a Pay Now button. Hidden
+/// once everything is paid.
+class _PendingDueCard extends ConsumerWidget {
+  const _PendingDueCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending = ref.watch(_pendingBillsProvider);
+    if (pending.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Pending Due', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final bill in pending) _PendingBillRow(bill: bill),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingBillRow extends ConsumerWidget {
+  const _PendingBillRow({required this.bill});
+
+  final Bill bill;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> open(String route) async {
+      await context.push(route);
+      ref.invalidate(billListProvider(null));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: const Color(0xFFF5F7FB),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => open('/bills/${bill.id}'),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(8, 7, 7, 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE3E8F0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle),
+                  child: const Text('🧾', style: TextStyle(fontSize: 15, height: 1)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bill.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.brandNavy),
+                      ),
+                      const SizedBox(height: 1),
+                      Row(
+                        children: [
+                          if (bill.dueDate != null)
+                            Flexible(
+                              child: Text(
+                                'Due ${formatDate(bill.dueDate)} · ',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, color: Colors.black54),
+                              ),
+                            ),
+                          Text(
+                            formatCurrency(bill.balance),
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.danger),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => open('/bills/${bill.id}?pay=1'),
+                  child: const Text('Pay Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.group});
 
@@ -214,18 +346,21 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-class _MenuTile extends StatelessWidget {
+class _MenuTile extends ConsumerWidget {
   const _MenuTile({required this.item});
 
   final _MenuItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final badge = item.showsPendingBills ? ref.watch(_pendingBillsProvider).length : 0;
+
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () {
+      onTap: () async {
         if (item.route != null) {
-          context.push(item.route!);
+          await context.push(item.route!);
+          if (item.showsPendingBills) ref.invalidate(billListProvider(null));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${item.label} is coming soon')),
@@ -235,15 +370,21 @@ class _MenuTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF2F7),
-              borderRadius: BorderRadius.circular(14),
+          Badge(
+            isLabelVisible: badge > 0,
+            label: Text(badge > 99 ? '99+' : '$badge'),
+            backgroundColor: AppColors.danger,
+            offset: const Offset(4, -6),
+            child: Container(
+              width: 50,
+              height: 50,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF2F7),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(item.emoji, style: const TextStyle(fontSize: 24, height: 1)),
             ),
-            child: Text(item.emoji, style: const TextStyle(fontSize: 24, height: 1)),
           ),
           const SizedBox(height: 6),
           Text(

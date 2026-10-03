@@ -140,14 +140,14 @@ class _WaterReadingEntryScreenState extends ConsumerState<WaterReadingEntryScree
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(54),
+                      minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: _saving ? null : () => _save(sheet.value!),
                     icon: _saving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
                         : const Icon(Icons.save_rounded),
-                    label: Text(_saving ? 'Saving…' : 'Save & Generate Bills', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    label: Text(_saving ? 'Saving…' : 'Save & Generate Bills', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                   ),
                 ),
               ),
@@ -165,9 +165,9 @@ class _WaterReadingEntryScreenState extends ConsumerState<WaterReadingEntryScree
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
                     itemCount: data.rows.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final row = data.rows[index];
                       return _ReadingCard(
@@ -208,18 +208,18 @@ class _ReadingCard extends StatelessWidget {
     final statusColor = row.locked ? AppTheme.statusPaid : (row.isEntered ? AppColors.primary : AppColors.textMuted);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 8, 10, 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: statusColor, width: 4)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: statusColor, width: 3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('Flat ${row.flatNumber}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              Text('Flat ${row.flatNumber}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
               const Spacer(),
               if (row.locked)
                 const _Tag(icon: Icons.lock_rounded, label: 'Paid · locked', color: AppTheme.statusPaid)
@@ -229,7 +229,7 @@ class _ReadingCard extends StatelessWidget {
                 const _Tag(icon: Icons.fiber_new_rounded, label: 'First reading', color: AppTheme.statusPending),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -237,7 +237,7 @@ class _ReadingCard extends StatelessWidget {
                     ? _ReadOnlyValue(label: 'Previous', value: row.previousReading)
                     : _NumberField(controller: previous, label: 'Previous', onChanged: onChanged),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: row.locked
                     ? _ReadOnlyValue(label: 'Current', value: row.currentReading)
@@ -245,18 +245,18 @@ class _ReadingCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           if (invalid)
-            const Text('Current reading is lower than the previous one.', style: TextStyle(fontSize: 12.5, color: AppTheme.statusDue, fontWeight: FontWeight.w600))
+            const Text('Current reading is lower than the previous one.', style: TextStyle(fontSize: 11.5, color: AppTheme.statusDue, fontWeight: FontWeight.w600))
           else if (row.locked && row.billAmount != null)
-            Text('Bill ${formatCurrency(row.billAmount!)} · paid', style: const TextStyle(fontSize: 13, color: AppTheme.statusPaid, fontWeight: FontWeight.w700))
+            Text('Bill ${formatCurrency(row.billAmount!)} · paid', style: const TextStyle(fontSize: 12, color: AppTheme.statusPaid, fontWeight: FontWeight.w700))
           else if (units != null)
             Text(
               '${_trim(units)} units  →  Bill ${formatCurrency(rates.billFor(units))}',
-              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
             )
           else
-            const Text('Enter the meter reading', style: TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
+            const Text('Enter the meter reading', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
         ],
       ),
     );
@@ -281,12 +281,14 @@ class _NumberField extends StatelessWidget {
       textInputAction: TextInputAction.next,
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
       onChanged: (_) => onChanged(),
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(fontSize: 12),
         isDense: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: error ? OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.statusDue)) : null,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        enabledBorder: error ? OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.statusDue)) : null,
       ),
     );
   }
@@ -301,15 +303,15 @@ class _ReadOnlyValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(color: AppTheme.pageBackground, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: AppTheme.pageBackground, borderRadius: BorderRadius.circular(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           Text(
             value == null ? '—' : (value == value!.roundToDouble() ? value!.toStringAsFixed(0) : value.toString()),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -327,14 +329,14 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: color)),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 3),
+          Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );

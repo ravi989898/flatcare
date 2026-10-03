@@ -38,8 +38,7 @@ String _displayName(DirectoryEntry entry) {
   return (name == null || name.isEmpty) ? 'Resident of ${entry.flat.flatNumber}' : name;
 }
 
-/// Masked numbers (••••••3633) can't be dialled — only a full number gets
-/// the call/WhatsApp actions. Gatekeepers receive full numbers from the API.
+/// Only a full, dialable number gets the call/WhatsApp actions.
 bool _isCallable(String? phone) => phone != null && phone.isNotEmpty && !phone.contains('*');
 
 Future<void> _call(String phone) => launchUrl(Uri.parse('tel:$phone'));
