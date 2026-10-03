@@ -56,10 +56,10 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'activity', 'label' => 'Activity', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar2-week', 'display_order' => 14],
             ['key' => 'events', 'parent_key' => 'activity', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 1],
             ['key' => 'elections', 'parent_key' => 'activity', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 2],
+            ['key' => 'polls', 'parent_key' => 'activity', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 3],
             ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 16],
             ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 17],
-            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 18],
-            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 19],
+            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 18],
             ['key' => 'payment-report', 'parent_key' => 'reports', 'label' => 'Payment Report', 'route_name' => 'society.reports.payments', 'icon' => 'bi-receipt-cutoff', 'display_order' => 1],
             // Children of the "Permissions" parent group (see
             // 2026_10_03_000004_split_permissions_into_web_and_app): Web
