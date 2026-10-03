@@ -196,14 +196,14 @@ flutter pub get
 cd ios && pod install && cd ..
 open ios/Runner.xcworkspace      # Xcode: Runner → Signing & Capabilities → choose your Team
 flutter build ipa --release \
-  --dart-define=API_BASE_URL=https://flatcare.dineflowpro.com/api/v1
+  --dart-define=API_BASE_URL=https://flatcare.in/api/v1
 ```
 Then upload `build/ios/ipa/*.ipa` with the **Transporter** app (Mac App Store),
 or Xcode → Product → Archive → Distribute App.
 
 **With Codemagic instead of a Mac:** connect the GitHub repo → Flutter app →
 iOS → *Automatic code signing* with an App Store Connect API key → build
-arguments `--dart-define=API_BASE_URL=https://flatcare.dineflowpro.com/api/v1`
+arguments `--dart-define=API_BASE_URL=https://flatcare.in/api/v1`
 → *Publish to App Store Connect*. Upload `GoogleService-Info.plist` as a secure
 file (or commit it).
 

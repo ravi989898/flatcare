@@ -81,7 +81,7 @@ jobs:
           flutter build apk --release --split-per-abi \
             --build-name="${{ steps.v.outputs.name }}" \
             --build-number="${{ github.run_number }}" \
-            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.dineflowpro.com/api/v1' }}"
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.in/api/v1' }}"
 
       # Google Play only accepts an App Bundle (.aab), signed with the same
       # upload key. It is attached to the release as flatcare-app.aab so it
@@ -93,7 +93,7 @@ jobs:
           flutter build appbundle --release \
             --build-name="${{ steps.v.outputs.name }}" \
             --build-number="${{ github.run_number }}" \
-            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.dineflowpro.com/api/v1' }}"
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.in/api/v1' }}"
 
       - name: Stage release assets
         working-directory: mobile/build/app/outputs/flutter-apk

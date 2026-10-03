@@ -169,21 +169,37 @@
     </div>
 </section>
 
-<section class="pt-4 pb-0">
+<section id="download-app" class="pt-4 pb-0">
     <div class="container">
         <div class="cta-band app-band text-white p-4 p-lg-5 d-flex align-items-center">
             <div class="app-band-copy">
                 <h2 class="h3 fw-bold mb-2"><i class="bi bi-phone"></i> Get the FlatCare society management app</h2>
                 <p class="mb-4">
                     Pay maintenance, raise requests and stay updated — right from your phone.
-                    Android only for now, test build.
                 </p>
-                <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" download="flatcare-app.apk" class="btn btn-light btn-lg px-4 fw-semibold">
-                    <i class="bi bi-download"></i> Download for Android
-                </a>
-                <p class="small mb-0 mt-2 opacity-75">
-                    After downloading, open the file and allow "install from unknown sources" if asked.
-                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <div>
+                        <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" download="flatcare-app.apk" class="btn btn-light btn-lg px-4 fw-semibold">
+                            <i class="bi bi-android2"></i> Download for Android
+                        </a>
+                        <p class="small mb-0 mt-2 opacity-75" style="max-width: 260px;">
+                            Open the file and allow "install from unknown sources" if asked.
+                        </p>
+                    </div>
+                    <div>
+                        @if (config('flatcare.ios_url'))
+                            <a href="{{ config('flatcare.ios_url') }}" target="_blank" rel="noopener" class="btn btn-light btn-lg px-4 fw-semibold">
+                                <i class="bi bi-apple"></i> Download for iPhone
+                            </a>
+                            <p class="small mb-0 mt-2 opacity-75">Available on the App Store.</p>
+                        @else
+                            <span class="btn btn-outline-light btn-lg px-4 fw-semibold disabled" aria-disabled="true">
+                                <i class="bi bi-apple"></i> iPhone app
+                            </span>
+                            <p class="small mb-0 mt-2 opacity-75">Coming soon on the App Store.</p>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>

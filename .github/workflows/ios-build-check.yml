@@ -28,4 +28,4 @@ jobs:
         run: |
           flutter pub get
           flutter build ios --release --no-codesign \
-            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.dineflowpro.com/api/v1' }}"
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.in/api/v1' }}"
