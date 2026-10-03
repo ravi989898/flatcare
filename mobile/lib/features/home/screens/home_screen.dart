@@ -13,6 +13,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../bills/data/bill.dart';
 import '../../bills/providers/bill_providers.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../providers/app_menu_providers.dart';
 
 /// One tile in a menu group. `route` is null for features the backend
 /// doesn't expose yet (see routes/api.php) — those still render, matching
@@ -23,9 +24,15 @@ import '../../notifications/providers/notification_providers.dart';
 /// same colorful, illustrated "sticker" look as the reference screenshots —
 /// emoji glyphs render as full-color art on every platform, so this needs no
 /// bundled icon assets to look right.
+///
+/// `key` matches an `app_menu_items.key` row on the backend (see
+/// AppMenuItemController) — that's how a society's Admin can hide this tile
+/// per role from the web portal's Settings -> Permissions -> App Permission,
+/// without the two sides needing to agree on anything beyond this string.
 class _MenuItem {
-  const _MenuItem(this.label, this.emoji, {this.route, this.showsPendingBills = false});
+  const _MenuItem(this.key, this.label, this.emoji, {this.route, this.showsPendingBills = false});
 
+  final String key;
   final String label;
   final String emoji;
   final String? route;
@@ -43,46 +50,59 @@ class _MenuGroup {
 
 /// Shown first, and only to the society admin.
 const _adminGroup = _MenuGroup('Society Admin', [
-  _MenuItem('Water Readings', '💧', route: '/admin/water-readings'),
-  _MenuItem('Payment Status', '💰', route: '/admin/payments'),
+  _MenuItem('app-water-readings', 'Water Readings', '💧', route: '/admin/water-readings'),
+  _MenuItem('app-payment-status', 'Payment Status', '💰', route: '/admin/payments'),
 ]);
 
 const _groups = [
   _MenuGroup('Quick Access', [
-    _MenuItem('My Bills', '🧾', route: '/bills', showsPendingBills: true),
-    _MenuItem('Complaints', '⚠️', route: '/complaints'),
+    _MenuItem('app-my-bills', 'My Bills', '🧾', route: '/bills', showsPendingBills: true),
+    _MenuItem('app-complaints', 'Complaints', '⚠️', route: '/complaints'),
   ]),
   _MenuGroup('Directory', [
-    _MenuItem('Members', '👥', route: '/directory'),
-    _MenuItem('Committee Members', '🧑‍💼', route: '/committee-members'),
-    _MenuItem('Family Members', '👪', route: '/profile/family-members'),
-    _MenuItem('Vehicles', '🚗', route: '/profile/vehicles'),
-    _MenuItem('Important Contacts', '🚨', route: '/emergency-contacts'),
-    _MenuItem('Service Providers', '🛠️', route: '/service-providers'),
+    _MenuItem('app-members', 'Members', '👥', route: '/directory'),
+    _MenuItem('app-committee-members', 'Committee Members', '🧑‍💼', route: '/committee-members'),
+    _MenuItem('app-family-members', 'Family Members', '👪', route: '/profile/family-members'),
+    _MenuItem('app-vehicles', 'Vehicles', '🚗', route: '/profile/vehicles'),
+    _MenuItem('app-important-contacts', 'Important Contacts', '🚨', route: '/emergency-contacts'),
+    _MenuItem('app-service-providers', 'Service Providers', '🛠️', route: '/service-providers'),
   ]),
   _MenuGroup('Interaction', [
-    _MenuItem('Meetings', '💬', route: '/events'),
-    _MenuItem('Announcement', '📣', route: '/announcements'),
-    _MenuItem('Event', '📅', route: '/events'),
-    _MenuItem('Voting', '🗳️', route: '/polls'),
-    _MenuItem('Amenities', '📋'),
-    _MenuItem('Proposal', '📝'),
-    _MenuItem('Suggestions', '💡'),
-    _MenuItem('Tasks', '🗒️'),
-    _MenuItem('Notifications', '🔔', route: '/notifications'),
+    _MenuItem('app-meetings', 'Meetings', '💬', route: '/events'),
+    _MenuItem('app-announcement', 'Announcement', '📣', route: '/announcements'),
+    _MenuItem('app-event', 'Event', '📅', route: '/events'),
+    _MenuItem('app-voting', 'Voting', '🗳️', route: '/polls'),
+    _MenuItem('app-amenities', 'Amenities', '📋'),
+    _MenuItem('app-proposal', 'Proposal', '📝'),
+    _MenuItem('app-suggestions', 'Suggestions', '💡'),
+    _MenuItem('app-tasks', 'Tasks', '🗒️'),
+    _MenuItem('app-notifications', 'Notifications', '🔔', route: '/notifications'),
   ]),
   _MenuGroup('Visitor', [
-    _MenuItem('My Visitors', '🚪', route: '/visitors'),
-    _MenuItem('My Daily Helpers', '🧹', route: '/visitors/helpers'),
-    _MenuItem('Gate Keeper', '👮', route: '/visitors/gatekeeper'),
-    _MenuItem('Gate Pass', '🎫', route: '/visitors/passes'),
-    _MenuItem('Settings', '⚙️', route: '/visitors/settings'),
+    _MenuItem('app-my-visitors', 'My Visitors', '🚪', route: '/visitors'),
+    _MenuItem('app-my-daily-helpers', 'My Daily Helpers', '🧹', route: '/visitors/helpers'),
+    _MenuItem('app-gate-keeper', 'Gate Keeper', '👮', route: '/visitors/gatekeeper'),
+    _MenuItem('app-gate-pass', 'Gate Pass', '🎫', route: '/visitors/passes'),
+    _MenuItem('app-visitor-settings', 'Settings', '⚙️', route: '/visitors/settings'),
   ]),
   _MenuGroup('My Building', [
-    _MenuItem('Documents', '📄', route: '/documents'),
-    _MenuItem('Statistics', '📊'),
+    _MenuItem('app-documents', 'Documents', '📄', route: '/documents'),
+    _MenuItem('app-statistics', 'Statistics', '📊'),
   ]),
 ];
+
+/// Drops any item whose key isn't in `visibleKeys`, then drops any group
+/// left with no items. `visibleKeys == null` means "still loading or the
+/// request failed" — shown as-is (fail open, see app_menu_providers.dart).
+List<_MenuGroup> _filterGroups(List<_MenuGroup> groups, Set<String>? visibleKeys) {
+  if (visibleKeys == null) return groups;
+
+  return [
+    for (final group in groups)
+      if (group.items.any((item) => visibleKeys.contains(item.key)))
+        _MenuGroup(group.title, group.items.where((item) => visibleKeys.contains(item.key)).toList()),
+  ];
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -92,7 +112,11 @@ class HomeScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final societyName = auth.valueOrNull?.society.name ?? 'FlatCare';
     final unit = auth.valueOrNull?.user.primaryResidency?.flat.displayLabel;
-    final groups = [if (auth.valueOrNull?.user.isSocietyAdmin ?? false) _adminGroup, ..._groups];
+    final visibleKeys = ref.watch(appMenuVisibleKeysProvider).valueOrNull;
+    final groups = _filterGroups(
+      [if (auth.valueOrNull?.user.isSocietyAdmin ?? false) _adminGroup, ..._groups],
+      visibleKeys,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F3F7),

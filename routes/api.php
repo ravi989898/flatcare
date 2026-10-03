@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\AppConfigController;
+use App\Http\Controllers\Api\V1\Common\AppMenuItemController;
 use App\Http\Controllers\Api\V1\Common\DeviceTokenController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
@@ -55,6 +56,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // FCM device registration - any authenticated role (resident or guard).
         Route::post('/devices', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1')->name('devices.store');
         Route::delete('/devices', [DeviceTokenController::class, 'destroy'])->name('devices.destroy');
+
+        // Which of the app's own menu tiles this role's society has hidden
+        // (Settings -> Permissions -> App Permission in the web portal).
+        Route::get('/app-menu-items', [AppMenuItemController::class, 'index'])->name('app_menu_items.index');
 
         Route::prefix('profile')->name('profile.')->group(function () {
             Route::get('/', [ProfileController::class, 'show'])->name('show');
