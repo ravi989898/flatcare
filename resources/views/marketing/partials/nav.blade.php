@@ -28,7 +28,7 @@
                 <li class="nav-item"><a class="nav-link px-3" href="{{ route('marketing.contact') }}">Contact</a></li>
             </ul>
             <div class="d-flex gap-2">
-                <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" class="btn btn-outline-brand" rel="nofollow">
+                <a href="{{ route('home') }}#download-app" class="btn btn-outline-brand">
                     <i class="bi bi-download"></i> Download App
                 </a>
                 @auth

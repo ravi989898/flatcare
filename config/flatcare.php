@@ -23,6 +23,10 @@ return [
 
     'apk_url' => env('MOBILE_APK_URL') ?: null,
 
+    // iPhone app's App Store (or TestFlight public) link. Until it is set the
+    // landing page shows the iPhone button as "Coming soon".
+    'ios_url' => env('MOBILE_IOS_URL') ?: null,
+
     /*
     |--------------------------------------------------------------------------
     | Resident app OTP login

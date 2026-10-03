@@ -81,7 +81,19 @@ jobs:
           flutter build apk --release --split-per-abi \
             --build-name="${{ steps.v.outputs.name }}" \
             --build-number="${{ github.run_number }}" \
-            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'http://flatcare.dineflowpro.com/api/v1' }}"
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.in/api/v1' }}"
+
+      # Google Play only accepts an App Bundle (.aab), signed with the same
+      # upload key. It is attached to the release as flatcare-app.aab so it
+      # can be downloaded and uploaded in Play Console - see
+      # mobile/STORE_RELEASE_GUIDE.md.
+      - name: Build Play Store bundle (AAB)
+        working-directory: mobile
+        run: |
+          flutter build appbundle --release \
+            --build-name="${{ steps.v.outputs.name }}" \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=API_BASE_URL="${{ vars.API_BASE_URL || 'https://flatcare.in/api/v1' }}"
 
       - name: Stage release assets
         working-directory: mobile/build/app/outputs/flutter-apk
@@ -90,6 +102,8 @@ jobs:
           cp app-arm64-v8a-release.apk "$GITHUB_WORKSPACE/flatcare-app.apk"
           # Kept for genuinely old 32-bit devices.
           cp app-armeabi-v7a-release.apk "$GITHUB_WORKSPACE/flatcare-app-arm32.apk"
+          # Play Store upload file.
+          cp ../bundle/release/app-release.aab "$GITHUB_WORKSPACE/flatcare-app.aab"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -101,7 +115,9 @@ jobs:
 
             - **flatcare-app.apk** — install this on any modern phone.
             - flatcare-app-arm32.apk — only for old 32-bit devices.
+            - flatcare-app.aab — upload this one to Google Play Console.
           files: |
             flatcare-app.apk
             flatcare-app-arm32.apk
+            flatcare-app.aab
           fail_on_unmatched_files: true

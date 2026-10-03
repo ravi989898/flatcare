@@ -27,6 +27,8 @@
                     <li><a href="{{ route('marketing.pricing') }}">Pricing</a></li>
                     <li><a href="{{ route('marketing.about') }}">About FlatCare</a></li>
                     <li><a href="{{ route('marketing.contact') }}">Contact</a></li>
+                    <li><a href="{{ route('marketing.privacy-policy') }}">Privacy Policy</a></li>
+                    <li><a href="{{ route('marketing.delete-account') }}">Delete account</a></li>
                     <li><a href="#" data-bs-toggle="modal" data-bs-target="#trialInquiryModal">Start free trial</a></li>
                 </ul>
             </div>

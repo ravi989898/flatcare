@@ -599,5 +599,120 @@ return [
             ],
             'related' => ['features', 'pricing', 'about'],
         ],
+
+        // Legal pages. 'legal' => true renders them as plain reading pages
+        // (no hero image, no trial buttons). Their URLs are the ones given to
+        // Google Play and the App Store - keep the paths stable.
+        'privacy-policy' => [
+            'path' => '/privacy-policy',
+            'name' => 'Privacy Policy',
+            'legal' => true,
+            'priority' => '0.3',
+            'title' => 'Privacy Policy – FlatCare',
+            'description' => 'How FlatCare collects, uses, shares and protects the personal information of housing society residents, committee members and security staff.',
+            'h1' => 'Privacy Policy',
+            'lead' => 'Effective 1 September 2026. This policy explains what information the FlatCare app and website collect, why we need it, who can see it and the choices you have. We never sell your data.',
+            'sections' => [
+                [
+                    'h2' => 'Information we collect',
+                    'items' => [
+                        ['h3' => 'Account information', 'text' => 'When your society adds you to FlatCare we receive your name, mobile number, flat and block, and whether you are an owner, tenant, committee member or security guard. You may also add a profile photo.'],
+                        ['h3' => 'Household information', 'text' => 'Details you choose to add about your household, such as family members (name, relation and optional phone number) and vehicles (vehicle number and type).'],
+                        ['h3' => 'Activity in the app', 'text' => 'Visitor requests, approvals, gate passes and entry/exit times; visitor names, phone numbers, photos and vehicle numbers recorded at the gate; complaints and any photos you attach; maintenance bills, payment status and receipts; poll votes and responses to notices and events.'],
+                        ['h3' => 'Device information', 'text' => 'Device model, operating system and app version, and a notification token that lets us send alerts to your phone. We keep basic logs (time of a request, error reports) to keep the service secure and fix problems.'],
+                        ['h3' => 'Camera and photos', 'text' => 'The camera is used only when you choose to take a photo (for example a visitor photo at the gate or a complaint photo) or to scan a gate pass QR code. We do not access your camera or photos in the background.'],
+                    ],
+                ],
+                [
+                    'h2' => 'How we use your information',
+                    'items' => [
+                        ['h3' => 'Running the service', 'text' => 'To sign you in with an OTP sent to your mobile number, let security guards verify visitors and notify you when someone arrives, show your maintenance bills, record payments and generate receipts, and share notices, polls and events from your committee.'],
+                        ['h3' => 'Support and safety', 'text' => 'To help your committee resolve complaints, provide support when you contact us, keep the service safe, prevent misuse, fix technical issues and understand how features are used so we can improve FlatCare.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Who can see your information',
+                    'intro' => 'Your information is shared only inside your own society, and only with the people who need it. Residents of other societies can never see your information.',
+                    'items' => [
+                        ['h3' => 'Society admin and committee', 'text' => 'Resident, household, visitor, complaint and payment records, so they can manage the society.'],
+                        ['h3' => 'Security guards', 'text' => 'Your name, flat and phone number, so they can contact you about visitors, deliveries and emergencies.'],
+                        ['h3' => 'Other residents', 'text' => 'In the society directory, other residents of your society see your name, block, flat and phone number so neighbours can call or WhatsApp each other. Your email address stays hidden.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Service providers',
+                    'intro' => 'A few trusted companies help us run FlatCare. They process your information only on our behalf and only for the task we give them.',
+                    'items' => [
+                        ['h3' => 'Payments - Razorpay', 'text' => 'Online maintenance payments are handled by Razorpay. Your card, UPI and bank details go directly to Razorpay and are never stored by FlatCare.'],
+                        ['h3' => 'Notifications - Google Firebase', 'text' => 'Firebase Cloud Messaging delivers visitor alerts, bills and reminders to your phone.'],
+                        ['h3' => 'SMS and hosting', 'text' => 'An SMS provider sends the one-time passwords (OTPs) you use to sign in, and secure cloud servers store the service\'s data.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Security and retention',
+                    'items' => [
+                        ['h3' => 'How we protect data', 'text' => 'All data travels over encrypted HTTPS connections, access is limited by role, sign-in uses one-time passwords and each society\'s records are kept separate. No method is 100% secure, but we work continuously to protect your information.'],
+                        ['h3' => 'How long we keep it', 'text' => 'We keep your information while you are a member of your society on FlatCare and for as long as your society needs it, for example payment records for accounts and audits. When you leave or your account is closed, we delete or anonymise what is no longer needed, unless the law requires us to keep it longer.'],
+                        ['h3' => 'Legal requirements', 'text' => 'We may disclose information if we honestly believe it is necessary to follow the law or a lawful government request, to protect the rights or safety of FlatCare, its users or the public, or to prevent fraud and misuse.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Your rights and choices',
+                    'items' => [
+                        ['h3' => 'Access and correction', 'text' => 'View and update your profile, family members and vehicles in the app at any time. Ask us for a copy of your information or to correct anything that is wrong.'],
+                        ['h3' => 'Deleting your account', 'text' => 'You can ask us to delete your account and personal information. See <a href="/delete-account">how to delete your FlatCare account</a>.'],
+                        ['h3' => 'Notifications and permissions', 'text' => 'Choose which notifications you receive under Notification Settings in the app, or turn off notifications and camera access for FlatCare in your phone\'s settings.'],
+                        ['h3' => 'Children', 'text' => 'FlatCare accounts are meant for adults. Parents may add children as family members. We do not knowingly collect personal information directly from children under 18.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Changes and contact',
+                    'items' => [
+                        ['h3' => 'Changes to this policy', 'text' => 'We may update this policy from time to time. We will change the effective date above and tell you in the app before any important change takes effect.'],
+                        ['h3' => 'Contact us', 'text' => 'Questions about this policy or your data: email support@flatcare.in, or use the <a href="/contact">contact page</a> or Help Line in the app menu.'],
+                    ],
+                ],
+            ],
+            'faqs' => [],
+            'related' => [],
+        ],
+
+        'delete-account' => [
+            'path' => '/delete-account',
+            'name' => 'Delete Account',
+            'legal' => true,
+            'priority' => '0.3',
+            'title' => 'Delete Your FlatCare Account',
+            'description' => 'How to request deletion of your FlatCare account and personal data, what is deleted and what your society must keep.',
+            'h1' => 'Delete your FlatCare account',
+            'lead' => 'You can ask for your FlatCare account (the FlatCare society management app by FlatCare) and the personal data linked to it to be deleted at any time.',
+            'sections' => [
+                [
+                    'h2' => 'How to request deletion',
+                    'items' => [
+                        ['h3' => '1. Send us a request', 'text' => 'Email support@flatcare.in with the subject "Delete my account", or WhatsApp us from the number on the <a href="/contact">contact page</a>. Send it from, or mention, the mobile number you use to sign in to FlatCare.'],
+                        ['h3' => '2. Tell us which account', 'text' => 'Include your name, your society name and your block/flat number so we can find the right account.'],
+                        ['h3' => '3. We confirm and delete', 'text' => 'We verify that the request comes from the account holder, let your society admin know, and delete your account within 30 days. We reply to confirm once it is done.'],
+                    ],
+                ],
+                [
+                    'h2' => 'What is deleted',
+                    'items' => [
+                        ['h3' => 'Your account and profile', 'text' => 'Your login, name, mobile number, email address and profile photo.'],
+                        ['h3' => 'Your household details', 'text' => 'Family members and vehicles you added, your entry in the society directory, and the notification tokens of your devices.'],
+                    ],
+                ],
+                [
+                    'h2' => 'What may be kept',
+                    'intro' => 'Some records belong to your society\'s accounts and security, so they are kept after your account is deleted and are no longer linked to a login.',
+                    'items' => [
+                        ['h3' => 'Bills and payments', 'text' => 'Maintenance bills, payments and receipts for your flat are kept for the society\'s accounts and audits, for as long as the law requires.'],
+                        ['h3' => 'Gate and society records', 'text' => 'Visitor entry logs, complaints and notices may be kept by your society for as long as it needs them for its records, then deleted or anonymised.'],
+                    ],
+                ],
+            ],
+            'faqs' => [],
+            'related' => [],
+        ],
     ],
 ];
