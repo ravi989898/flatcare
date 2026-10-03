@@ -82,8 +82,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
             LegalBlock.p('Gatekeepers can see your name, flat and phone number so they can contact you about visitors, '
                 'deliveries and emergencies.'),
             LegalBlock.h('Other residents'),
-            LegalBlock.p('In the society directory other residents see your name, block and flat. Your phone number is '
-                'partly hidden from them.'),
+            LegalBlock.p('In the society directory other residents of your society see your name, block, flat and '
+                'phone number, so neighbours can call or WhatsApp each other. Your email address stays hidden.'),
             LegalBlock.note('Residents of other societies can never see your information. Each society\'s data is '
                 'kept separate.'),
           ],

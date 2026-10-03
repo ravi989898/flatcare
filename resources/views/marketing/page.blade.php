@@ -7,6 +7,8 @@
 
 @php
     $isContact = $key === 'contact';
+    // Privacy Policy / Delete Account: a plain reading page, no sales hero.
+    $isLegal = ! empty($page['legal']);
     $contact = \App\Models\PlatformSetting::contact();
 @endphp
 
@@ -20,9 +22,10 @@
                 </ol>
             </nav>
             <div class="row align-items-center g-5">
-                <div class="col-lg-{{ $isContact ? '6' : '7' }}">
+                <div class="col-lg-{{ $isLegal ? '9' : ($isContact ? '6' : '7') }}">
                     <h1 class="seo-h1 mb-3">{{ $page['h1'] }}</h1>
                     <p class="fs-5 text-muted-2 mb-4">{{ $page['lead'] }}</p>
+                    @unless ($isLegal)
                     <div class="d-flex flex-wrap gap-3">
                         <button type="button" class="btn btn-brand btn-lg rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#trialInquiryModal">Start free trial <i class="bi bi-arrow-right ms-1"></i></button>
                         @if ($isContact)
@@ -31,7 +34,9 @@
                             <a href="{{ route('marketing.contact') }}" class="btn btn-outline-brand btn-lg rounded-pill px-4">Talk to our team</a>
                         @endif
                     </div>
+                    @endunless
                 </div>
+                @unless ($isLegal)
                 <div class="col-lg-{{ $isContact ? '6' : '5' }}">
                     @if ($isContact)
                         <div class="card seo-card p-4">
@@ -51,6 +56,7 @@
                         </picture>
                     @endif
                 </div>
+                @endunless
             </div>
         </div>
     </header>
@@ -101,7 +107,7 @@
                 </div>
                 <div class="row g-4">
                     @foreach ($section['items'] as $item)
-                        <div class="col-md-6 col-lg-{{ count($section['items']) >= 4 ? '3' : '4' }}">
+                        <div class="{{ $isLegal ? 'col-12' : 'col-md-6 col-lg-'.(count($section['items']) >= 4 ? '3' : '4') }}">
                             <div class="seo-card">
                                 <h3>{{ $item['h3'] }}</h3>
                                 <p class="text-muted-2 mb-0">{!! \App\Support\Seo::linkify($item['text']) !!}</p>
@@ -133,6 +139,7 @@
         </section>
     @endif
 
+    @unless ($isLegal)
     <section class="py-5">
         <div class="container">
             <div class="cta-band text-white text-center p-4 p-lg-5">
@@ -144,4 +151,5 @@
             </div>
         </div>
     </section>
+    @endunless
 @endsection

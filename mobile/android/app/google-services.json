@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "701841610451",
+    "project_id": "flatcare-d6743",
+    "storage_bucket": "flatcare-d6743.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701841610451:android:cff4a6b637f5a29ce46626",
+        "android_client_info": {
+          "package_name": "com.flatcare.flatcare_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIofppVgZ7cGqNr8mCV4XU0ysnpbpssO0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701841610451:android:172dde1376d940a9e46626",
+        "android_client_info": {
+          "package_name": "com.flatcare_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIofppVgZ7cGqNr8mCV4XU0ysnpbpssO0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
