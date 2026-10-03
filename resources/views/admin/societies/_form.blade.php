@@ -112,6 +112,14 @@
                 @error('daily_late_fee')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="due_day">Maintenance Due Day</label>
+                <input type="number" step="1" min="1" max="28" class="form-control @error('due_day') is-invalid @enderror" id="due_day" name="due_day" value="{{ $old('due_day', 5) }}">
+                <small class="form-text text-muted">Day of each month the bill is due; it's marked overdue (and the late fee starts) the day after.</small>
+                @error('due_day')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+        </div>
 
         <div class="form-row">
             <div class="form-group col-md-3">

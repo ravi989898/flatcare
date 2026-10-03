@@ -34,6 +34,7 @@ class Society extends Model
         'water_unit_rate',
         'late_fee',
         'daily_late_fee',
+        'due_day',
         'start_date',
         'end_date',
         'status',
@@ -57,6 +58,7 @@ class Society extends Model
         'water_unit_rate' => 'decimal:2',
         'late_fee' => 'decimal:2',
         'daily_late_fee' => 'decimal:2',
+        'due_day' => 'integer',
         'razorpay_key_secret' => 'encrypted',
     ];
 
