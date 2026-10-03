@@ -16,12 +16,20 @@ use Illuminate\View\View;
  * Lets Super Admin choose which Society-portal sidebar items each role can
  * see (Settings -> Menu Settings). Read by SetSocietyContext on every
  * society-portal request to build the logged-in tenant user's menu.
+ *
+ * Only covers Super Admin/Society Admin/Chairman/Security - visibility for
+ * Treasurer/Vice Chairman/Secretary/Committee Member/Resident is decided
+ * per society by that society's own Admin instead (Settings -> Permissions
+ * in the society portal, see Society\PermissionSettingController), so one
+ * society's choices can't leak into another's.
  */
 class MenuSettingController extends Controller
 {
+    private const MANAGED_ROLES = ['super_admin', 'admin', 'chairman', 'security'];
+
     public function edit(): View
     {
-        $roles = RoleDefinition::orderByDesc('priority')->get();
+        $roles = RoleDefinition::whereIn('name', self::MANAGED_ROLES)->orderByDesc('priority')->get();
         $menuItems = MenuItem::orderBy('display_order')->get();
 
         // [role_id => [menu_item_id => bool]]
@@ -36,7 +44,7 @@ class MenuSettingController extends Controller
     {
         $validated = $request->validated();
 
-        $roles = RoleDefinition::all();
+        $roles = RoleDefinition::whereIn('name', self::MANAGED_ROLES)->get();
         $menuItems = MenuItem::all();
         $submitted = $validated['visibility'] ?? [];
 

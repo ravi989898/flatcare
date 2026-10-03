@@ -1,24 +1,20 @@
-@extends('adminlte::page')
+@extends('society.layout')
 
-@section('title', 'Menu Settings')
+@section('title', 'Permissions')
 
 @section('content_header')
-    <h1>Menu Settings</h1>
+    <div>
+        <h1 class="h3 mb-1">Permissions</h1>
+        <p class="text-muted mb-0">Choose which sidebar menus Treasurer, Vice Chairman, Secretary, Committee Member and Resident can see in this society.</p>
+    </div>
 @stop
 
 @section('content')
-    @if ($message = Session::get('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ $message }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-    @endif
-
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Society Portal Sidebar — Visibility by Role</h3>
+            <h3 class="card-title">Menu Visibility by Role</h3>
         </div>
-        <form action="{{ route('admin.settings.menu.update') }}" method="POST" novalidate>
+        <form action="{{ route('society.permissions.update') }}" method="POST" novalidate>
             @csrf
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -55,12 +51,10 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Visibility</button>
+                <button type="submit" class="btn btn-brand"><i class="fas fa-save"></i> Save Permissions</button>
                 <span class="text-muted small ml-2">
-                    Controls which sidebar links show for each role in the society portal. It does not change what
-                    those roles are permitted to <em>do</em> — permissions are managed per society. Visibility for
-                    Treasurer, Vice Chairman, Secretary, Committee Member and Resident is decided per society by
-                    that society's own Admin (Settings → Permissions in the society portal), not here.
+                    Only affects this society. Super Admin, Society Admin, Chairman and Security are fixed and not
+                    shown here.
                 </span>
             </div>
         </form>

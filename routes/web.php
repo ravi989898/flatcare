@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\PermissionLogController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DashboardWidgetSettingController;
 use App\Http\Controllers\Admin\MenuSettingController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Society\EventController;
 use App\Http\Controllers\Society\ExtraChargeController;
 use App\Http\Controllers\Society\FeeTypeController;
 use App\Http\Controllers\Society\PaymentController;
+use App\Http\Controllers\Society\PermissionSettingController;
 use App\Http\Controllers\Society\PollController;
 use App\Http\Controllers\Society\ReportController;
 use App\Http\Controllers\Society\SecurityGuardController as SocietyPortalSecurityGuardController;
@@ -197,6 +199,7 @@ Route::middleware(['auth', 'verified', 'admin', 'throttle:panel'])->prefix('admi
     })->name('super_admins.index');
     
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
+    Route::get('/permission-logs', [PermissionLogController::class, 'index'])->name('permission_logs.index');
 
     // "Start free trial" leads from the landing page
     Route::get('/inquiries', [AdminTrialInquiryController::class, 'index'])->name('inquiries.index');
@@ -258,6 +261,11 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::post('/', [ComplaintController::class, 'store'])->name('store');
             Route::get('/{id}', [ComplaintController::class, 'show'])->name('show');
             Route::put('/{id}', [ComplaintController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('permissions')->name('permissions.')->group(function () {
+            Route::get('/', [PermissionSettingController::class, 'edit'])->name('index');
+            Route::post('/', [PermissionSettingController::class, 'update'])->name('update');
         });
 
         Route::prefix('directory')->name('directory.')->group(function () {
@@ -405,6 +413,7 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/', [WaterReadingController::class, 'index'])->name('index');
             Route::get('/create', [WaterReadingController::class, 'create'])->name('create');
             Route::post('/', [WaterReadingController::class, 'store'])->name('store');
+            Route::put('/{readingId}', [WaterReadingController::class, 'update'])->name('update');
         });
 
         Route::prefix('reports')->name('reports.')->group(function () {

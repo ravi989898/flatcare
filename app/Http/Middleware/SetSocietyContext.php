@@ -104,7 +104,7 @@ class SetSocietyContext
         // every one of them having to re-resolve it from the session.
         $request->attributes->set('society', $society);
         view()->share('currentSociety', $society);
-        $menuItems = $this->menuItemsFor(Auth::guard('society')->user());
+        $menuItems = $this->menuItemsFor(Auth::guard('society')->user(), $society->id);
         view()->share('visibleMenuItems', $menuItems);
         $this->configureAdminlteSidebar($menuItems);
 
@@ -166,10 +166,10 @@ class SetSocietyContext
      * per Settings -> Menu Settings (role_menu_item.is_visible). Falls back
      * to just Dashboard if the user has no role assigned.
      */
-    private function menuItemsFor($tenantUser)
+    private function menuItemsFor($tenantUser, int $societyId)
     {
         $roleName = $tenantUser?->roles()->orderByDesc('priority')->value('name');
 
-        return MenuItem::visibleForRole($roleName);
+        return MenuItem::visibleForRole($roleName, $societyId);
     }
 }

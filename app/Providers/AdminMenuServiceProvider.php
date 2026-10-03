@@ -111,6 +111,12 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'icon' => 'fas fa-fw fa-history',
             ];
 
+            $menu[] = [
+                'text' => 'Permission Logs',
+                'route' => 'admin.permission_logs.index',
+                'icon' => 'fas fa-fw fa-shield-alt',
+            ];
+
             $newInquiries = TrialInquiry::new()->count();
 
             $menu[] = [
