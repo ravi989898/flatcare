@@ -48,7 +48,7 @@
                                     </td>
                                     <td class="text-end">
                                         @if (! $reading->bill || $reading->bill->payments->isEmpty())
-                                            <a href="{{ route('society.water-readings.create', ['month' => $reading->reading_month->format('Y-m'), 'block_id' => $reading->flat->block_id]) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#editReadingModal{{ $reading->id }}">Edit</button>
                                         @endif
                                         @if ($reading->bill)
                                             <a href="{{ route('society.payments.show', $reading->bill->id) }}" class="btn btn-sm btn-outline-secondary">View Bill</a>
@@ -59,6 +59,50 @@
                         </tbody>
                     </table>
                 </div>
+
+                {{-- One modal per editable row, rendered outside the table so
+                     Bootstrap's fixed-position overlay isn't nested inside a
+                     <td>. Each posts only current_reading — previous_reading
+                     is read server-side off the existing row, never trusted
+                     from the request. --}}
+                @foreach ($readings as $reading)
+                    @if (! $reading->bill || $reading->bill->payments->isEmpty())
+                        <div class="modal fade" id="editReadingModal{{ $reading->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <form action="{{ route('society.water-readings.update', $reading->id) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Reading — {{ $reading->flat?->display_label ?? '—' }}</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Month</label>
+                                                <input type="text" class="form-control-plaintext py-0" value="{{ $reading->reading_month->format('F Y') }}" readonly>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Previous Reading</label>
+                                                <input type="text" class="form-control-plaintext py-0" value="{{ $reading->previous_reading }}" readonly>
+                                            </div>
+                                            <div class="form-group mb-0">
+                                                <label for="current_reading_{{ $reading->id }}">Current Reading</label>
+                                                <input type="number" step="0.01" min="0" class="form-control"
+                                                    id="current_reading_{{ $reading->id }}" name="current_reading"
+                                                    value="{{ $reading->current_reading }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-brand">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
             @else
                 <div class="p-5 text-center text-muted">
                     <i class="bi bi-droplet fs-1 d-block mb-2"></i>
