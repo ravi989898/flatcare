@@ -32,22 +32,22 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'dashboard', 'label' => 'Dashboard', 'route_name' => 'society.dashboard', 'icon' => 'bi-speedometer2', 'display_order' => 1],
             ['key' => 'admins', 'label' => 'Admins', 'route_name' => 'society.admins.index', 'icon' => 'bi-person-badge', 'display_order' => 2],
             ['key' => 'payments', 'label' => 'Payments', 'route_name' => 'society.payments.index', 'icon' => 'bi-credit-card', 'display_order' => 3],
-            ['key' => 'extra-charges', 'label' => 'Extra Charges', 'route_name' => 'society.extra-charges.index', 'icon' => 'bi-cash-stack', 'display_order' => 4],
-            ['key' => 'water-readings', 'label' => 'Water Readings', 'route_name' => 'society.water-readings.index', 'icon' => 'bi-droplet', 'display_order' => 5],
-            ['key' => 'blocks', 'label' => 'Blocks', 'route_name' => 'society.blocks.index', 'icon' => 'bi-building', 'display_order' => 6],
-            ['key' => 'security', 'label' => 'Security', 'route_name' => 'society.security.index', 'icon' => 'bi-shield-lock', 'display_order' => 7],
-            ['key' => 'visitors', 'label' => 'Visitors', 'route_name' => 'society.visitors.index', 'icon' => 'bi-person-badge', 'display_order' => 8],
+            ['key' => 'water-readings', 'label' => 'Water Readings', 'route_name' => 'society.water-readings.index', 'icon' => 'bi-droplet', 'display_order' => 4],
+            ['key' => 'blocks', 'label' => 'Blocks', 'route_name' => 'society.blocks.index', 'icon' => 'bi-building', 'display_order' => 5],
+            ['key' => 'security', 'label' => 'Security', 'route_name' => 'society.security.index', 'icon' => 'bi-shield-lock', 'display_order' => 6],
+            ['key' => 'visitors', 'label' => 'Visitors', 'route_name' => 'society.visitors.index', 'icon' => 'bi-person-badge', 'display_order' => 7],
             // Parent group for the sidebar's "Reports" submenu (see
             // SetSocietyContext::configureAdminlteSidebar). Its own
             // route_name doubles as the first child's route so active_pattern
             // still highlights the group when a report page is open.
-            ['key' => 'reports', 'label' => 'Reports', 'route_name' => 'society.reports.payments', 'icon' => 'bi-file-earmark-bar-graph', 'display_order' => 9],
-            ['key' => 'complaints', 'label' => 'Complaints', 'route_name' => 'society.complaints.index', 'icon' => 'bi-exclamation-circle', 'display_order' => 10],
+            ['key' => 'reports', 'label' => 'Reports', 'route_name' => 'society.reports.payments', 'icon' => 'bi-file-earmark-bar-graph', 'display_order' => 8],
+            ['key' => 'complaints', 'label' => 'Complaints', 'route_name' => 'society.complaints.index', 'icon' => 'bi-exclamation-circle', 'display_order' => 9],
             // Admin-only (EnsureMenuItemVisible::ADMIN_ONLY_KEYS): Society
             // Admin decides per-society visibility here for Treasurer/Vice
             // Chairman/Secretary/Committee Member/Resident; see
             // Society\PermissionSettingController and society_role_menu_item.
-            ['key' => 'permissions', 'label' => 'Permissions', 'route_name' => 'society.permissions.index', 'icon' => 'bi-shield-check', 'display_order' => 11],
+            ['key' => 'permissions', 'label' => 'Permissions', 'route_name' => 'society.permissions.index', 'icon' => 'bi-shield-check', 'display_order' => 10],
+            ['key' => 'extra-charges', 'label' => 'Extra Charges', 'route_name' => 'society.extra-charges.index', 'icon' => 'bi-cash-stack', 'display_order' => 11],
             ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 12],
             ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 13],
             // Parent group for the sidebar's "Activity" submenu, same
@@ -56,10 +56,10 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'activity', 'label' => 'Activity', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar2-week', 'display_order' => 14],
             ['key' => 'events', 'parent_key' => 'activity', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 1],
             ['key' => 'elections', 'parent_key' => 'activity', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 2],
+            ['key' => 'polls', 'parent_key' => 'activity', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 3],
             ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 16],
             ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 17],
-            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 18],
-            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 19],
+            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 18],
             ['key' => 'payment-report', 'parent_key' => 'reports', 'label' => 'Payment Report', 'route_name' => 'society.reports.payments', 'icon' => 'bi-receipt-cutoff', 'display_order' => 1],
             // Children of the "Permissions" parent group (see
             // 2026_10_03_000004_split_permissions_into_web_and_app): Web
