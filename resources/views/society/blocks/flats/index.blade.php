@@ -54,13 +54,6 @@
                                                     <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
                                                 @endif
                                             </form>
-                                            <form action="{{ route('society.blocks.flats.destroy', [$block->id, $flat->id]) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Delete this flat?">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>

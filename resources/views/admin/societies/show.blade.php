@@ -3,27 +3,25 @@
 @section('title', $society->name)
 
 @section('content_header')
-    <div class="row">
-        <div class="col-sm-6">
-            <h1>{{ $society->name }}</h1>
-        </div>
-        <div class="col-sm-6 text-right">
-            <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-secondary">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1 class="mb-2 mb-sm-0">{{ $society->name }}</h1>
+        <div class="d-flex flex-nowrap" style="gap: 0.5rem; overflow-x: auto;">
+            <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-secondary text-nowrap">
                 <i class="fas fa-user-shield"></i> Security
             </a>
-            <a href="{{ route('admin.societies.users.index', $society->id) }}" class="btn btn-secondary">
+            <a href="{{ route('admin.societies.users.index', $society->id) }}" class="btn btn-secondary text-nowrap">
                 <i class="fas fa-users"></i> Residents
             </a>
-            <a href="{{ route('admin.societies.admins.index', $society->id) }}" class="btn btn-secondary">
+            <a href="{{ route('admin.societies.admins.index', $society->id) }}" class="btn btn-secondary text-nowrap">
                 <i class="fas fa-user-shield"></i> Admins
             </a>
-            <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-secondary">
+            <a href="{{ route('admin.societies.blocks.index', $society->id) }}" class="btn btn-secondary text-nowrap">
                 <i class="fas fa-building"></i> Blocks
             </a>
-            <a href="{{ route('admin.societies.payment_gateway.edit', $society->id) }}" class="btn btn-secondary">
+            <a href="{{ route('admin.societies.payment_gateway.edit', $society->id) }}" class="btn btn-secondary text-nowrap">
                 <i class="fas fa-credit-card"></i> Online Payments
             </a>
-            <a href="{{ route('admin.societies.edit', $society->id) }}" class="btn btn-primary">
+            <a href="{{ route('admin.societies.edit', $society->id) }}" class="btn btn-primary text-nowrap">
                 <i class="fas fa-edit"></i> Edit
             </a>
         </div>

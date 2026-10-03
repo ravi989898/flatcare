@@ -22,6 +22,7 @@ class MenuItem extends Model
 
     protected $fillable = [
         'key',
+        'parent_key',
         'label',
         'route_name',
         'icon',

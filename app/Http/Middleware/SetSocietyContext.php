@@ -120,12 +120,38 @@ class SetSocietyContext
      */
     private function configureAdminlteSidebar($menuItems): void
     {
-        $items = $menuItems->map(fn (MenuItem $item) => [
-            'text' => $item->label,
-            'url' => route($item->route_name),
-            'icon' => 'bi ' . $item->icon,
-            'active' => request()->routeIs($item->active_pattern) || request()->routeIs($item->active_pattern . '.*'),
-        ])->all();
+        $childrenByParent = $menuItems->whereNotNull('parent_key')->groupBy('parent_key');
+
+        $items = $menuItems
+            ->whereNull('parent_key')
+            ->map(function (MenuItem $item) use ($childrenByParent) {
+                $children = $childrenByParent->get($item->key);
+
+                if ($children && $children->isNotEmpty()) {
+                    $submenu = $children->sortBy('display_order')->map(fn (MenuItem $child) => [
+                        'text' => $child->label,
+                        'url' => route($child->route_name),
+                        'icon' => 'bi ' . $child->icon,
+                        'active' => request()->routeIs($child->active_pattern) || request()->routeIs($child->active_pattern . '.*'),
+                    ])->values()->all();
+
+                    return [
+                        'text' => $item->label,
+                        'icon' => 'bi ' . $item->icon,
+                        'active' => collect($submenu)->contains('active', true),
+                        'submenu' => $submenu,
+                    ];
+                }
+
+                return [
+                    'text' => $item->label,
+                    'url' => route($item->route_name),
+                    'icon' => 'bi ' . $item->icon,
+                    'active' => request()->routeIs($item->active_pattern) || request()->routeIs($item->active_pattern . '.*'),
+                ];
+            })
+            ->values()
+            ->all();
 
         config([
             'adminlte.menu' => $items,

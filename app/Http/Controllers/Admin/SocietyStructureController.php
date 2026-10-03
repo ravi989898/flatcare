@@ -81,6 +81,25 @@ class SocietyStructureController extends Controller
             ->with('success', 'Block updated successfully.');
     }
 
+    /**
+     * Toggle a block between active/inactive. A block can also carry
+     * under_construction status from the create/edit form, but this list
+     * only offers the active/inactive switch - toggling from under
+     * construction simply lands on active.
+     */
+    public function blocksToggleStatus(int $societyId, int $blockId): RedirectResponse
+    {
+        $society = Society::findOrFail($societyId);
+        $this->tenantService->switchConnection($societyId);
+
+        $block = Block::findOrFail($blockId);
+        $block->update(['status' => $block->status === 'active' ? 'inactive' : 'active']);
+
+        return redirect()
+            ->route('admin.societies.blocks.index', $societyId)
+            ->with('success', "Block {$block->block_number} marked ".($block->status === 'active' ? 'active' : 'inactive').'.');
+    }
+
     public function blocksDestroy(int $societyId, int $blockId): RedirectResponse
     {
         $society = Society::findOrFail($societyId);

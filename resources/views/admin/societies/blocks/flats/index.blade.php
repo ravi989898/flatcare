@@ -72,13 +72,6 @@
                                             </button>
                                         @endif
                                     </form>
-                                    <form action="{{ route('admin.societies.blocks.flats.destroy', [$society->id, $block->id, $flat->id]) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this flat?">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
                                 </td>
                             </tr>
                         @endforeach

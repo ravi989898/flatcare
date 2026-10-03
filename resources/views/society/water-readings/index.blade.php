@@ -47,6 +47,9 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
+                                        @if (! $reading->bill || $reading->bill->payments->isEmpty())
+                                            <a href="{{ route('society.water-readings.create', ['month' => $reading->reading_month->format('Y-m'), 'block_id' => $reading->flat->block_id]) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        @endif
                                         @if ($reading->bill)
                                             <a href="{{ route('society.payments.show', $reading->bill->id) }}" class="btn btn-sm btn-outline-secondary">View Bill</a>
                                         @endif

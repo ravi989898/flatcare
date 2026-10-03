@@ -67,12 +67,17 @@
                                     <a href="{{ route('admin.societies.blocks.edit', [$society->id, $block->id]) }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
-                                    <form action="{{ route('admin.societies.blocks.destroy', [$society->id, $block->id]) }}" method="POST" style="display:inline;">
+                                    <form action="{{ route('admin.societies.blocks.toggle_status', [$society->id, $block->id]) }}" method="POST" style="display:inline;">
                                         @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete this block?">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if ($block->status === 'active')
+                                            <button type="submit" class="btn btn-sm btn-warning" data-confirm="Mark this block inactive?">
+                                                <i class="fas fa-ban"></i> Deactivate
+                                            </button>
+                                        @else
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-check"></i> Activate
+                                            </button>
+                                        @endif
                                     </form>
                                 </td>
                             </tr>
