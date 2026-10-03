@@ -148,10 +148,11 @@ class PaymentController extends Controller
             'society' => $society,
             'lineItems' => $this->billLineItems($bill, $society),
             'previousDues' => $previousDues,
+            'lateFee' => $bill->lateFeeAmount($society),
             'residentName' => $bill->flat?->residents
                 ->firstWhere('is_primary', true)?->user?->name
                 ?? $bill->flat?->residents->first()?->user?->name,
-            'amountInWords' => $this->amountInWords((float) $bill->amount + $previousDues),
+            'amountInWords' => $this->amountInWords((float) $bill->amount + $previousDues + $bill->lateFeeAmount($society)),
         ]);
     }
 
@@ -173,7 +174,7 @@ class PaymentController extends Controller
             $rate = (float) ($society->water_unit_rate ?? 0);
             $waterAmount = round((float) $reading->units * $rate, 2);
 
-            return [
+            $lines = [
                 [
                     'label' => 'Water Charges',
                     'detail' => sprintf(
@@ -191,13 +192,15 @@ class PaymentController extends Controller
                     'amount' => round((float) $bill->amount - $waterAmount, 2),
                 ],
             ];
+        } else {
+            $lines = [[
+                'label' => $bill->title,
+                'detail' => $bill->notes,
+                'amount' => (float) $bill->amount,
+            ]];
         }
 
-        return [[
-            'label' => $bill->title,
-            'detail' => $bill->notes,
-            'amount' => (float) $bill->amount,
-        ]];
+        return $lines;
     }
 
     /**

@@ -100,13 +100,19 @@
                 <td class="label">Sub-Total</td>
                 <td class="amount">₹{{ number_format($bill->amount, 2) }}</td>
             </tr>
+            @if ($lateFee > 0)
+                <tr>
+                    <td class="label">Late Fee ({{ $bill->daysOverdue() }} {{ $bill->daysOverdue() === 1 ? 'day' : 'days' }} overdue)</td>
+                    <td class="amount">₹{{ number_format($lateFee, 2) }}</td>
+                </tr>
+            @endif
             <tr>
                 <td class="label">Previous Dues</td>
                 <td class="amount">₹{{ number_format($previousDues, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Total</td>
-                <td class="amount">₹{{ number_format($bill->amount + $previousDues, 2) }}</td>
+                <td class="amount">₹{{ number_format($bill->amount + $lateFee + $previousDues, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Payment Made</td>
@@ -114,7 +120,7 @@
             </tr>
             <tr class="grand">
                 <td class="label">Balance Due</td>
-                <td class="amount">₹{{ number_format($bill->balance + $previousDues, 2) }}</td>
+                <td class="amount">₹{{ number_format($bill->balance + $lateFee + $previousDues, 2) }}</td>
             </tr>
         </table>
 

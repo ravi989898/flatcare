@@ -3,6 +3,7 @@
 namespace App\Models\Tenant;
 
 use App\Models\Society;
+use App\Services\TenantService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -110,6 +111,41 @@ class MaintenanceBill extends Model
     }
 
     /**
+     * How many days past due_date this bill is, or 0 if it's not overdue or
+     * is already paid off — a paid bill doesn't keep accruing a late fee.
+     */
+    public function daysOverdue(): int
+    {
+        if (! $this->due_date || $this->balance <= 0 || ! $this->due_date->isPast()) {
+            return 0;
+        }
+
+        return (int) $this->due_date->diffInDays(today());
+    }
+
+    /**
+     * The society's fixed late_fee plus daily_late_fee for every day
+     * overdue (so day 1 overdue already carries one day's charge) — see
+     * the "Maintenance Billing" section of the society edit form. Falls
+     * back to the current tenant's society when none is passed, same as
+     * breakdownLines() below.
+     */
+    public function lateFeeAmount(?Society $society = null): float
+    {
+        $society ??= app(TenantService::class)->getCurrentSociety();
+        $daysOverdue = $this->daysOverdue();
+
+        if (! $society || $daysOverdue < 1) {
+            return 0.0;
+        }
+
+        $lateFee = (float) ($society->late_fee ?? 0);
+        $dailyLateFee = (float) ($society->daily_late_fee ?? 0);
+
+        return round($lateFee + ($dailyLateFee * $daysOverdue), 2);
+    }
+
+    /**
      * A bill generated from a water reading is genuinely two line items —
      * the society's fixed maintenance rate plus metered water usage (see
      * WaterReadingController::store(), which computes the bill's amount the
@@ -122,6 +158,8 @@ class MaintenanceBill extends Model
      */
     public function breakdownLines(?Society $society): array
     {
+        $lines = null;
+
         if ($this->waterReading && $society) {
             $fixed = (float) $society->fixed_maintenance;
             $units = (float) $this->waterReading->units;
@@ -134,12 +172,18 @@ class MaintenanceBill extends Model
             if ($society->water_unit_rate > 0) {
                 $lines[] = ['label' => "Water Charges ({$units} units)", 'amount' => $waterCharge];
             }
-
-            if ($lines !== []) {
-                return $lines;
-            }
         }
 
-        return [['label' => $this->title, 'amount' => (float) $this->amount]];
+        if ($lines === null || $lines === []) {
+            $lines = [['label' => $this->title, 'amount' => (float) $this->amount]];
+        }
+
+        $lateFee = $this->lateFeeAmount($society);
+        if ($lateFee > 0) {
+            $days = $this->daysOverdue();
+            $lines[] = ['label' => "Late Fee ({$days} ".($days === 1 ? 'day' : 'days').' overdue)', 'amount' => $lateFee];
+        }
+
+        return $lines;
     }
 }

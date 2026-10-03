@@ -25,7 +25,7 @@ class SocietyRequest extends FormRequest
         // them to null so nullable numeric/date columns don't receive "".
         $this->merge(collect($this->only([
             'registration_number', 'total_flats', 'total_blocks', 'fixed_maintenance',
-            'water_unit_rate', 'admin_name', 'admin_email', 'admin_phone', 'alternate_phone', 'description',
+            'water_unit_rate', 'late_fee', 'daily_late_fee', 'admin_name', 'admin_email', 'admin_phone', 'alternate_phone', 'description',
         ]))
             ->map(fn ($value) => $value === '' ? null : $value)
             ->all());
@@ -57,6 +57,8 @@ class SocietyRequest extends FormRequest
             'total_blocks' => ['nullable', 'integer', 'min:0'],
             'fixed_maintenance' => ['nullable', 'numeric', 'min:0'],
             'water_unit_rate' => ['nullable', 'numeric', 'min:0'],
+            'late_fee' => ['nullable', 'numeric', 'min:0'],
+            'daily_late_fee' => ['nullable', 'numeric', 'min:0'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
             'status' => ['required', 'in:active,inactive,expired,archived'],

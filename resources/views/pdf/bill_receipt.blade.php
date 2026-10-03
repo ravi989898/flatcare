@@ -99,9 +99,10 @@
                     <td class="amount-col">{{ number_format($line['amount'], 2) }}</td>
                 </tr>
             @endforeach
+            @php $lateFee = $bill->lateFeeAmount($society); @endphp
             <tr>
                 <td>Total Amount</td>
-                <td class="amount-col">{{ number_format((float) $bill->amount, 2) }}</td>
+                <td class="amount-col">{{ number_format((float) $bill->amount + $lateFee, 2) }}</td>
             </tr>
             <tr>
                 <td>Paid Amount</td>
@@ -109,7 +110,7 @@
             </tr>
             <tr class="total-row">
                 <td>Balance Due</td>
-                <td class="amount-col">{{ number_format($bill->balance, 2) }}</td>
+                <td class="amount-col">{{ number_format($bill->balance + $lateFee, 2) }}</td>
             </tr>
         </tbody>
     </table>

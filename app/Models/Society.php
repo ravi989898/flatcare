@@ -32,6 +32,8 @@ class Society extends Model
         'total_blocks',
         'fixed_maintenance',
         'water_unit_rate',
+        'late_fee',
+        'daily_late_fee',
         'start_date',
         'end_date',
         'status',
@@ -53,6 +55,8 @@ class Society extends Model
         'settings' => 'array',
         'fixed_maintenance' => 'decimal:2',
         'water_unit_rate' => 'decimal:2',
+        'late_fee' => 'decimal:2',
+        'daily_late_fee' => 'decimal:2',
         'razorpay_key_secret' => 'encrypted',
     ];
 

@@ -89,15 +89,27 @@
         <h5>Maintenance Billing</h5>
         <p class="text-muted">Society admins enter each flat's monthly water reading; the bill is calculated as (units consumed &times; water unit rate) + fixed maintenance.</p>
         <div class="form-row">
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
                 <label for="fixed_maintenance">Fixed Maintenance (₹)</label>
                 <input type="number" step="0.01" min="0" class="form-control @error('fixed_maintenance') is-invalid @enderror" id="fixed_maintenance" name="fixed_maintenance" value="{{ $old('fixed_maintenance', 0) }}">
                 @error('fixed_maintenance')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
                 <label for="water_unit_rate">Water Unit Rate (₹ per unit)</label>
                 <input type="number" step="0.01" min="0" class="form-control @error('water_unit_rate') is-invalid @enderror" id="water_unit_rate" name="water_unit_rate" value="{{ $old('water_unit_rate', 0) }}">
                 @error('water_unit_rate')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group col-md-3">
+                <label for="late_fee">Late Fee (₹)</label>
+                <input type="number" step="0.01" min="0" class="form-control @error('late_fee') is-invalid @enderror" id="late_fee" name="late_fee" value="{{ $old('late_fee', 0) }}">
+                <small class="form-text text-muted">One-time penalty added once a bill goes overdue.</small>
+                @error('late_fee')<span class="invalid-feedback">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group col-md-3">
+                <label for="daily_late_fee">Daily Late Fee (₹ per day)</label>
+                <input type="number" step="0.01" min="0" class="form-control @error('daily_late_fee') is-invalid @enderror" id="daily_late_fee" name="daily_late_fee" value="{{ $old('daily_late_fee', 0) }}">
+                <small class="form-text text-muted">Charged for each day overdue, starting the day after the due date.</small>
+                @error('daily_late_fee')<span class="invalid-feedback">{{ $message }}</span>@enderror
             </div>
         </div>
 

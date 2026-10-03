@@ -34,10 +34,7 @@ class BillResource extends JsonResource
             // back to the due date's month.
             'billing_period' => $this->waterReading?->reading_month?->format('F Y')
                 ?? $this->due_date?->format('F Y'),
-            // There's no late-fee mechanism in this app yet (no rule to
-            // compute one from), so this is always 0 rather than a made-up
-            // number — still a real, current fact about the bill.
-            'late_fee' => 0.0,
+            'late_fee' => $this->lateFeeAmount($request->attributes->get('api_society')),
             'notes' => $this->notes,
             'breakdown' => $this->breakdown($request),
             'flat' => $this->whenLoaded('flat', fn () => new FlatResource($this->flat)),
