@@ -35,6 +35,8 @@ import '../../features/gatekeeper/screens/guard_gate_passes_screen.dart';
 import '../../features/gatekeeper/screens/guard_pass_scanner_screen.dart';
 import '../../features/gatekeeper/screens/guard_pending_requests_screen.dart';
 import '../../features/help/screens/help_line_screen.dart';
+import '../../features/home/providers/app_menu_providers.dart';
+import '../../features/vehicles/screens/society_vehicles_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/my_properties_screen.dart';
 import '../../features/notifications/screens/notification_list_screen.dart';
@@ -102,8 +104,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && (isAuthRoute || path == '/')) return homePath;
       if (!isLoggedIn && path == '/') return '/login';
-      // Society admin screens: only for the admin (the API refuses everyone else too).
-      if (path.startsWith('/admin') && !(auth.valueOrNull?.user.isSocietyAdmin ?? false)) return homePath;
+      // Society admin screens: the admin, or a role granted that screen under
+      // App Permission (the API checks the same thing).
+      if (path.startsWith('/admin') && !(auth.valueOrNull?.user.isSocietyAdmin ?? false)) {
+        final access = ref.read(appMenuAccessProvider).valueOrNull;
+        final key = path.startsWith('/admin/payments') ? 'app-payment-status' : 'app-water-readings';
+        if (!(access?.grants(key) ?? false)) return homePath;
+      }
 
       return null;
     },
@@ -264,6 +271,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(path: '/help-line', builder: (context, state) => const HelpLineScreen()),
       GoRoute(path: '/directory', builder: (context, state) => const DirectoryListScreen()),
+      GoRoute(path: '/vehicles', builder: (context, state) => const SocietyVehiclesScreen()),
       GoRoute(path: '/documents', builder: (context, state) => const DocumentListScreen()),
       GoRoute(path: '/emergency-contacts', builder: (context, state) => const EmergencyContactsScreen()),
       GoRoute(path: '/committee-members', builder: (context, state) => const CommitteeMembersScreen()),

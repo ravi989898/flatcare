@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant\User;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -18,6 +19,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class AppMenuItem extends Model
 {
+    /**
+     * Society-admin features: hidden for every managed role until the
+     * society's Admin ticks them in App Permission. Everything else is
+     * visible by default. The Society Admin always sees all items.
+     */
+    public const HIDDEN_BY_DEFAULT = ['app-water-readings', 'app-payment-status'];
+
     protected $connection = 'main';
 
     protected $fillable = [
@@ -46,24 +54,45 @@ class AppMenuItem extends Model
     {
         $items = static::orderBy('display_order')->get();
 
-        if (!$roleName || !$societyId) {
-            return $items;
+        $role = $roleName ? RoleDefinition::where('name', $roleName)->first() : null;
+
+        $overrides = ($role && $societyId)
+            ? SocietyRoleAppMenuItem::where('society_id', $societyId)
+                ->where('role_definition_id', $role->id)
+                ->pluck('is_visible', 'app_menu_item_id')
+            : collect();
+
+        return $items->filter(fn (self $item) => (bool) ($overrides[$item->id] ?? $item->isVisibleByDefault()))->values();
+    }
+
+    /**
+     * Keys of the items this user may see in the app: everything for the
+     * Society Admin, otherwise the union over all of the user's roles (a
+     * Secretary who is also a Resident gets what either role allows).
+     *
+     * @return array<int, string>
+     */
+    public static function visibleKeysForUser(User $user, ?int $societyId): array
+    {
+        if ($user->hasRole('admin')) {
+            return static::orderBy('display_order')->pluck('key')->all();
         }
 
-        $role = RoleDefinition::where('name', $roleName)->first();
+        $roleNames = $user->roles()->pluck('name');
 
-        if (!$role) {
-            return $items;
+        if ($roleNames->isEmpty()) {
+            return static::visibleForRole(null, $societyId)->pluck('key')->all();
         }
 
-        $overrides = SocietyRoleAppMenuItem::where('society_id', $societyId)
-            ->where('role_definition_id', $role->id)
-            ->pluck('is_visible', 'app_menu_item_id');
+        return $roleNames
+            ->flatMap(fn (string $role) => static::visibleForRole($role, $societyId)->pluck('key'))
+            ->unique()
+            ->values()
+            ->all();
+    }
 
-        if ($overrides->isEmpty()) {
-            return $items;
-        }
-
-        return $items->filter(fn (self $item) => (bool) ($overrides[$item->id] ?? true))->values();
+    public function isVisibleByDefault(): bool
+    {
+        return !in_array($this->key, self::HIDDEN_BY_DEFAULT, true);
     }
 }

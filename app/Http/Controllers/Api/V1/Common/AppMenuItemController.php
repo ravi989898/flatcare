@@ -23,10 +23,12 @@ class AppMenuItemController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $society = $request->attributes->get('api_society');
-        $roleName = $this->user()->roles()->orderByDesc('priority')->value('name');
 
-        $keys = AppMenuItem::visibleForRole($roleName, $society?->id)->pluck('key')->values();
-
-        return $this->ok(['keys' => $keys]);
+        // 'managed' = every tile App Permission controls; the app hides a
+        // managed tile that isn't in 'keys' and leaves all other tiles alone.
+        return $this->ok([
+            'keys' => AppMenuItem::visibleKeysForUser($this->user(), $society?->id),
+            'managed' => AppMenuItem::orderBy('display_order')->pluck('key')->all(),
+        ]);
     }
 }

@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
  * Society admin in the mobile app: who has paid and who still owes, flat
  * by flat. Bills are picked per billing run (their title, e.g. "October
  * 2026 Maintenance" - one per flat), so the admin sees one month at a
- * time. Admin only (role:admin in routes/api.php).
+ * time. Society Admin, or a role granted "Payment Status" under App Permission
+ * (app.menu middleware in routes/api.php).
  */
 class PaymentController extends ApiController
 {

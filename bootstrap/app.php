@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'menu.visible' => EnsureMenuItemVisible::class,
             'api.auth' => AuthenticateApiToken::class,
             'role' => EnsureUserHasRole::class,
+            'app.menu' => \App\Http\Middleware\EnsureAppMenuAccess::class,
         ]);
 
         // X-Forwarded-* headers are only honoured from these proxies. '*' is

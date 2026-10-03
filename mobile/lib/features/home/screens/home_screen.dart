@@ -13,6 +13,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../bills/data/bill.dart';
 import '../../bills/providers/bill_providers.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../data/app_menu_repository.dart';
 import '../providers/app_menu_providers.dart';
 
 /// One tile in a menu group. `route` is null for features the backend
@@ -63,7 +64,7 @@ const _groups = [
     _MenuItem('app-members', 'Members', '👥', route: '/directory'),
     _MenuItem('app-committee-members', 'Committee Members', '🧑‍💼', route: '/committee-members'),
     _MenuItem('app-family-members', 'Family Members', '👪', route: '/profile/family-members'),
-    _MenuItem('app-vehicles', 'Vehicles', '🚗', route: '/profile/vehicles'),
+    _MenuItem('app-vehicles', 'Vehicles', '🚗', route: '/vehicles'),
     _MenuItem('app-important-contacts', 'Important Contacts', '🚨', route: '/emergency-contacts'),
     _MenuItem('app-service-providers', 'Service Providers', '🛠️', route: '/service-providers'),
   ]),
@@ -91,16 +92,22 @@ const _groups = [
   ]),
 ];
 
-/// Drops any item whose key isn't in `visibleKeys`, then drops any group
-/// left with no items. `visibleKeys == null` means "still loading or the
-/// request failed" — shown as-is (fail open, see app_menu_providers.dart).
-List<_MenuGroup> _filterGroups(List<_MenuGroup> groups, Set<String>? visibleKeys) {
-  if (visibleKeys == null) return groups;
+/// The home menu for this user. The Society Admin sees everything. Anyone
+/// else sees the Society Admin tiles only when App Permission grants them
+/// to one of their roles, and every other tile unless App Permission hides
+/// it. `access == null` (still loading or failed) shows the ordinary tiles
+/// and no admin tiles. Groups left empty are dropped.
+List<_MenuGroup> _visibleGroups({required bool isAdmin, required AppMenuAccess? access}) {
+  bool show(_MenuItem item, {required bool adminTile}) {
+    if (isAdmin) return true;
+    if (adminTile) return access?.grants(item.key) ?? false;
+    return access?.allows(item.key) ?? true;
+  }
 
   return [
-    for (final group in groups)
-      if (group.items.any((item) => visibleKeys.contains(item.key)))
-        _MenuGroup(group.title, group.items.where((item) => visibleKeys.contains(item.key)).toList()),
+    for (final (group, adminTile) in [(_adminGroup, true), for (final g in _groups) (g, false)])
+      if (group.items.any((item) => show(item, adminTile: adminTile)))
+        _MenuGroup(group.title, group.items.where((item) => show(item, adminTile: adminTile)).toList()),
   ];
 }
 
@@ -112,10 +119,9 @@ class HomeScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final societyName = auth.valueOrNull?.society.name ?? 'FlatCare';
     final unit = auth.valueOrNull?.user.primaryResidency?.flat.displayLabel;
-    final visibleKeys = ref.watch(appMenuVisibleKeysProvider).valueOrNull;
-    final groups = _filterGroups(
-      [if (auth.valueOrNull?.user.isSocietyAdmin ?? false) _adminGroup, ..._groups],
-      visibleKeys,
+    final groups = _visibleGroups(
+      isAdmin: auth.valueOrNull?.user.isSocietyAdmin ?? false,
+      access: ref.watch(appMenuAccessProvider).valueOrNull,
     );
 
     return Scaffold(

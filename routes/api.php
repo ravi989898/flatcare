@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Auth\OtpAuthController;
 use App\Http\Controllers\Api\V1\Common\AnnouncementController;
 use App\Http\Controllers\Api\V1\Common\AppConfigController;
 use App\Http\Controllers\Api\V1\Common\AppMenuItemController;
+use App\Http\Controllers\Api\V1\Common\SocietyVehicleController;
 use App\Http\Controllers\Api\V1\Common\DeviceTokenController;
 use App\Http\Controllers\Api\V1\Common\DirectoryController;
 use App\Http\Controllers\Api\V1\Common\EventController;
@@ -121,6 +122,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/{id}', [EventController::class, 'show'])->name('show');
         });
 
+        // Every resident's vehicles, block by block (app's Vehicles screen).
+        Route::get('/society-vehicles', [SocietyVehicleController::class, 'index'])->name('society_vehicles.index');
+
         Route::prefix('directory')->name('directory.')->group(function () {
             Route::get('/', [DirectoryController::class, 'index'])->name('index');
             Route::get('/{userId}', [DirectoryController::class, 'show'])->name('show');
@@ -178,14 +182,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/vehicles', [GuardVehicleController::class, 'index'])->name('vehicles.index');
         });
 
-        // Society admin screens in the app - same 'role' check, admin only.
-        Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
-            Route::get('/water-readings/blocks', [AdminWaterReadingController::class, 'blocks'])->name('water_readings.blocks');
-            Route::get('/water-readings', [AdminWaterReadingController::class, 'index'])->name('water_readings.index');
-            Route::post('/water-readings', [AdminWaterReadingController::class, 'store'])->middleware('throttle:30,1')->name('water_readings.store');
+        // Society admin screens in the app: the Society Admin, plus any role
+        // the society has granted the item to under App Permission.
+        Route::prefix('admin')->name('admin.')->group(function () {
+            Route::middleware('app.menu:app-water-readings')->group(function () {
+                Route::get('/water-readings/blocks', [AdminWaterReadingController::class, 'blocks'])->name('water_readings.blocks');
+                Route::get('/water-readings', [AdminWaterReadingController::class, 'index'])->name('water_readings.index');
+                Route::post('/water-readings', [AdminWaterReadingController::class, 'store'])->middleware('throttle:30,1')->name('water_readings.store');
+            });
 
-            Route::get('/payments/periods', [AdminPaymentController::class, 'periods'])->name('payments.periods');
-            Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
+            Route::middleware('app.menu:app-payment-status')->group(function () {
+                Route::get('/payments/periods', [AdminPaymentController::class, 'periods'])->name('payments.periods');
+                Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
+            });
         });
     });
 });

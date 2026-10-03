@@ -15,7 +15,8 @@ use Illuminate\Http\Request;
 /**
  * Society admin in the mobile app: monthly water readings, which generate
  * each flat's maintenance bill. Same rules as the web panel - the work is
- * done by App\Services\WaterBillingService. Admin only (role:admin in
+ * done by App\Services\WaterBillingService. Society Admin, or a role
+ * granted "Water Readings" under App Permission (app.menu middleware in
  * routes/api.php).
  */
 class WaterReadingController extends ApiController

@@ -106,6 +106,6 @@ class AppPermissionSettingController extends Controller
             ->where('role_definition_id', $role->id)
             ->pluck('is_visible', 'app_menu_item_id');
 
-        return $menuItems->mapWithKeys(fn (AppMenuItem $item) => [$item->id => (bool) ($overrides[$item->id] ?? true)]);
+        return $menuItems->mapWithKeys(fn (AppMenuItem $item) => [$item->id => (bool) ($overrides[$item->id] ?? $item->isVisibleByDefault())]);
     }
 }

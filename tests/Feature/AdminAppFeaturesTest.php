@@ -33,6 +33,7 @@ class AdminAppFeaturesTest extends TestCase
     private int $flatA2;
     private User $admin;
     private User $resident;
+    private Society $society;
 
     protected function setUp(): void
     {
@@ -54,7 +55,7 @@ class AdminAppFeaturesTest extends TestCase
         $this->withoutMiddleware([AuthenticateApiToken::class, 'throttle:api-auth']);
 
         // What AuthenticateApiToken puts on the request: the society, with its billing rates.
-        $society = new Society(['name' => 'Test Society', 'fixed_maintenance' => 500, 'water_unit_rate' => 10]);
+        $society = $this->society = new Society(['name' => 'Test Society', 'fixed_maintenance' => 500, 'water_unit_rate' => 10]);
         $this->app->instance('test.api_society', new class($society)
         {
             public function __construct(private Society $society) {}
@@ -87,6 +88,105 @@ class AdminAppFeaturesTest extends TestCase
         $this->postJson('/api/v1/admin/water-readings', ['month' => now()->format('Y-m'), 'readings' => []])->assertForbidden();
         $this->getJson('/api/v1/admin/payments')->assertForbidden();
         $this->getJson('/api/v1/admin/payments/periods')->assertForbidden();
+    }
+
+    public function test_app_permission_grants_an_admin_screen_to_another_role(): void
+    {
+        $main = DB::connection('main');
+        $societyId = $main->table('societies')->value('id');
+        if (!$societyId) {
+            $this->markTestSkipped('Needs at least one society in the main database.');
+        }
+
+        $main->beginTransaction();
+        try {
+            $this->society->id = $societyId;
+            $secretary = $this->makeUser('Secretary', '9100000200', 'secretary');
+
+            // Not granted yet: hidden in the app menu and refused by the API.
+            $this->as($secretary);
+            $menu = $this->getJson('/api/v1/app-menu-items')->assertOk();
+            $this->assertNotContains('app-water-readings', $menu->json('data.keys'));
+            $this->assertContains('app-water-readings', $menu->json('data.managed'));
+            $this->getJson('/api/v1/admin/water-readings/blocks')->assertForbidden();
+
+            // Society Admin ticks Water Readings (only) for Secretary.
+            $roleId = $main->table('role_definitions')->where('name', 'secretary')->value('id');
+            foreach (['app-water-readings' => true, 'app-payment-status' => false] as $key => $visible) {
+                $main->table('society_role_app_menu_item')->updateOrInsert(
+                    ['society_id' => $societyId, 'role_definition_id' => $roleId, 'app_menu_item_id' => $main->table('app_menu_items')->where('key', $key)->value('id')],
+                    ['is_visible' => $visible, 'created_at' => now(), 'updated_at' => now()],
+                );
+            }
+
+            $this->assertSame(['app-water-readings'], $this->getJson('/api/v1/app-menu-items')->json('data.keys'));
+            $this->getJson('/api/v1/admin/water-readings/blocks?month='.now()->format('Y-m'))->assertOk();
+            $this->getJson('/api/v1/admin/payments/periods')->assertForbidden();
+
+            // A plain resident of the same society still gets neither.
+            $this->as($this->resident);
+            $this->assertSame([], $this->getJson('/api/v1/app-menu-items')->json('data.keys'));
+            $this->getJson('/api/v1/admin/water-readings/blocks')->assertForbidden();
+
+            // The Society Admin always gets both.
+            $this->as($this->admin);
+            $this->assertSame(['app-water-readings', 'app-payment-status'], $this->getJson('/api/v1/app-menu-items')->json('data.keys'));
+        } finally {
+            $main->rollBack();
+        }
+    }
+
+    public function test_vehicles_screen_lists_every_residents_vehicles_by_block(): void
+    {
+        $db = DB::connection('society');
+        $now = now();
+        $vehicle = fn (int $userId, string $type, string $number) => $db->table('vehicles')->insert([
+            'user_id' => $userId, 'vehicle_type' => $type, 'registration_number' => $number,
+            'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+
+        $tenant = $this->makeUser('Jatish (A-102)', '9100000002', 'resident');
+        $db->table('flat_residents')->insert([
+            'flat_id' => $this->flatA2, 'user_id' => $tenant->id, 'resident_type' => 'tenant',
+            'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $vehicle($this->resident->id, 'Car', 'GJ 18 BG 4449');
+        $vehicle($this->resident->id, 'scooter', 'GJ 27 DV 3309');
+        $vehicle($tenant->id, 'Bike', 'GJ 27 FT 2377');
+
+        // A second block whose residents must not show up under Block A.
+        $blockB = $db->table('blocks')->insertGetId(['name' => 'Block B', 'block_number' => 'B', 'created_at' => $now, 'updated_at' => $now]);
+        $flatB1 = $db->table('flats')->insertGetId(['block_id' => $blockB, 'flat_number' => 'B-101', 'floor_number' => '1', 'created_at' => $now, 'updated_at' => $now]);
+        $other = $this->makeUser('Pravin (B-101)', '9100000003', 'resident');
+        $db->table('flat_residents')->insert([
+            'flat_id' => $flatB1, 'user_id' => $other->id, 'resident_type' => 'owner',
+            'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $vehicle($other->id, 'Car', 'GJ 05 NK 7455');
+
+        $this->as($this->resident);
+
+        $res = $this->getJson("/api/v1/society-vehicles?block_id={$this->blockA}")->assertOk();
+        $res->assertJsonPath('data.blocks.0.name', 'Block A')
+            ->assertJsonPath('data.blocks.1.name', 'Block B')
+            ->assertJsonCount(2, 'data.residents')
+            ->assertJsonPath('data.residents.0.flat_number', 'A-101')
+            ->assertJsonPath('data.residents.0.phone', '9100000001')
+            ->assertJsonPath('data.residents.0.resident_type', 'owner')
+            ->assertJsonCount(2, 'data.residents.0.vehicles')
+            ->assertJsonPath('data.residents.1.resident_type', 'tenant');
+        $counts = collect($res->json('data.counts'))->pluck('count', 'type')->all();
+        $this->assertEquals(['Car' => 1, 'Scooter' => 1, 'Bike' => 1], $counts);
+
+        // Search by vehicle number ignores spaces; counts stay for the whole block.
+        $this->getJson("/api/v1/society-vehicles?block_id={$this->blockA}&search=gj27ft")
+            ->assertJsonCount(1, 'data.residents')
+            ->assertJsonPath('data.residents.0.name', 'Jatish (A-102)')
+            ->assertJsonCount(3, 'data.counts');
+
+        $this->getJson("/api/v1/society-vehicles?block_id={$blockB}")
+            ->assertJsonCount(1, 'data.residents')
+            ->assertJsonPath('data.residents.0.vehicles.0.registration_number', 'GJ 05 NK 7455');
     }
 
     public function test_admin_enters_readings_and_each_flat_is_billed_and_notified(): void
@@ -237,6 +337,18 @@ class AdminAppFeaturesTest extends TestCase
         ]);
     }
 
+    private function makeUser(string $name, string $phone, string $role): User
+    {
+        $db = DB::connection('society');
+        $now = now();
+        $u = User::create(['name' => $name, 'email' => "{$phone}@example.test", 'phone' => $phone, 'password' => 'x', 'status' => 'active']);
+        $roleId = $db->table('roles')->where('name', $role)->value('id')
+            ?? $db->table('roles')->insertGetId(['name' => $role, 'display_name' => ucfirst($role), 'created_at' => $now, 'updated_at' => $now]);
+        $db->table('role_user')->insert(['user_id' => $u->id, 'role_id' => $roleId, 'created_at' => $now, 'updated_at' => $now]);
+
+        return $u;
+    }
+
     private function seedFixtures(): void
     {
         $db = DB::connection('society');
@@ -249,17 +361,8 @@ class AdminAppFeaturesTest extends TestCase
         $this->flatA1 = $flat('A-101');
         $this->flatA2 = $flat('A-102');
 
-        $user = function (string $name, string $phone, string $role) use ($db, $now): User {
-            $u = User::create(['name' => $name, 'email' => "{$phone}@example.test", 'phone' => $phone, 'password' => 'x', 'status' => 'active']);
-            $roleId = $db->table('roles')->where('name', $role)->value('id')
-                ?? $db->table('roles')->insertGetId(['name' => $role, 'display_name' => ucfirst($role), 'created_at' => $now, 'updated_at' => $now]);
-            $db->table('role_user')->insert(['user_id' => $u->id, 'role_id' => $roleId, 'created_at' => $now, 'updated_at' => $now]);
-
-            return $u;
-        };
-
-        $this->admin = $user('Society Admin', '9100000100', 'admin');
-        $this->resident = $user('Asha (A-101)', '9100000001', 'resident');
+        $this->admin = $this->makeUser('Society Admin', '9100000100', 'admin');
+        $this->resident = $this->makeUser('Asha (A-101)', '9100000001', 'resident');
 
         $db->table('flat_residents')->insert([
             'flat_id' => $this->flatA1, 'user_id' => $this->resident->id, 'resident_type' => 'owner',
