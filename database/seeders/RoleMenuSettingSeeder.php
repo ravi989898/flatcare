@@ -50,8 +50,12 @@ class RoleMenuSettingSeeder extends Seeder
             ['key' => 'permissions', 'label' => 'Permissions', 'route_name' => 'society.permissions.index', 'icon' => 'bi-shield-check', 'display_order' => 11],
             ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 12],
             ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 13],
-            ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 14],
-            ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 15],
+            // Parent group for the sidebar's "Activity" submenu, same
+            // pattern as "Reports" above: its own route_name doubles as the
+            // first child's route so active_pattern still highlights it.
+            ['key' => 'activity', 'label' => 'Activity', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar2-week', 'display_order' => 14],
+            ['key' => 'events', 'parent_key' => 'activity', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 1],
+            ['key' => 'elections', 'parent_key' => 'activity', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 2],
             ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 16],
             ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 17],
             ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 18],
@@ -85,10 +89,10 @@ class RoleMenuSettingSeeder extends Seeder
         $visibleKeysByRole = [
             'super_admin' => $allKeys,
             'admin' => $allKeys,
-            'committee_member' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
+            'committee_member' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'activity', 'events', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
             // Residents use the mobile app; the society portal is refused to them at the door (SetSocietyContext),
             // and admin-only modules are refused server-side (EnsureMenuItemVisible::ADMIN_ONLY_KEYS).
-            'resident' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'events', 'elections', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
+            'resident' => ['dashboard', 'visitors', 'complaints', 'directory', 'announcements', 'activity', 'events', 'elections', 'documents', 'emergency-contacts', 'polls', 'service-providers'],
             'security' => ['dashboard', 'visitors', 'directory'],
         ];
 
