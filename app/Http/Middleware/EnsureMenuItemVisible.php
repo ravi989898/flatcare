@@ -32,7 +32,7 @@ class EnsureMenuItemVisible
     ];
 
     /** menu_items.key values that only an admin may ever reach, whatever the visibility catalog says. */
-    private const ADMIN_ONLY_KEYS = ['admins', 'blocks', 'security', 'payments', 'extra-charges', 'water-readings', 'reports', 'payment-report'];
+    private const ADMIN_ONLY_KEYS = ['admins', 'blocks', 'security', 'payments', 'extra-charges', 'water-readings', 'reports', 'payment-report', 'permissions'];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -69,7 +69,8 @@ class EnsureMenuItemVisible
             abort(404);
         }
 
-        $visibleKeys = MenuItem::visibleForRole($roleName)->pluck('key');
+        $societyId = $request->attributes->get('society')?->id;
+        $visibleKeys = MenuItem::visibleForRole($roleName, $societyId)->pluck('key');
 
         if (!$visibleKeys->contains($menuItem->key)) {
             abort(404);

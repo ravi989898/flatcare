@@ -118,4 +118,43 @@ class WaterReadingController extends Controller
             ->route('society.water-readings.create', ['month' => $validated['month']])
             ->with('success', "Readings saved and bills generated for {$billed} flat".($billed > 1 ? 's' : '').'.');
     }
+
+    /**
+     * Correct a single flat's reading in place from the list page's Edit
+     * modal, rather than sending the admin back through the whole block's
+     * entry form. The previous reading is never editable here - only
+     * current_reading - so it's read straight off the existing row rather
+     * than trusted from the request.
+     */
+    public function update(Request $request, int $readingId, WaterBillingService $billing): RedirectResponse
+    {
+        $validated = $request->validate([
+            'current_reading' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $reading = WaterReading::with(['flat', 'bill.payments'])->findOrFail($readingId);
+
+        if ($reading->bill?->payments->isNotEmpty()) {
+            return back()->with('error', "This month's bill is already paid, so its reading can't be changed.");
+        }
+
+        try {
+            $billing->record(
+                $reading->reading_month,
+                [[
+                    'flat_id' => $reading->flat_id,
+                    'previous_reading' => $reading->previous_reading,
+                    'current_reading' => $validated['current_reading'],
+                ]],
+                $request->attributes->get('society'),
+                Auth::guard('society')->id(),
+            );
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('society.water-readings.index')
+            ->with('success', "Flat {$reading->flat->flat_number}'s reading updated.");
+    }
 }

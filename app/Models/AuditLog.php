@@ -16,6 +16,7 @@ class AuditLog extends Model
     protected $fillable = [
         'super_admin_id',
         'society_id',
+        'performed_by',
         'action',
         'module',
         'entity_type',
@@ -100,10 +101,12 @@ class AuditLog extends Model
         ?int $entityId = null,
         ?array $oldValues = null,
         ?array $newValues = null,
+        ?string $performedBy = null,
     ): self {
         return self::create([
             'super_admin_id' => $superAdmin?->id,
             'society_id' => $society?->id,
+            'performed_by' => $performedBy,
             'action' => $action,
             'module' => $module,
             'entity_type' => $entityType,

@@ -43,14 +43,19 @@ class RoleMenuSettingSeeder extends Seeder
             // still highlights the group when a report page is open.
             ['key' => 'reports', 'label' => 'Reports', 'route_name' => 'society.reports.payments', 'icon' => 'bi-file-earmark-bar-graph', 'display_order' => 9],
             ['key' => 'complaints', 'label' => 'Complaints', 'route_name' => 'society.complaints.index', 'icon' => 'bi-exclamation-circle', 'display_order' => 10],
-            ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 11],
-            ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 12],
-            ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 13],
-            ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 14],
-            ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 15],
-            ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 16],
-            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 17],
-            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 18],
+            // Admin-only (EnsureMenuItemVisible::ADMIN_ONLY_KEYS): Society
+            // Admin decides per-society visibility here for Treasurer/Vice
+            // Chairman/Secretary/Committee Member/Resident; see
+            // Society\PermissionSettingController and society_role_menu_item.
+            ['key' => 'permissions', 'label' => 'Permissions', 'route_name' => 'society.permissions.index', 'icon' => 'bi-shield-check', 'display_order' => 11],
+            ['key' => 'directory', 'label' => 'Directory', 'route_name' => 'society.directory.index', 'icon' => 'bi-people', 'display_order' => 12],
+            ['key' => 'announcements', 'label' => 'Announcements', 'route_name' => 'society.announcements.index', 'icon' => 'bi-megaphone', 'display_order' => 13],
+            ['key' => 'events', 'label' => 'Events', 'route_name' => 'society.events.index', 'icon' => 'bi-calendar-event', 'display_order' => 14],
+            ['key' => 'elections', 'label' => 'Elections', 'route_name' => 'society.elections.index', 'icon' => 'bi-check2-square', 'display_order' => 15],
+            ['key' => 'documents', 'label' => 'Documents', 'route_name' => 'society.documents.index', 'icon' => 'bi-file-earmark-text', 'display_order' => 16],
+            ['key' => 'emergency-contacts', 'label' => 'Emergency Contacts', 'route_name' => 'society.emergency-contacts.index', 'icon' => 'bi-telephone', 'display_order' => 17],
+            ['key' => 'polls', 'label' => 'Polls & Surveys', 'route_name' => 'society.polls.index', 'icon' => 'bi-bar-chart-steps', 'display_order' => 18],
+            ['key' => 'service-providers', 'label' => 'Service Providers', 'route_name' => 'society.service-providers.index', 'icon' => 'bi-wrench', 'display_order' => 19],
             ['key' => 'payment-report', 'parent_key' => 'reports', 'label' => 'Payment Report', 'route_name' => 'society.reports.payments', 'icon' => 'bi-receipt-cutoff', 'display_order' => 1],
         ];
 
