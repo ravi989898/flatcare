@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release builds shrink resources, and the notification sound is only
+     looked up by name at runtime (push_service.dart), so without this it is
+     stripped from the APK and every notification that asks for it fails. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/plectron" />
