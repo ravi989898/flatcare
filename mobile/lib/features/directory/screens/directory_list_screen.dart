@@ -149,7 +149,7 @@ class _DirectoryListScreenState extends ConsumerState<DirectoryListScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
                     itemCount: state.items.length + (state.hasMore ? 1 : 0),
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       if (index == state.items.length) {
                         return const Padding(
@@ -280,11 +280,13 @@ class _ResidentCard extends StatelessWidget {
     final name = _displayName(entry);
     final flat = entry.flat;
     final callable = _isCallable(entry.phone);
+    final block = flat.blockName;
+    const secondary = TextStyle(fontSize: 12.5, color: AppColors.textSecondary);
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: kCardShadow,
       ),
       clipBehavior: Clip.antiAlias,
@@ -296,75 +298,68 @@ class _ResidentCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 5, color: type.color),
+                Container(width: 4, color: type.color),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 12, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                    child: Row(
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            FcInitialsAvatar(name: name, color: type.color, size: 50),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        FcInitialsAvatar(name: name, color: type.color, size: 40),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Text(
-                                    name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  if (flat.blockName != null && flat.blockName!.isNotEmpty)
-                                    Text(flat.blockName!, style: const TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
-                                  if (entry.phone != null && entry.phone!.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.phone_outlined, size: 15, color: AppColors.textSecondary),
-                                          const SizedBox(width: 5),
-                                          Text(entry.phone!, style: const TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
-                                        ],
-                                      ),
+                                  Flexible(
+                                    child: Text(
+                                      name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                                     ),
+                                  ),
+                                  if (entry.isPrimary) ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.star_rounded, size: 15, color: AppColors.primary),
+                                  ],
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            _FlatPill(flatNumber: flat.flatNumber, color: type.color),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            FcBadge(label: type.label, color: type.color, icon: type.icon),
-                            if (entry.isPrimary) ...[
-                              const SizedBox(width: 6),
-                              const FcBadge(label: 'Primary', color: AppColors.primary, icon: Icons.star_rounded),
-                            ],
-                            const Spacer(),
-                            if (callable) ...[
-                              FcCardAction(
-                                icon: Icons.chat_rounded,
-                                color: AppColors.accentTeal,
-                                tooltip: 'WhatsApp $name',
-                                onPressed: () => _whatsApp(entry.phone!),
+                              const SizedBox(height: 2),
+                              Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(text: type.label, style: TextStyle(color: type.color, fontWeight: FontWeight.w700)),
+                                    TextSpan(text: ' · ${block != null && block.isNotEmpty ? '$block · ' : ''}Flat ${flat.flatNumber}'),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: secondary,
                               ),
-                              const SizedBox(width: 8),
-                              FcCardAction(
-                                icon: Icons.call_rounded,
-                                color: AppColors.success,
-                                tooltip: 'Call $name',
-                                onPressed: () => _call(entry.phone!),
-                              ),
+                              if (entry.phone != null && entry.phone!.isNotEmpty)
+                                Text(entry.phone!, maxLines: 1, style: secondary),
                             ],
-                          ],
+                          ),
                         ),
+                        if (callable) ...[
+                          const SizedBox(width: 6),
+                          FcCardAction(
+                            icon: Icons.chat_rounded,
+                            color: AppColors.accentTeal,
+                            tooltip: 'WhatsApp $name',
+                            onPressed: () => _whatsApp(entry.phone!),
+                          ),
+                          const SizedBox(width: 6),
+                          FcCardAction(
+                            icon: Icons.call_rounded,
+                            color: AppColors.success,
+                            tooltip: 'Call $name',
+                            onPressed: () => _call(entry.phone!),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -373,31 +368,6 @@ class _ResidentCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FlatPill extends StatelessWidget {
-  const _FlatPill({required this.flatNumber, required this.color});
-
-  final String flatNumber;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.soft(color),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        children: [
-          Text('FLAT', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.8)),
-          Text(flatNumber, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color)),
-        ],
       ),
     );
   }
