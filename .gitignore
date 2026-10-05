@@ -6,6 +6,7 @@
 /public/downloads/*
 !/public/downloads/.gitkeep
 !/public/downloads/README.md
+!/public/downloads/flatcare-app.apk
 /_release
 /storage/*.key
 /storage/pail

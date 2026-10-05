@@ -4,15 +4,14 @@ Static files the landing page links to directly.
 
 ## flatcare-app.apk
 
-The resident Android app. **Not committed** (`.gitignore` keeps only this
-folder, not its APK). Upload the file here by FTP / cPanel File Manager on
-the production server:
+The resident Android app. **Committed to the repo**, so a `git pull` on the
+production server puts the new version in place:
 
     public/downloads/flatcare-app.apk
 
 The "Download App" buttons on the landing page fall back to the root-relative
 `/downloads/flatcare-app.apk` whenever `MOBILE_APK_URL` is unset in `.env`, so
-once the file is in place the download just works — no deploy.
+once the file is pulled the download just works — no other deploy step.
 
 Build a fresh APK with:
 
@@ -22,4 +21,5 @@ Build a fresh APK with:
 
 `--split-per-abi` shrinks it from a ~53 MB universal APK to ~19 MB;
 `app-arm64-v8a-release.apk` covers every phone since ~2019, so that's the one
-to upload.
+to commit. Leave out `--dart-define` and the app talks to the emulator host
+(10.0.2.2) instead of the server.
