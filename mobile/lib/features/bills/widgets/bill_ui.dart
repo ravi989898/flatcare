@@ -207,7 +207,7 @@ Future<void> shareBillPdf(BuildContext context, WidgetRef ref, int billId, {requ
   try {
     final bytes = await ref.read(billRepositoryProvider).downloadReceipt(billId);
     final dir = await getTemporaryDirectory();
-    final name = receipt ? 'receipt' : 'bill';
+    final name = receipt ? 'payment-receipt' : 'bill';
     final file = File('${dir.path}/flatcare-$name-$billId.pdf');
     await file.writeAsBytes(bytes);
 

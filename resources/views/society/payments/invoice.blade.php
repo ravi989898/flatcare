@@ -146,7 +146,7 @@
 
         @if ($bill->paid_amount > 0)
             <table>
-                <tr><td class="section-title">RECEIPT</td></tr>
+                <tr><td class="section-title">PAYMENT RECEIPT</td></tr>
             </table>
             <table class="items-table">
                 <thead>

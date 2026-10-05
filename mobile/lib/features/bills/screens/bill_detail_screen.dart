@@ -324,7 +324,7 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
                   actions: [
                     if (bill != null)
                       IconButton(
-                        tooltip: bill.isPending ? 'Download Bill' : 'Download Receipt',
+                        tooltip: bill.isPending ? 'Download Bill' : 'Payment Receipt',
                         onPressed: _downloading ? null : () => _download(bill),
                         icon: const Icon(Icons.download_rounded, color: Colors.white),
                       ),
@@ -397,7 +397,7 @@ class _BillBody extends StatelessWidget {
           icon: downloading
               ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.picture_as_pdf_outlined),
-          label: Text(bill.isPending ? 'Download Bill (PDF)' : 'Download Receipt (PDF)', style: const TextStyle(fontWeight: FontWeight.w600)),
+          label: Text(bill.isPending ? 'Download Bill (PDF)' : 'Payment Receipt (PDF)', style: const TextStyle(fontWeight: FontWeight.w600)),
         ),
       ],
     );
@@ -911,7 +911,7 @@ class _PayBar extends StatelessWidget {
                   icon: downloading
                       ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.download_rounded),
-                  label: const Text('Download Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  label: const Text('Payment Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
         ),
       ),

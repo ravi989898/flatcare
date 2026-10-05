@@ -87,6 +87,6 @@ class BillController extends ApiController
             'mobileNumber' => $this->user()->phone,
         ]);
 
-        return $pdf->download("bill-{$bill->id}-receipt.pdf");
+        return $pdf->download($bill->status === 'paid' ? "payment-receipt-{$bill->id}.pdf" : "invoice-{$bill->id}.pdf");
     }
 }

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Bill #{{ $bill->id }}</title>
+    <title>{{ $bill->status !== 'paid' ? 'Invoice' : 'Payment Receipt' }} #{{ $bill->id }}</title>
     <style>
         {{-- DejaVu Sans (bundled with dompdf) rather than Helvetica — Helvetica
              is a base-14 PDF font with no ₹ glyph, so it silently renders "?". --}}
@@ -49,7 +49,7 @@
                 @endif
             </td>
             <td style="text-align: right;">
-                <h1>{{ $bill->isPending ? 'Invoice' : 'Payment Receipt' }}</h1>
+                <h1>{{ $bill->status !== 'paid' ? 'Invoice' : 'Payment Receipt' }}</h1>
                 <div class="muted">Bill #{{ $bill->id }}</div>
                 <div>
                     <span class="status-badge status-{{ $bill->status }}">{{ strtoupper(str_replace('_', ' ', $bill->status)) }}</span>

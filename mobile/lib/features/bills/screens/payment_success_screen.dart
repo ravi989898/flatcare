@@ -171,7 +171,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> wit
               icon: _downloading
                   ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.download_rounded),
-              label: const Text('Download Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              label: const Text('Payment Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
