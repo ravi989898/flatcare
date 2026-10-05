@@ -50,7 +50,8 @@ import '../storage/token_storage.dart';
 /// still runs and works over plain API calls without it.
 bool firebaseReady = false;
 
-const _channelId = 'visitor_requests';
+const _channelId = 'visitor_requests_v2';
+const _sound = RawResourceAndroidNotificationSound('plectron');
 const _actionApprove = 'approve';
 const _actionReject = 'reject';
 
@@ -104,6 +105,7 @@ Future<void> _initLocalNotifications({DidReceiveNotificationResponseCallback? on
         'Visitor requests',
         description: 'Visitors waiting at the gate and gate decisions',
         importance: Importance.max,
+        sound: _sound,
       ));
 }
 
@@ -126,6 +128,7 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
         'Visitor requests',
         importance: Importance.max,
         priority: Priority.high,
+        sound: _sound,
         // A visitor waiting at the gate: rings through like a call and, on a
         // locked phone, opens the gate-approval screen full screen (see
         // MainActivity). Android may still show it as a heads-up banner.
@@ -141,7 +144,7 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
               ]
             : null,
       ),
-      iOS: const DarwinNotificationDetails(),
+      iOS: const DarwinNotificationDetails(sound: 'plectron.wav'),
     ),
   );
 }

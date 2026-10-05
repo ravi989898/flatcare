@@ -43,7 +43,7 @@ class FcmService
      * @param  array<string, scalar|null>  $data  FCM data values must be strings; they are cast here.
      * @return array{0: string, 1: string|null}  [result, error message]
      */
-    public function send(string $deviceToken, string $title, string $body, array $data = [], ?string $platform = null, string $channelId = 'visitor_requests'): array
+    public function send(string $deviceToken, string $title, string $body, array $data = [], ?string $platform = null, string $channelId = 'visitor_requests_v2'): array
     {
         // A notification that carries Approve/Reject buttons is sent to
         // Android as a data-only message: Android draws an FCM "notification"
@@ -65,11 +65,11 @@ class FcmService
                         'data' => array_map('strval', array_filter($data, fn ($v) => $v !== null)),
                         'android' => array_filter([
                             'priority' => 'HIGH',
-                            'notification' => $androidDataOnly ? null : ['title' => $title, 'body' => $body, 'channel_id' => $channelId, 'sound' => 'default'],
+                            'notification' => $androidDataOnly ? null : ['title' => $title, 'body' => $body, 'channel_id' => $channelId, 'sound' => 'plectron'],
                         ]),
                         'apns' => [
                             'headers' => ['apns-priority' => '10'],
-                            'payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']],
+                            'payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'plectron.wav']],
                         ],
                         'webpush' => ['notification' => ['title' => $title, 'body' => $body]],
                     ],

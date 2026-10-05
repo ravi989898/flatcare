@@ -91,7 +91,7 @@ class TestPushNotifications extends Command
         $sent = 0;
 
         foreach ($devices as $device) {
-            [$result, $error] = $fcm->send($device->token, 'FlatCare test', 'Push notifications are working.', ['type' => 'test'], $device->platform, 'visitor_requests');
+            [$result, $error] = $fcm->send($device->token, 'FlatCare test', 'Push notifications are working.', ['type' => 'test'], $device->platform, 'visitor_requests_v2');
 
             if ($result === FcmService::OK) {
                 $sent++;
