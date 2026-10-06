@@ -69,12 +69,27 @@ class WaterExtraChargeController extends Controller
             ->with('success', 'Extra charge updated.');
     }
 
-    public function destroy(int $id): RedirectResponse
+    public function activate(int $id): RedirectResponse
     {
-        WaterExtraCharge::findOrFail($id)->delete();
+        WaterExtraCharge::findOrFail($id)->update([
+            'is_active' => true,
+            'updated_by_user_id' => Auth::guard('society')->id(),
+        ]);
 
         return redirect()
             ->route('society.water-extra-charges.index')
-            ->with('success', 'Extra charge removed.');
+            ->with('success', 'Extra charge activated.');
+    }
+
+    public function deactivate(int $id): RedirectResponse
+    {
+        WaterExtraCharge::findOrFail($id)->update([
+            'is_active' => false,
+            'updated_by_user_id' => Auth::guard('society')->id(),
+        ]);
+
+        return redirect()
+            ->route('society.water-extra-charges.index')
+            ->with('success', 'Extra charge deactivated.');
     }
 }

@@ -21,6 +21,7 @@ class WaterExtraCharge extends Model
         'amount',
         'start_date',
         'end_date',
+        'remarks',
         'created_by_user_id',
         'updated_by_user_id',
     ];
@@ -29,6 +30,7 @@ class WaterExtraCharge extends Model
         'amount' => 'decimal:2',
         'start_date' => 'date',
         'end_date' => 'date',
+        'is_active' => 'boolean',
     ];
 
     public function flat(): BelongsTo
@@ -53,7 +55,8 @@ class WaterExtraCharge extends Model
      */
     public function scopeActiveDuring(Builder $query, int $flatId, \Carbon\Carbon $monthStart, \Carbon\Carbon $monthEnd): Builder
     {
-        return $query->where(fn ($q) => $q->whereNull('flat_id')->orWhere('flat_id', $flatId))
+        return $query->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('flat_id')->orWhere('flat_id', $flatId))
             ->where('start_date', '<=', $monthEnd->toDateString())
             ->where(fn ($q) => $q->whereNull('end_date')->orWhere('end_date', '>=', $monthStart->toDateString()));
     }

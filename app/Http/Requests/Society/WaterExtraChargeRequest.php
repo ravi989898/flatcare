@@ -24,6 +24,7 @@ class WaterExtraChargeRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0.01'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

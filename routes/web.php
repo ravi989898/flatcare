@@ -437,7 +437,8 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::post('/', [WaterExtraChargeController::class, 'store'])->name('store');
             Route::get('/{id}/edit', [WaterExtraChargeController::class, 'edit'])->name('edit');
             Route::put('/{id}', [WaterExtraChargeController::class, 'update'])->name('update');
-            Route::delete('/{id}', [WaterExtraChargeController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/activate', [WaterExtraChargeController::class, 'activate'])->name('activate');
+            Route::post('/{id}/deactivate', [WaterExtraChargeController::class, 'deactivate'])->name('deactivate');
         });
 
         Route::prefix('reports')->name('reports.')->group(function () {

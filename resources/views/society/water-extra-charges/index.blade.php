@@ -30,6 +30,8 @@
                                 <th>Amount</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
+                                <th>Remarks</th>
+                                <th>Status</th>
                                 <th>Created By</th>
                                 <th>Updated By</th>
                                 <th></th>
@@ -41,6 +43,12 @@
                                     <td>₹{{ number_format($charge->amount, 2) }}</td>
                                     <td>{{ $charge->start_date->format('d M Y') }}</td>
                                     <td>{{ $charge->end_date?->format('d M Y') ?? 'Ongoing' }}</td>
+                                    <td>{{ $charge->remarks ?: '—' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $charge->is_active ? 'success' : 'secondary' }}">
+                                            {{ $charge->is_active ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </td>
                                     <td>
                                         {{ $charge->createdBy?->name ?? '—' }}
                                         <div class="text-muted small">{{ $charge->created_at->format('d M Y') }}</div>
@@ -51,11 +59,17 @@
                                     </td>
                                     <td class="text-end text-nowrap">
                                         <a href="{{ route('society.water-extra-charges.edit', $charge->id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form action="{{ route('society.water-extra-charges.destroy', $charge->id) }}" method="POST" class="d-inline" data-confirm="Remove this extra charge?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                        </form>
+                                        @if ($charge->is_active)
+                                            <form action="{{ route('society.water-extra-charges.deactivate', $charge->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" data-confirm="Deactivate this extra charge?">Deactivate</button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('society.water-extra-charges.activate', $charge->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-success" data-confirm="Activate this extra charge?">Activate</button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

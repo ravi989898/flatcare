@@ -32,6 +32,12 @@
                         @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
+
+                <div class="mb-3">
+                    <label class="font-weight-bold mb-1 d-block">Remarks</label>
+                    <textarea name="remarks" rows="2" maxlength="1000" class="form-control @error('remarks') is-invalid @enderror">{{ old('remarks') }}</textarea>
+                    @error('remarks')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
 
             <div class="card-footer bg-white">
