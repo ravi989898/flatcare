@@ -147,7 +147,7 @@ class Seo
                 'Announcements, events and polls',
                 'Role-based admin access',
             ],
-            'downloadUrl' => self::site().'/downloads/flatcare-app.apk',
+            'downloadUrl' => self::site().route('app.download', absolute: false),
             'publisher' => ['@id' => self::site().'/#organization'],
             'provider' => ['@id' => self::site().'/#organization'],
         ];

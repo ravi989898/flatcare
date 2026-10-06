@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SocietySecurityController;
 use App\Http\Controllers\Admin\SocietyStructureController;
 use App\Http\Controllers\Admin\SocietyUserController;
 use App\Http\Controllers\Admin\TrialInquiryController as AdminTrialInquiryController;
+use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\TrialInquiryController;
@@ -44,6 +45,9 @@ use Illuminate\Support\Facades\Route;
 
 // Public marketing site: landing page, SEO pages and sitemap (config/seo.php).
 Route::get('/', [MarketingController::class, 'home'])->name('home');
+
+// The only Android app download link - see AppDownloadController.
+Route::get('/app/download', [AppDownloadController::class, 'android'])->name('app.download');
 
 // One route per public SEO page (/features, /pricing, /society-management-software ...).
 foreach (config('seo.pages', []) as $seoKey => $seoPage) {

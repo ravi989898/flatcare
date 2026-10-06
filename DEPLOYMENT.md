@@ -116,58 +116,17 @@ SSL is on, by setting the `API_BASE_URL` **repository variable**).
 
 ### How the "Download App" button works
 
-The landing page buttons link to
-`config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk'` (root-relative
-so the link keeps the page's own https — a hardcoded `http://` link on an
-https page is a mixed-content download and browsers block it).
+The app has a single download link, **`/app/download`**. It serves the APK
+committed at `public/downloads/flatcare-app.apk`, named
+`FlatCare-<version>.apk` and never cached. There is no `.env` setting for it.
+To release a new version, follow
+[public/downloads/README.md](public/downloads/README.md): bump the version,
+run `mobile/build-apk.ps1`, commit the APK, push to both remotes, and
+`git pull` on the server.
 
-**Default (current) — serve the APK from the server.** Build the release
-APK and upload it to:
-
-```
-public/downloads/flatcare-app.apk
-```
-
-by FTP / cPanel File Manager. That folder is committed (so `git pull`
-creates it) but its contents are git-ignored, so the APK never goes through
-the repo — see [public/downloads/README.md](public/downloads/README.md).
-Once the file is there the download works with no deploy step. Ship an
-update by overwriting that one file.
-
-Build it with:
-
-```bash
-cd mobile
-flutter build apk --release --split-per-abi \
-  --split-debug-info=build/symbols \
-  --dart-define=API_BASE_URL=https://flatcare.in/api/v1
-# upload build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-# to the server as public/downloads/flatcare-app.apk  (~20 MB, fits every
-# phone since ~2019)
-```
-
-`--split-debug-info` keeps the Dart debug symbols out of the APK (~1 MB
-smaller); keep `build/symbols` from that build if you need to read a crash
-stack trace (`flutter symbolize`). The QR scanner's ML Kit engine is not
-bundled either - it comes from Google Play Services
-(`mobile/android/gradle.properties`), saving ~6 MB.
-
-(a wrong/missing value makes release builds fall back to the emulator-only
-`10.0.2.2` and never reach the server.)
-
-**Alternative — GitHub Releases (only if the repo is public).** Set
-`MOBILE_APK_URL` in the production `.env` to
-`https://github.com/<owner>/flatcare/releases/latest/download/flatcare-app.apk`
-and publish the APK as a release asset named `flatcare-app.apk`. Release
-assets on a **private** repo cannot be downloaded anonymously, which is why
-this is not the default. [.github/workflows/release-apk.yml](.github/workflows/release-apk.yml)
-can build, sign and publish that release automatically on an `app-v*` tag —
-it needs a one-time upload keystore and four `ANDROID_*` Actions secrets
-(see the workflow header and
-[mobile/android/key.properties.example](mobile/android/key.properties.example)).
-
-If you ever host the APK somewhere else, set `MOBILE_APK_URL` in the
-production `.env`.
+The API base URL is baked in by `build-apk.ps1`
+(`--dart-define=API_BASE_URL=https://flatcare.in/api/v1`); a build without
+it falls back to the emulator-only `10.0.2.2` and never reaches the server.
 
 ## 6. After go-live
 

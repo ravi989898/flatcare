@@ -2,26 +2,10 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Resident mobile app (Android APK) download link
-    |--------------------------------------------------------------------------
-    |
-    | By default the landing page serves the APK straight from the server at
-    | public/downloads/flatcare-app.apk — the file is committed, so a
-    | `git pull` on the server ships a new version. A release build is
-    | ~22 MB, small enough to keep on the server without trouble.
-    |
-    | Set MOBILE_APK_URL in .env to point somewhere else instead — e.g. a
-    | GitHub Release asset on a PUBLIC repo, or a CDN. When it is empty the
-    | blade falls back to the root-relative "/downloads/flatcare-app.apk",
-    | which inherits the page's own scheme — so it stays https on an https
-    | page (a hardcoded http:// link there is a mixed-content download that
-    | browsers block) without depending on APP_URL / APP_ENV being right.
-    |
-    */
-
-    'apk_url' => env('MOBILE_APK_URL') ?: null,
+    // The Android app has no setting here on purpose: it is always
+    // downloaded from /app/download, which serves the APK committed at
+    // public/downloads/flatcare-app.apk (see AppDownloadController and
+    // public/downloads/README.md).
 
     // iPhone app's App Store (or TestFlight public) link. Until it is set the
     // landing page shows the iPhone button as "Coming soon".

@@ -32,6 +32,11 @@
     RewriteCond %{THE_REQUEST} ^\S+\s/index\.php(?:/([^?\s]*))?(\?\S*)?\s
     RewriteRule ^ /%1%2 [NE,L,R=301]
 
+    # The Android app is downloaded only through /app/download (versioned
+    # file name, never cached - see AppDownloadController). Old links shared
+    # to the APK file itself go there too.
+    RewriteRule ^downloads/flatcare-app\.apk$ /app/download [L,R=302]
+
     # Never serve dot-files/directories (.env, .git, .htpasswd, ...), except
     # the RFC 8615 .well-known folder used for certificate validation.
     RewriteRule (^|/)\.(?!well-known/) - [F,L]

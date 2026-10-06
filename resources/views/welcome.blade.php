@@ -179,7 +179,7 @@
                 </p>
                 <div class="d-flex flex-wrap gap-3">
                     <div>
-                        <a href="{{ config('flatcare.apk_url') ?? '/downloads/flatcare-app.apk' }}" download="flatcare-app.apk" class="btn btn-light btn-lg px-4 fw-semibold">
+                        <a href="{{ route('app.download', absolute: false) }}" class="btn btn-light btn-lg px-4 fw-semibold">
                             <i class="bi bi-android2"></i> Download for Android
                         </a>
                         <p class="small mb-0 mt-2 opacity-75" style="max-width: 260px;">

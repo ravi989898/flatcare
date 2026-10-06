@@ -12,5 +12,6 @@ Disallow: /logout
 Disallow: /email/
 Disallow: /trial-inquiries
 Disallow: /downloads/
+Disallow: /app/download
 
 Sitemap: https://flatcare.in/sitemap.xml
