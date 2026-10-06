@@ -8,9 +8,14 @@
             <h1 class="h3 mb-1">Water Readings</h1>
             <p class="text-muted mb-0">Monthly meter readings and the maintenance bills generated from them</p>
         </div>
-        <a href="{{ route('society.water-readings.create') }}" class="btn btn-brand">
-            <i class="bi bi-plus-lg"></i> Add Reading
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('society.water-extra-charges.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-cash-stack"></i> Add Extra Charges
+            </a>
+            <a href="{{ route('society.water-readings.create') }}" class="btn btn-brand">
+                <i class="bi bi-plus-lg"></i> Add Reading
+            </a>
+        </div>
     </div>
 @stop
 
@@ -27,6 +32,7 @@
                                 <th>Previous</th>
                                 <th>Current</th>
                                 <th>Units</th>
+                                <th>Extra Amount</th>
                                 <th>Bill Amount</th>
                                 <th></th>
                             </tr>
@@ -39,6 +45,7 @@
                                     <td>{{ $reading->previous_reading }}</td>
                                     <td>{{ $reading->current_reading }}</td>
                                     <td>{{ $reading->units }}</td>
+                                    <td>₹{{ number_format($reading->extra_amount, 2) }}</td>
                                     <td>
                                         @if ($reading->bill)
                                             ₹{{ number_format($reading->bill->amount, 2) }}

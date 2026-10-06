@@ -3,15 +3,22 @@
 @section('title', 'Add Water Reading')
 
 @section('content_header')
-    <h1 class="h3 mb-1">Add Water Reading</h1>
-    @if ($block)
-        <p class="text-muted mb-0">
-            {{ $block->name }} — enter this month's meter reading per flat. The bill is calculated automatically:
-            units &times; ₹{{ number_format($society->water_unit_rate ?? 0, 2) }}/unit + ₹{{ number_format($society->fixed_maintenance ?? 0, 2) }} fixed maintenance.
-        </p>
-    @else
-        <p class="text-muted mb-0">Choose a block to enter this month's meter readings for its flats.</p>
-    @endif
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1 class="h3 mb-1">Add Water Reading</h1>
+            @if ($block)
+                <p class="text-muted mb-0">
+                    {{ $block->name }} — enter this month's meter reading per flat. The bill is calculated automatically:
+                    units &times; ₹{{ number_format($society->water_unit_rate ?? 0, 2) }}/unit + ₹{{ number_format($society->fixed_maintenance ?? 0, 2) }} fixed maintenance + extra amount.
+                </p>
+            @else
+                <p class="text-muted mb-0">Choose a block to enter this month's meter readings for its flats.</p>
+            @endif
+        </div>
+        <a href="{{ route('society.water-extra-charges.index') }}" class="btn btn-outline-secondary text-nowrap">
+            <i class="bi bi-cash-stack"></i> Add Extra Charges
+        </a>
+    </div>
 @stop
 
 @section('content')
@@ -29,9 +36,6 @@
         </div>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
     @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
@@ -81,6 +85,7 @@
                             <thead>
                                 <tr>
                                     <th>Flat</th>
+                                    <th style="width: 140px;">Extra Amount</th>
                                     <th style="width: 180px;">Previous Reading</th>
                                     <th style="width: 180px;">Current Reading</th>
                                 </tr>
@@ -91,6 +96,9 @@
                                         <td>
                                             {{ $row['flat']->flat_number }}
                                             <input type="hidden" name="readings[{{ $i }}][flat_id]" value="{{ $row['flat']->id }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control-plaintext py-0" value="₹{{ number_format($row['extra_amount'], 2) }}" readonly>
                                         </td>
                                         <td>
                                             @if ($row['has_history'])
@@ -111,7 +119,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted p-4">No active flats in this block.</td>
+                                        <td colspan="4" class="text-center text-muted p-4">No active flats in this block.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

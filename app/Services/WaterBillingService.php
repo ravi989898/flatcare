@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Society;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
+use App\Models\Tenant\WaterExtraCharge;
 use App\Models\Tenant\WaterReading;
 use Carbon\Carbon;
 use DomainException;
@@ -60,6 +61,7 @@ class WaterBillingService
                 'flat' => $flat,
                 'previous_reading' => $reading?->previous_reading ?? $prior?->current_reading,
                 'current_reading' => $reading?->current_reading,
+                'extra_amount' => $reading?->extra_amount ?? $this->extraAmountFor($flat->id, $month),
                 'has_history' => (bool) $prior,
                 'reading' => $reading,
                 'bill' => $bill,
@@ -145,7 +147,15 @@ class WaterBillingService
                 );
 
                 $units = $reading->units;
-                $amount = round(($units * $waterUnitRate) + $fixedMaintenance, 2);
+                $extraAmount = $this->extraAmountFor($row['flat_id'], $month);
+                $amount = round(($units * $waterUnitRate) + $fixedMaintenance + $extraAmount, 2);
+
+                $reading->update(['extra_amount' => $extraAmount]);
+
+                $notes = "Water: {$units} units × ₹{$waterUnitRate} + Fixed ₹{$fixedMaintenance}";
+                if ($extraAmount > 0) {
+                    $notes .= " + Extra ₹{$extraAmount}";
+                }
 
                 $bill = MaintenanceBill::updateOrCreate(
                     ['water_reading_id' => $reading->id],
@@ -154,7 +164,7 @@ class WaterBillingService
                         'title' => $month->format('F Y').' Maintenance',
                         'amount' => $amount,
                         'due_date' => $dueDate,
-                        'notes' => "Water: {$units} units × ₹{$waterUnitRate} + Fixed ₹{$fixedMaintenance}",
+                        'notes' => $notes,
                         'created_by_user_id' => $userId,
                     ]
                 );
@@ -180,5 +190,14 @@ class WaterBillingService
     private function isLocked(?WaterReading $reading): bool
     {
         return (bool) $reading?->bill?->payments->isNotEmpty();
+    }
+
+    /** Sum of the flat's recurring extra charges (WaterExtraCharge) active at any point during the billing month. */
+    public function extraAmountFor(int $flatId, Carbon $month): float
+    {
+        $monthStart = $month->copy()->startOfMonth();
+        $monthEnd = $month->copy()->endOfMonth();
+
+        return (float) WaterExtraCharge::activeDuring($flatId, $monthStart, $monthEnd)->sum('amount');
     }
 }

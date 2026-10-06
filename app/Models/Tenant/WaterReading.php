@@ -15,6 +15,7 @@ class WaterReading extends Model
         'reading_month',
         'previous_reading',
         'current_reading',
+        'extra_amount',
         'recorded_by_user_id',
     ];
 
@@ -22,6 +23,7 @@ class WaterReading extends Model
         'reading_month' => 'date',
         'previous_reading' => 'decimal:2',
         'current_reading' => 'decimal:2',
+        'extra_amount' => 'decimal:2',
     ];
 
     protected $appends = ['units'];

@@ -37,6 +37,7 @@ use App\Http\Controllers\Society\PollController;
 use App\Http\Controllers\Society\ReportController;
 use App\Http\Controllers\Society\SecurityGuardController as SocietyPortalSecurityGuardController;
 use App\Http\Controllers\Society\ServiceProviderController;
+use App\Http\Controllers\Society\WaterExtraChargeController;
 use App\Http\Controllers\Society\WaterReadingController;
 use App\Http\Controllers\Society\SocietyAuthController;
 use App\Http\Controllers\Society\SocietyDashboardController;
@@ -424,6 +425,19 @@ Route::prefix('society')->name('society.')->group(function () {
             Route::get('/create', [WaterReadingController::class, 'create'])->name('create');
             Route::post('/', [WaterReadingController::class, 'store'])->name('store');
             Route::put('/{readingId}', [WaterReadingController::class, 'update'])->name('update');
+        });
+
+        // Recurring per-flat charges folded automatically into every water
+        // reading bill for the flat (see WaterBillingService) — reached only
+        // via the "Add Extra Charges" button on the Water Readings pages,
+        // not its own sidebar link (see EnsureMenuItemVisible).
+        Route::prefix('water-extra-charges')->name('water-extra-charges.')->group(function () {
+            Route::get('/', [WaterExtraChargeController::class, 'index'])->name('index');
+            Route::get('/create', [WaterExtraChargeController::class, 'create'])->name('create');
+            Route::post('/', [WaterExtraChargeController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [WaterExtraChargeController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [WaterExtraChargeController::class, 'update'])->name('update');
+            Route::delete('/{id}', [WaterExtraChargeController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('reports')->name('reports.')->group(function () {

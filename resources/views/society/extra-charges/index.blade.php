@@ -19,6 +19,9 @@
             <a href="{{ route('society.extra-charges.create') }}" class="btn btn-brand">
                 <i class="bi bi-plus-lg"></i> Raise Charge
             </a>
+            <a href="{{ route('society.water-extra-charges.index') }}" class="btn btn-outline-info">
+                <i class="bi bi-cash-stack"></i> Add Extra Charges
+            </a>
         </div>
     </div>
 @stop

@@ -159,13 +159,18 @@ class PaymentController extends Controller
     /**
      * The line items that make up a bill's amount. Water-reading-generated
      * bills (see WaterReadingController) get a Water Charges + Fixed
-     * Charges split; a manually-raised bill (society.payments.store) has no
-     * such breakdown, so it's shown as a single line.
+     * Charges (+ Extra Charges, if any) split; a manually-raised bill
+     * (society.payments.store) has no such breakdown, so it's shown as a
+     * single line.
      *
      * The water-charges amount is recomputed from the current society rate
      * rather than stored at billing time, so if the rate changes later the
-     * Fixed Charges line (amount minus water charges) absorbs the
-     * difference — the two lines always add up to the actual amount billed.
+     * Fixed Charges line (amount minus water charges minus extra charges)
+     * absorbs the difference — the lines always add up to the actual amount
+     * billed. The extra-charges amount, by contrast, is read off the
+     * reading's own extra_amount snapshot (see WaterBillingService), not
+     * recomputed, since it's already a point-in-time total of whatever
+     * WaterExtraCharge rows applied when the bill was generated.
      */
     private function billLineItems(MaintenanceBill $bill, $society): array
     {
@@ -173,6 +178,7 @@ class PaymentController extends Controller
             $reading = $bill->waterReading;
             $rate = (float) ($society->water_unit_rate ?? 0);
             $waterAmount = round((float) $reading->units * $rate, 2);
+            $extraAmount = round((float) $reading->extra_amount, 2);
 
             $lines = [
                 [
@@ -189,9 +195,17 @@ class PaymentController extends Controller
                 [
                     'label' => 'Fixed Charges',
                     'detail' => null,
-                    'amount' => round((float) $bill->amount - $waterAmount, 2),
+                    'amount' => round((float) $bill->amount - $waterAmount - $extraAmount, 2),
                 ],
             ];
+
+            if ($extraAmount > 0) {
+                $lines[] = [
+                    'label' => 'Extra Charges',
+                    'detail' => null,
+                    'amount' => $extraAmount,
+                ];
+            }
         } else {
             $lines = [[
                 'label' => $bill->title,

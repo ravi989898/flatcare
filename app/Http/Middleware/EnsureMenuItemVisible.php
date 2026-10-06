@@ -29,6 +29,7 @@ class EnsureMenuItemVisible
      */
     private const EXTRA_ROUTE_PREFIXES = [
         'society.fee-types' => 'extra-charges',
+        'society.water-extra-charges' => 'water-readings',
     ];
 
     /** menu_items.key values that only an admin may ever reach, whatever the visibility catalog says. */

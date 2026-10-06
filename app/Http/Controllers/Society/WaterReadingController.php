@@ -51,7 +51,7 @@ class WaterReadingController extends Controller
      * "previous reading" input instead — the one-time baseline the admin
      * enters by hand.
      */
-    public function create(Request $request): View
+    public function create(Request $request, WaterBillingService $billing): View
     {
         $month = $request->filled('month')
             ? Carbon::parse($request->string('month')->trim()->value().'-01')
@@ -78,7 +78,7 @@ class WaterReadingController extends Controller
             ->get()
             ->keyBy('flat_id');
 
-        $rows = $flats->map(function (Flat $flat) use ($existing, $month) {
+        $rows = $flats->map(function (Flat $flat) use ($existing, $month, $billing) {
             $current = $existing->get($flat->id);
             $prior = WaterReading::priorTo($flat->id, $month);
 
@@ -86,6 +86,7 @@ class WaterReadingController extends Controller
                 'flat' => $flat,
                 'previous_reading' => $current?->previous_reading ?? $prior?->current_reading,
                 'current_reading' => $current?->current_reading,
+                'extra_amount' => $current?->extra_amount ?? $billing->extraAmountFor($flat->id, $month),
                 'has_history' => (bool) $prior,
             ];
         });
