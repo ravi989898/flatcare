@@ -23,6 +23,7 @@ import '../api/api_exception.dart';
 import '../providers/core_providers.dart';
 import '../router/app_router.dart';
 import '../storage/token_storage.dart';
+import 'alert_setup.dart';
 
 /// Push notifications for the visitor approval flow.
 ///
@@ -233,12 +234,14 @@ class PushService with WidgetsBindingObserver {
   final Ref _ref;
   String? _token;
   bool _started = false;
+  GoRouter? _router;
 
   bool get _loggedIn => _ref.read(authControllerProvider).valueOrNull != null;
 
   Future<void> start(GoRouter router) async {
     if (_started || !firebaseReady) return;
     _started = true;
+    _router = router;
 
     await _initLocalNotifications(onTap: (response) => _handleResponse(response, onOpen: (data) => _open(router, data)));
     WidgetsBinding.instance.addObserver(this);
@@ -289,6 +292,25 @@ class PushService with WidgetsBindingObserver {
     } catch (error) {
       debugPrint('Could not register for push notifications: $error');
     }
+
+    await _promptAlertSetup();
+  }
+
+  /// Opens the Visitor Alert Setup screen after sign-in while a phone
+  /// setting would block pushes with the app closed (battery optimisation,
+  /// the maker's auto-start switch...) - at most once a day.
+  Future<void> _promptAlertSetup() async {
+    final router = _router;
+    if (router == null || !await AlertSetup.shouldPrompt()) return;
+
+    // Let the post-login redirect to the home screen settle first.
+    await Future<void>.delayed(const Duration(seconds: 1));
+    final path = router.routerDelegate.currentConfiguration.uri.path;
+    // Never on top of a visitor waiting at the gate, or before sign-in finished.
+    if (!_loggedIn || path.startsWith('/visitors/approve') || path == '/' || path.startsWith('/login')) return;
+
+    await AlertSetup.markPrompted();
+    router.push('/alert-setup');
   }
 
   /// Stops pushes to this device; called on logout while the API token is

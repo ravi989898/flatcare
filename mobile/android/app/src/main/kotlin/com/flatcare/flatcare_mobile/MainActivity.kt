@@ -40,6 +40,7 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AlertSetup.CHANNEL).setMethodCallHandler(AlertSetup(this))
     }
 
     private fun showOverLockScreenIfFromNotification(intent: Intent?) {

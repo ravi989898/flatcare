@@ -42,6 +42,7 @@ import '../../features/home/screens/my_properties_screen.dart';
 import '../../features/notifications/screens/notification_list_screen.dart';
 import '../../features/polls/screens/poll_list_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
+import '../../features/profile/screens/alert_setup_screen.dart';
 import '../../features/profile/screens/change_password_screen.dart';
 import '../../features/profile/screens/family_members_screen.dart';
 import '../../features/profile/screens/help_support_screen.dart';
@@ -278,6 +279,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/service-providers', builder: (context, state) => const ServiceProviderListScreen()),
       GoRoute(path: '/polls', builder: (context, state) => const PollListScreen()),
       GoRoute(path: '/notifications', builder: (context, state) => const NotificationListScreen()),
+      // Residents and gate keepers alike (both get pushes); see PushService.
+      GoRoute(path: '/alert-setup', builder: (context, state) => const AlertSetupScreen()),
 
       GoRoute(
         path: '/profile',

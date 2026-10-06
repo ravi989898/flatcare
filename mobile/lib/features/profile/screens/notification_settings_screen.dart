@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/push/alert_setup.dart';
 
 /// Local on/off toggles only — there's no push-notification infra behind
 /// this yet (the app polls GET /notifications), so these don't gate
@@ -24,6 +27,14 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       appBar: AppBar(title: const Text('Notification Settings')),
       body: ListView(
         children: [
+          if (AlertSetup.supported)
+            ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Visitor Alert Setup'),
+              subtitle: const Text('Phone settings so visitor requests arrive when the app is closed'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/alert-setup'),
+            ),
           SwitchListTile(
             title: const Text('Maintenance Due Reminders'),
             value: _maintenanceDue,

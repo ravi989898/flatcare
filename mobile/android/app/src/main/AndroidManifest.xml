@@ -8,6 +8,9 @@
          call) instead of only a heads-up banner - see MainActivity. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- The one-tap "Allow" dialog for turning battery optimisation off
+         (Alert Setup screen), so a visitor request isn't held back. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- allowBackup=false: keeps the login token out of adb/cloud backups.
          usesCleartextTraffic=false: release builds may only talk HTTPS (the
          debug manifest re-enables http for the local emulator/dev server). -->
