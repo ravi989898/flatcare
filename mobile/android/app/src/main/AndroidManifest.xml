@@ -39,6 +39,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Shows a visitor request push natively the moment it arrives with
+             the app closed (see VisitorRequestReceiver). -->
+        <receiver
+            android:name=".VisitorRequestReceiver"
+            android:exported="true"
+            android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
+            </intent-filter>
+        </receiver>
+        <!-- flutter_local_notifications doesn't declare this itself: without
+             it the Deny / Approve buttons on a visitor request do nothing. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false"/>
         <!-- The QR scanner uses Play Services' ML Kit barcode engine (see
              android/gradle.properties); fetch it when the app is installed. -->
         <meta-data

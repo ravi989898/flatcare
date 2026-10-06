@@ -30,9 +30,9 @@ import '../storage/token_storage.dart';
 /// push; this file only receives them:
 ///
 ///  * Android, visitor request: a high-priority *data-only* FCM message. The
-///    system can't add buttons to a message it draws itself, so it wakes
-///    [firebaseMessagingBackgroundHandler] — even with the app closed —
-///    which builds the notification with Deny / Approve buttons, the
+///    system can't add buttons to a message it draws itself, so the native
+///    VisitorRequestReceiver (android/app/.../VisitorRequestReceiver.kt) — even with the app
+///    closed — builds the notification with Deny / Approve buttons, the
 ///    visitor's photo and a full-screen intent (so a locked phone shows the
 ///    gate-approval screen like an incoming call). Tapping a button calls
 ///    the approve/reject API from a background isolate
@@ -76,6 +76,10 @@ Future<void> initFirebase() async {
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // A message with a `notification` block was already drawn by the system.
   if (message.notification != null) return;
+  // A visitor request was already drawn natively by VisitorRequestReceiver
+  // (android/app/.../VisitorRequestReceiver.kt) - this isolate can start too
+  // late, or not at all, with the app closed.
+  if ('${message.data['actions'] ?? ''}'.contains(_actionApprove)) return;
 
   await _initLocalNotifications();
   await _showNotification(message.data);
