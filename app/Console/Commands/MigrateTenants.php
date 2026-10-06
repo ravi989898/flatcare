@@ -22,7 +22,11 @@ class MigrateTenants extends Command
 
     public function handle(TenantService $tenantService): int
     {
-        $societyDatabases = SocietyDatabase::active()->get();
+        // 'created' databases are live too (TenantService::switchConnection
+        // serves them) — they just haven't had a successful migration run
+        // flip them to 'active' yet, so skipping them leaves those societies
+        // without new tables.
+        $societyDatabases = SocietyDatabase::whereIn('status', ['active', 'created'])->get();
 
         if ($societyDatabases->isEmpty()) {
             $this->warn('No active society databases found.');
