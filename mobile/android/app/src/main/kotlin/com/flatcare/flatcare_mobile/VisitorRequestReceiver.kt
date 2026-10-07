@@ -109,7 +109,8 @@ class VisitorRequestReceiver : BroadcastReceiver() {
         }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(context, CHANNEL_ID)
+            // Rings until answered/opened/dismissed, like a call; never longer than RING_FOR_MS.
+            Notification.Builder(context, CHANNEL_ID).setTimeoutAfter(RING_FOR_MS)
         } else {
             @Suppress("DEPRECATION")
             Notification.Builder(context).setPriority(Notification.PRIORITY_MAX).setSound(sound)
@@ -130,10 +131,17 @@ class VisitorRequestReceiver : BroadcastReceiver() {
         data["flat_label"]?.let { builder.setSubText(it) }
         body?.let { builder.setStyle(Notification.BigTextStyle().bigText(it)) }
 
-        // Alert straight away, then add the visitor's photo silently once it has loaded.
-        manager.notify(id, builder.build())
+        // FLAG_INSISTENT repeats the channel's tone until the notification
+        // is cancelled - the gate-approval screen cancels it once it closes.
+        fun ringing(): Notification = builder.build().apply { this.flags = this.flags or Notification.FLAG_INSISTENT }
+
+        // Alert straight away, then add the visitor's photo once it has
+        // loaded. No setOnlyAlertOnce on that update: it would stop the
+        // ringing, whereas an update to an insistent notification keeps it going.
+        manager.notify(id, ringing())
         downloadPhoto(data["photo_url"])?.let {
-            manager.notify(id, builder.setLargeIcon(it).setOnlyAlertOnce(true).build())
+            builder.setLargeIcon(it)
+            manager.notify(id, ringing())
         }
     }
 
@@ -170,6 +178,7 @@ class VisitorRequestReceiver : BroadcastReceiver() {
         private const val TAG = "VisitorRequestReceiver"
         private const val CHANNEL_ID = "visitor_requests_v3"
         private const val OLD_CHANNEL_ID = "visitor_requests_v2"
+        private const val RING_FOR_MS = 60_000L
         private const val ACTION_APPROVE = "approve"
         private const val ACTION_REJECT = "reject"
 

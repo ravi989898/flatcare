@@ -12,6 +12,8 @@ class AlertSetupStatus {
     this.autoStartDone = true,
     this.fullScreenNeeded = false,
     this.fullScreen = true,
+    this.lockScreenNeeded = false,
+    this.lockScreenDone = true,
     this.brand = '',
   });
 
@@ -22,6 +24,8 @@ class AlertSetupStatus {
         autoStartDone: map['autoStartDone'] == true,
         fullScreenNeeded: map['fullScreenNeeded'] == true,
         fullScreen: map['fullScreen'] == true,
+        lockScreenNeeded: map['lockScreenNeeded'] == true,
+        lockScreenDone: map['lockScreenDone'] == true,
         brand: '${map['brand'] ?? ''}',
       );
 
@@ -31,11 +35,18 @@ class AlertSetupStatus {
   final bool autoStartDone;
   final bool fullScreenNeeded;
   final bool fullScreen;
+  final bool lockScreenNeeded;
+  final bool lockScreenDone;
   final String brand;
 
-  /// Everything a closed-app visitor request depends on. (Full-screen is
-  /// only the incoming-call style popup - the notification arrives without it.)
-  bool get complete => notifications && battery && (!autoStartNeeded || autoStartDone);
+  /// Everything a visitor request depends on: arriving with the app closed,
+  /// and popping up as the gate-approval screen over a locked phone.
+  bool get complete =>
+      notifications &&
+      battery &&
+      (!autoStartNeeded || autoStartDone) &&
+      (!fullScreenNeeded || fullScreen) &&
+      (!lockScreenNeeded || lockScreenDone);
 }
 
 class AlertSetup {
@@ -58,6 +69,7 @@ class AlertSetup {
   static Future<void> openBattery() => _invoke('openBattery');
   static Future<void> openAutoStart() => _invoke('openAutoStart');
   static Future<void> openFullScreen() => _invoke('openFullScreen');
+  static Future<void> openLockScreen() => _invoke('openLockScreen');
 
   /// Whether to open the setup screen by itself after sign-in: only while
   /// something is missing, and at most once a day so it never nags.

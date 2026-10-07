@@ -90,9 +90,17 @@ class _AlertSetupScreenState extends State<AlertSetupScreen> with WidgetsBinding
                 if (status.fullScreenNeeded)
                   _Step(
                     done: status.fullScreen,
-                    title: 'Full-screen alerts (optional)',
+                    title: 'Allow full-screen alerts',
                     subtitle: 'Shows a visitor at the gate like an incoming call on a locked phone.',
                     onTap: () => _open(AlertSetup.openFullScreen),
+                  ),
+                if (status.lockScreenNeeded)
+                  _Step(
+                    done: status.lockScreenDone,
+                    title: 'Allow "Show on lock screen"',
+                    subtitle: '${status.brand} phones hide the visitor popup on a locked phone. Under Permissions '
+                        '(or Other permissions), allow "Show on lock screen" and "Display pop-up windows" for FlatCare.',
+                    onTap: () => _open(AlertSetup.openLockScreen),
                   ),
               ],
             ),

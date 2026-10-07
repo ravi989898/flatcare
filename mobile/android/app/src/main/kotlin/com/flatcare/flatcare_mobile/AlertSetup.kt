@@ -24,7 +24,10 @@ import io.flutter.plugin.common.MethodChannel
  *    phones force-stop the app when it's swiped away, and Android delivers
  *    nothing to a force-stopped app. There's no API to read that switch, so
  *    it counts as done once the resident has opened the screen;
- *  - Android 14+: full-screen alerts (the incoming-call style popup).
+ *  - Android 14+: full-screen alerts (the incoming-call style popup);
+ *  - on Xiaomi, Vivo, Oppo, Realme, OnePlus: the maker's "Show on lock
+ *    screen" permission, off by default, without which the popup never
+ *    appears over a locked phone. Also unreadable, so done once opened.
  */
 class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandler {
     private val prefs = activity.getSharedPreferences("flatcare_alert_setup", Context.MODE_PRIVATE)
@@ -36,6 +39,7 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
             "openBattery" -> result.success(openBattery())
             "openAutoStart" -> result.success(openAutoStart())
             "openFullScreen" -> result.success(openFullScreen())
+            "openLockScreen" -> result.success(openLockScreen())
             "lastPrompted" -> result.success(prefs.getLong(KEY_LAST_PROMPTED, 0))
             "markPrompted" -> {
                 prefs.edit().putLong(KEY_LAST_PROMPTED, System.currentTimeMillis()).apply()
@@ -52,6 +56,8 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
         "autoStartDone" to prefs.getBoolean(KEY_AUTO_START_OPENED, false),
         "fullScreenNeeded" to (Build.VERSION.SDK_INT >= 34),
         "fullScreen" to fullScreenAllowed(),
+        "lockScreenNeeded" to lockScreenIntents().isNotEmpty(),
+        "lockScreenDone" to prefs.getBoolean(KEY_LOCK_SCREEN_OPENED, false),
         "brand" to Build.MANUFACTURER.replaceFirstChar { it.uppercase() },
     )
 
@@ -102,6 +108,36 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
         if (Build.VERSION.SDK_INT < 34) return false
         val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${activity.packageName}"))
         return start(intent) || start(appDetails())
+    }
+
+    private fun openLockScreen(): Boolean {
+        val opened = lockScreenIntents().any { start(it) } || start(appDetails())
+        if (opened) prefs.edit().putBoolean(KEY_LOCK_SCREEN_OPENED, true).apply()
+        return opened
+    }
+
+    /** The maker's per-app permission screen holding "Show on lock screen"; empty on phones without one. */
+    private fun lockScreenIntents(): List<Intent> {
+        val pkg = activity.packageName
+        return when (Build.MANUFACTURER.lowercase()) {
+            "xiaomi", "redmi", "poco" -> listOf(
+                Intent("miui.intent.action.APP_PERM_EDITOR")
+                    .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                    .putExtra("extra_pkgname", pkg),
+                Intent("miui.intent.action.APP_PERM_EDITOR")
+                    .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.AppPermissionsEditorActivity")
+                    .putExtra("extra_pkgname", pkg),
+                Intent("miui.intent.action.APP_PERM_EDITOR").putExtra("extra_pkgname", pkg),
+            )
+            "vivo", "iqoo" -> listOf(
+                Intent().setClassName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.SoftPermissionDetailActivity")
+                    .putExtra("packagename", pkg),
+                appDetails(),
+            )
+            // ColorOS / OxygenOS keep it under App info > Permissions.
+            "oppo", "realme", "oneplus" -> listOf(appDetails())
+            else -> emptyList()
+        }
     }
 
     /** The maker's auto-start screens, most recent OS version first; empty on phones without one. */
@@ -157,6 +193,7 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
 
     companion object {
         const val CHANNEL = "flatcare/alert_setup"
+        private const val KEY_LOCK_SCREEN_OPENED = "lock_screen_opened"
         private const val VISITOR_CHANNEL = "visitor_requests_v3"
         private const val KEY_AUTO_START_OPENED = "auto_start_opened"
         private const val KEY_LAST_PROMPTED = "last_prompted"

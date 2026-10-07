@@ -59,6 +59,11 @@ const _visitorChannelId = 'visitor_requests_v3';
 const _generalChannelId = 'general';
 const _oldChannelIds = ['visitor_requests_v2'];
 const _visitorSound = RawResourceAndroidNotificationSound('visitor_ring');
+// A visitor request rings like an incoming call: the tone repeats
+// (Notification.FLAG_INSISTENT) until it is answered, opened, closed or
+// swiped away - or for at most this long, if nobody is near the phone.
+const _ringFor = Duration(seconds: 60);
+const _flagInsistent = 4;
 const _actionApprove = 'approve';
 const _actionReject = 'reject';
 
@@ -155,6 +160,8 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
         // MainActivity). Android may still show it as a heads-up banner.
         category: actionable ? AndroidNotificationCategory.call : AndroidNotificationCategory.message,
         fullScreenIntent: actionable,
+        additionalFlags: actionable ? Int32List.fromList(const [_flagInsistent]) : null,
+        timeoutAfter: actionable ? _ringFor.inMilliseconds : null,
         subText: flatLabel,
         largeIcon: photo == null ? null : ByteArrayAndroidBitmap(photo),
         styleInformation: text == null ? null : BigTextStyleInformation(text),
@@ -192,7 +199,8 @@ Future<Uint8List?> _downloadPhoto(String? url) async {
   }
 }
 
-/// Removes a visitor's request notification once it has been answered in the app.
+/// Removes a visitor's request notification (and stops its ringing) once it
+/// has been answered or the gate-approval screen is closed.
 Future<void> cancelVisitorNotification(int visitorId) async {
   if (!firebaseReady) return;
 

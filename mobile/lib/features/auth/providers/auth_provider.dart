@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/api_exception.dart';
 import '../../../core/models/society.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/providers/core_providers.dart';
@@ -25,12 +26,25 @@ class AuthController extends AsyncNotifier<AuthState?> {
     final token = await ref.read(tokenStorageProvider).read();
     if (token == null) return null;
 
-    try {
-      final me = await ref.read(authRepositoryProvider).me();
-      return AuthState(society: me.society, user: me.user);
-    } catch (_) {
-      await ref.read(tokenStorageProvider).clear();
-      return null;
+    // Only a rejected token ends the session. A phone woken from the lock
+    // screen by a visitor request often has no network for a moment;
+    // treating that as "logged out" cleared the token, so the gate-approval
+    // screen never opened. Retry instead, and keep the token if it still
+    // fails so the next launch can restore the session.
+    for (var attempt = 1;; attempt++) {
+      try {
+        final me = await ref.read(authRepositoryProvider).me();
+        return AuthState(society: me.society, user: me.user);
+      } on ApiException catch (e) {
+        if (e.statusCode == 401 || e.statusCode == 403) {
+          await ref.read(tokenStorageProvider).clear();
+          return null;
+        }
+      } catch (_) {
+        // Unexpected response - retried like a network error.
+      }
+      if (attempt == 3) return null;
+      await Future<void>.delayed(Duration(seconds: attempt * 2));
     }
   }
 

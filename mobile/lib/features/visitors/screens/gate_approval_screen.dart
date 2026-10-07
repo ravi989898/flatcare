@@ -54,6 +54,8 @@ class _GateApprovalScreenState extends ConsumerState<GateApprovalScreen> with Si
   void dispose() {
     _pulse.dispose();
     _closeTimer?.cancel();
+    // Stop the ringing request notification - the resident has seen it.
+    cancelVisitorNotification(widget.id);
     // Back to normal: the rest of the app needs the phone unlocked.
     _lockScreen.invokeMethod('setShowWhenLocked', false).catchError((_) {});
     super.dispose();
