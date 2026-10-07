@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' show PathMetric;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,18 +10,19 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/models/flat.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/async_view.dart';
 import '../../visitors/data/visitor.dart';
 import '../data/guard_visitor_repository.dart';
 import '../providers/gatekeeper_providers.dart';
 import '../widgets/purpose_style.dart';
 
+const _ink = Color(0xFF0B1E3D);
+const _fieldBorder = Color(0xFFD9DEE7);
+
 /// Walk-in check-in — a visitor who showed up without a resident's
-/// pre-invite. Modeled on features/visitors/screens/invite_visitor_screen.dart,
-/// but the guard picks any flat in the society (Api\V1\Guard\FlatController):
-/// tap a block in the horizontal strip, then one of its flats - faster at a
-/// gate than typing while someone's waiting (a search sheet is still one tap
-/// away). Laid out to fit one screen, with Submit pinned at the bottom.
+/// pre-invite. The guard picks any flat in the society
+/// (Api\V1\Guard\FlatController): tap a block in the horizontal strip, then
+/// pick its flat from the "Flat Number" dropdown. The entry is sent to the
+/// resident for approval. Check In is pinned at the bottom.
 class GatekeeperVisitorCheckinScreen extends ConsumerStatefulWidget {
   const GatekeeperVisitorCheckinScreen({super.key});
 
@@ -28,16 +31,19 @@ class GatekeeperVisitorCheckinScreen extends ConsumerStatefulWidget {
 }
 
 class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisitorCheckinScreen> {
+  static const _noBlock = 'Other';
+  static const _countryCodes = ['+91', '+1', '+44', '+971', '+977', '+61'];
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _vehicleController = TextEditingController();
   String _purpose = Visitor.purposes.first;
+  String _countryCode = _countryCodes.first;
+  String? _block;
   Flat? _flat;
   XFile? _photo;
   bool _isSubmitting = false;
-  // A walk-in is sent to the resident for approval unless the guard opts out.
-  bool _requiresApproval = true;
 
   @override
   void dispose() {
@@ -55,36 +61,44 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
     if (photo != null) setState(() => _photo = photo);
   }
 
-  Future<void> _pickFlat() async {
+  Future<void> _pickFlat(List<Flat> flats) async {
     final flat = await showModalBottomSheet<Flat>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _FlatPickerSheet(),
+      builder: (context) => _FlatSheet(flats: flats, selected: _flat),
     );
     if (flat != null) setState(() => _flat = flat);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _flat == null) return;
+    final formValid = _formKey.currentState!.validate();
+    if (_flat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a flat number.')));
+      return;
+    }
+    if (!formValid) return;
+
+    // Indian numbers are stored as plain 10 digits, like everywhere else in
+    // the app; any other country keeps its code.
+    final digits = _phoneController.text.trim();
+    final phone = _countryCode == '+91' ? digits : '$_countryCode $digits';
 
     setState(() => _isSubmitting = true);
     try {
       await ref.read(guardVisitorRepositoryProvider).checkInWalkIn(
             flatId: _flat!.id,
             visitorName: _nameController.text.trim(),
-            visitorPhone: _phoneController.text.trim(),
+            visitorPhone: phone,
             purpose: _purpose,
             vehicleNumber: _vehicleController.text.trim(),
             photoPath: _photo?.path,
-            requiresApproval: _requiresApproval,
           );
       ref.invalidate(guardVisitorListProvider);
       if (!mounted) return;
-      final message = _requiresApproval
-          ? 'Entry request sent to ${_flat!.displayLabel} for approval.'
-          : '${_nameController.text.trim()} checked in.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Entry request sent to ${_flat!.displayLabel} for approval.')),
+      );
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -102,108 +116,64 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = !_isSubmitting && _flat != null;
+    final flats = ref.watch(guardAllFlatsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F3F7),
+      backgroundColor: const Color(0xFFF4F7FB),
       appBar: AppBar(
-        title: const Text('Walk-in Check-in'),
-        foregroundColor: Colors.white,
-        flexibleSpace: const DecoratedBox(decoration: BoxDecoration(gradient: AppTheme.brandGradient)),
+        backgroundColor: const Color(0xFFF4F7FB),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Material(
+              color: const Color(0xFFE6EBF2),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => context.pop(),
+                child: const SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Icon(Icons.chevron_left_rounded, color: AppTheme.brandBlueDark, size: 28),
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: const Text(
+          'Walk-in Check-in',
+          style: TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 19),
+        ),
       ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _SectionCard(child: _flatSection(flats)),
+                      const SizedBox(height: 12),
+                      _SectionCard(child: _visitorSection()),
+                      const SizedBox(height: 12),
                       _SectionCard(
-                        title: 'Which flat?',
-                        child: _BlockFlatPicker(
-                          selected: _flat,
-                          onSelected: (flat) => setState(() => _flat = flat),
-                          onSearch: _pickFlat,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _SectionCard(
-                        title: 'Visitor details',
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _PhotoField(photo: _photo, onTakePhoto: _takePhoto, onRemove: () => setState(() => _photo = null)),
-                            const SizedBox(height: 10),
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Visitor Name',
-                                prefixIcon: Icon(Icons.badge_outlined),
-                                isDense: true,
-                              ),
-                              validator: (value) => (value == null || value.trim().isEmpty) ? "Enter the visitor's name" : null,
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _phoneController,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Phone (optional)',
-                                      prefixIcon: Icon(Icons.phone_outlined),
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _vehicleController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Vehicle (optional)',
-                                      prefixIcon: Icon(Icons.directions_car_outlined),
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _SectionCard(
-                        title: 'Purpose of visit',
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final purpose in Visitor.purposes) _PurposeChip(
-                              purpose: purpose,
-                              selected: purpose == _purpose,
-                              onTap: () => setState(() => _purpose = purpose),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.only(left: 12, right: 4),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text('Ask resident to approve', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                            ),
-                            Switch.adaptive(
-                              value: _requiresApproval,
-                              onChanged: (value) => setState(() => _requiresApproval = value),
+                            const _SectionTitle(icon: Icons.assignment_turned_in_rounded, title: 'Purpose of Visit'),
+                            const SizedBox(height: 12),
+                            _PurposeGrid(
+                              selected: _purpose,
+                              onSelected: (purpose) => setState(() => _purpose = purpose),
                             ),
                           ],
                         ),
@@ -215,209 +185,19 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
             ),
             // Pinned, so it's always on screen - no scrolling down to submit.
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: canSubmit ? AppTheme.brandGradient : null,
-                  color: canSubmit ? null : Colors.grey.shade300,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    ),
-                    onPressed: canSubmit ? _submit : null,
-                    child: _isSubmitting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_requiresApproval ? 'Send Request' : 'Check In', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  ),
-                ),
-              ),
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+              child: _CheckInButton(isSubmitting: _isSubmitting, onPressed: _isSubmitting ? null : _submit),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.brandBlueDark, letterSpacing: .2),
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _PurposeChip extends StatelessWidget {
-  const _PurposeChip({required this.purpose, required this.selected, required this.onTap});
-
-  final String purpose;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = PurposeStyle.of(purpose);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? style.color : style.color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: style.color.withValues(alpha: selected ? 1 : 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(style.emoji, style: const TextStyle(fontSize: 13)),
-            const SizedBox(width: 5),
-            Text(
-              purpose.replaceAll('_', ' '),
-              style: TextStyle(
-                color: selected ? Colors.white : style.color,
-                fontWeight: FontWeight.w700,
-                fontSize: 12.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Camera-only photo capture (optional) — a slim "Take Photo" bar when
-/// empty, a small thumbnail with retake/remove once one's been taken.
-class _PhotoField extends StatelessWidget {
-  const _PhotoField({required this.photo, required this.onTakePhoto, required this.onRemove});
-
-  final XFile? photo;
-  final VoidCallback onTakePhoto;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    if (photo == null) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTakePhoto,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.brandBlue.withValues(alpha: 0.35), style: BorderStyle.solid),
-            borderRadius: BorderRadius.circular(12),
-            color: AppTheme.brandBlue.withValues(alpha: 0.05),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.camera_alt_rounded, color: AppTheme.brandBlueDark, size: 20),
-              const SizedBox(width: 8),
-              Text('Take Photo (optional)', style: TextStyle(color: AppTheme.brandBlueDark, fontWeight: FontWeight.w700, fontSize: 13)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(File(photo!.path), width: 48, height: 48, fit: BoxFit.cover),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onTakePhoto,
-                  icon: const Icon(Icons.replay, size: 18),
-                  label: const Text('Retake'),
-                ),
-              ),
-              IconButton(
-                onPressed: onRemove,
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.red.shade400,
-                tooltip: 'Remove photo',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Blocks in a horizontal strip (like the directory's filter chips); tapping
-/// one lists that block's flats right below as chips. The search icon opens
-/// the full search sheet (by owner name, too).
-class _BlockFlatPicker extends ConsumerStatefulWidget {
-  const _BlockFlatPicker({required this.selected, required this.onSelected, required this.onSearch});
-
-  final Flat? selected;
-  final ValueChanged<Flat> onSelected;
-  final VoidCallback onSearch;
-
-  @override
-  ConsumerState<_BlockFlatPicker> createState() => _BlockFlatPickerState();
-}
-
-class _BlockFlatPickerState extends ConsumerState<_BlockFlatPicker> {
-  static const _noBlock = 'Other';
-  String? _block;
-
-  @override
-  void didUpdateWidget(covariant _BlockFlatPicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // A flat picked through search jumps the strip to its block.
-    final picked = widget.selected;
-    if (picked != null && picked.id != oldWidget.selected?.id) _block = picked.blockName ?? _noBlock;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final flats = ref.watch(guardAllFlatsProvider);
-
+  Widget _flatSection(AsyncValue<List<Flat>> flats) {
     return flats.when(
       loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Row(
@@ -437,82 +217,713 @@ class _BlockFlatPickerState extends ConsumerState<_BlockFlatPicker> {
         for (final list in byBlock.values) {
           list.sort((a, b) => _naturalCompare(a.flatNumber, b.flatNumber));
         }
-
         final block = byBlock.containsKey(_block) ? _block! : blocks.first;
-        final picked = widget.selected;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _SectionTitle(icon: Icons.apartment_rounded, title: 'Select Block'),
+            const SizedBox(height: 12),
+            _BlockStrip(
+              blocks: blocks,
+              selected: block,
+              onSelected: (name) => setState(() {
+                _block = name;
+                if (_flat != null && (_flat!.blockName ?? _noBlock) != name) _flat = null;
+              }),
+            ),
+            const SizedBox(height: 18),
+            const _SectionTitle(icon: Icons.home_outlined, title: 'Flat Number', iconColor: _ink),
+            const SizedBox(height: 10),
+            _FlatDropdown(flat: _flat, onTap: () => _pickFlat(byBlock[block]!)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _visitorSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(icon: Icons.person_rounded, title: 'Visitor Details'),
+        const SizedBox(height: 12),
+        _PhotoField(photo: _photo, onTakePhoto: _takePhoto, onRemove: () => setState(() => _photo = null)),
+        const SizedBox(height: 12),
+        _FieldBox(
+          icon: Icons.person_outline_rounded,
+          label: 'Visitor Name',
+          required: true,
+          child: TextFormField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: _bareInput('Enter visitor name'),
+            validator: (value) => (value == null || value.trim().isEmpty) ? "Enter the visitor's name" : null,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _FieldBox(
+          icon: Icons.phone_outlined,
+          label: 'Phone Number',
+          required: true,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: _CountryCodePicker(
+                  value: _countryCode,
+                  codes: _countryCodes,
+                  onChanged: (code) => setState(() => _countryCode = code),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(15)],
+                  decoration: _bareInput('Enter phone number').copyWith(contentPadding: const EdgeInsets.only(top: 14, bottom: 6)),
+                  validator: (value) {
+                    final digits = value?.trim() ?? '';
+                    if (digits.isEmpty) return 'Enter the phone number';
+                    if (_countryCode == '+91' ? digits.length != 10 : digits.length < 6) return 'Enter a valid phone number';
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _FieldBox(
+          icon: Icons.directions_car_outlined,
+          label: 'Vehicle Number',
+          child: TextFormField(
+            controller: _vehicleController,
+            textCapitalization: TextCapitalization.characters,
+            decoration: _bareInput('e.g. GJ01AB1234'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static InputDecoration _bareInput(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF8A94A6), fontSize: 15),
+        isDense: true,
+        filled: false,
+        contentPadding: const EdgeInsets.only(top: 6, bottom: 2),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+      );
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title, this.iconColor = AppTheme.brandBlue});
+
+  final IconData icon;
+  final String title;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: iconColor, size: 24),
+        const SizedBox(width: 10),
+        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _ink)),
+      ],
+    );
+  }
+}
+
+/// Horizontally scrolling block chips, with a "next" arrow and a thin
+/// progress bar showing how far along the strip the guard has scrolled.
+class _BlockStrip extends StatefulWidget {
+  const _BlockStrip({required this.blocks, required this.selected, required this.onSelected});
+
+  final List<String> blocks;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_BlockStrip> createState() => _BlockStripState();
+}
+
+class _BlockStripState extends State<_BlockStrip> {
+  final _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Scroll extents are only known after the first layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scrollForward() {
+    final position = _controller.position;
+    final target = (position.pixels + position.viewportDimension * 0.7).clamp(0.0, position.maxScrollExtent);
+    _controller.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final position = _controller.hasClients && _controller.position.hasContentDimensions ? _controller.position : null;
+        final scrollable = position != null && position.maxScrollExtent > 0;
+        final atEnd = !scrollable || position.pixels >= position.maxScrollExtent - 1;
+        final progress = scrollable
+            ? ((position.pixels + position.viewportDimension) / (position.maxScrollExtent + position.viewportDimension)).clamp(0.0, 1.0)
+            : 1.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: 36,
-              child: Row(
+              height: 46,
+              child: Stack(
+                alignment: Alignment.centerRight,
                 children: [
-                  Expanded(
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: blocks.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 6),
-                      itemBuilder: (context, index) {
-                        final name = blocks[index];
-                        final isSelected = name == block;
-
-                        return ChoiceChip(
-                          label: Text(name),
-                          selected: isSelected,
-                          showCheckmark: false,
-                          visualDensity: VisualDensity.compact,
-                          selectedColor: AppTheme.brandBlue,
-                          labelStyle: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                            color: isSelected ? Colors.white : AppTheme.brandBlueDark,
-                          ),
-                          onSelected: (_) => setState(() => _block = name),
-                        );
-                      },
+                  ListView.separated(
+                    controller: _controller,
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.only(right: atEnd ? 0 : 40),
+                    itemCount: widget.blocks.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final name = widget.blocks[index];
+                      return _BlockChip(label: name, selected: name == widget.selected, onTap: () => widget.onSelected(name));
+                    },
+                  ),
+                  if (!atEnd)
+                    Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      shadowColor: Colors.black26,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _scrollForward,
+                        child: const SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Icon(Icons.chevron_right_rounded, color: _ink),
+                        ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Search flat or owner',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.search_rounded, color: AppTheme.brandBlueDark),
-                    onPressed: widget.onSearch,
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            // Capped so a big block never pushes the rest of the form off screen.
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 120),
-              child: SingleChildScrollView(
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final flat in byBlock[block]!)
-                      _FlatChip(
-                        flat: flat,
-                        selected: flat.id == picked?.id,
-                        onTap: () => widget.onSelected(flat),
-                      ),
-                  ],
+            if (scrollable) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(right: 40),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFE3E8EF),
+                    valueColor: const AlwaysStoppedAnimation(AppTheme.brandBlueDark),
+                  ),
                 ),
-              ),
-            ),
-            if (picked != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                [picked.displayLabel, if (picked.ownerName != null) picked.ownerName!].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.brandBlueDark),
               ),
             ],
           ],
         );
       },
+    );
+  }
+}
+
+class _BlockChip extends StatelessWidget {
+  const _BlockChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        constraints: const BoxConstraints(minWidth: 96),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: selected ? AppTheme.brandGradient : null,
+          color: selected ? null : const Color(0xFFF7F9FC),
+          borderRadius: BorderRadius.circular(12),
+          border: selected ? null : Border.all(color: _fieldBorder),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? Colors.white : _ink,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlatDropdown extends StatelessWidget {
+  const _FlatDropdown({required this.flat, required this.onTap});
+
+  final Flat? flat;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = flat;
+    final label = picked == null
+        ? 'Select Flat Number'
+        : [picked.displayLabel, if (picked.ownerName != null) picked.ownerName!].join(' · ');
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _fieldBorder),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.domain_rounded, color: AppTheme.brandBlueDark, size: 26),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: picked == null ? const Color(0xFF5B6472) : _ink,
+                  fontWeight: picked == null ? FontWeight.w400 : FontWeight.w700,
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF5B6472)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The selected block's flats as a tappable grid. House Closed flats show in
+/// red so the guard sees it before sending.
+class _FlatSheet extends StatelessWidget {
+  const _FlatSheet({required this.flats, required this.selected});
+
+  final List<Flat> flats;
+  final Flat? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.75),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Text('Select Flat Number', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink)),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final flat in flats)
+                        _FlatChip(
+                          flat: flat,
+                          selected: flat.id == selected?.id,
+                          onTap: () => Navigator.of(context).pop(flat),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlatChip extends StatelessWidget {
+  const _FlatChip({required this.flat, required this.selected, required this.onTap});
+
+  final Flat flat;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = flat.houseClosed ? Colors.red.shade400 : AppTheme.brandBlue;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 72),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? color : color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: selected ? 1 : 0.3)),
+        ),
+        child: Text(
+          flat.flatNumber,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: selected ? Colors.white : color),
+        ),
+      ),
+    );
+  }
+}
+
+/// Camera-only photo capture (optional) — a dashed "Take Photo" card when
+/// empty, the thumbnail with retake/remove once one's been taken.
+class _PhotoField extends StatelessWidget {
+  const _PhotoField({required this.photo, required this.onTakePhoto, required this.onRemove});
+
+  final XFile? photo;
+  final VoidCallback onTakePhoto;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final taken = photo;
+
+    return CustomPaint(
+      foregroundPainter: _DashedBorderPainter(color: AppTheme.brandBlue.withValues(alpha: 0.6), radius: 14),
+      child: Material(
+        color: AppTheme.brandBlue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTakePhoto,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                if (taken == null)
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: const Icon(Icons.photo_camera_outlined, color: AppTheme.brandBlueDark, size: 32),
+                  )
+                else
+                  ClipOval(child: Image.file(File(taken.path), width: 72, height: 72, fit: BoxFit.cover)),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taken == null ? 'Take Photo (Optional)' : 'Photo added',
+                        style: const TextStyle(color: AppTheme.brandBlueDark, fontWeight: FontWeight.w700, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        taken == null ? 'Add visitor photo for identification' : 'Tap to retake',
+                        style: const TextStyle(color: Color(0xFF5B6472), fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                if (taken != null)
+                  IconButton(
+                    onPressed: onRemove,
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.red.shade400,
+                    tooltip: 'Remove photo',
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)));
+    for (final PathMetric metric in path.computeMetrics()) {
+      for (double d = 0; d < metric.length; d += 9) {
+        canvas.drawPath(metric.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) => oldDelegate.color != color || oldDelegate.radius != radius;
+}
+
+/// Outlined box with a leading icon and a label (red * when required) above
+/// the borderless input.
+class _FieldBox extends StatelessWidget {
+  const _FieldBox({required this.icon, required this.label, required this.child, this.required = false});
+
+  final IconData icon;
+  final String label;
+  final Widget child;
+  final bool required;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _fieldBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Icon(icon, color: const Color(0xFF3B4556), size: 26),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    text: label,
+                    children: [if (required) const TextSpan(text: ' *', style: TextStyle(color: Colors.red))],
+                  ),
+                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: _ink),
+                ),
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountryCodePicker extends StatelessWidget {
+  const _CountryCodePicker({required this.value, required this.codes, required this.onChanged});
+
+  final String value;
+  final List<String> codes;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      initialValue: value,
+      onSelected: onChanged,
+      itemBuilder: (context) => [for (final code in codes) PopupMenuItem(value: code, child: Text(code))],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F5F9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _fieldBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _ink)),
+            const SizedBox(width: 6),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(0xFF5B6472)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PurposeGrid extends StatelessWidget {
+  const _PurposeGrid({required this.selected, required this.onSelected});
+
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const columns = 3;
+    const gap = 10.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final purpose in Visitor.purposes)
+              SizedBox(
+                width: width,
+                child: _PurposeChip(purpose: purpose, selected: purpose == selected, onTap: () => onSelected(purpose)),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PurposeChip extends StatelessWidget {
+  const _PurposeChip({required this.purpose, required this.selected, required this.onTap});
+
+  final String purpose;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = PurposeStyle.of(purpose);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? style.color : style.color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: style.color.withValues(alpha: selected ? 1 : 0.35)),
+        ),
+        child: Row(
+          children: [
+            Text(style.emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                style.label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? Colors.white : style.color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.5,
+                ),
+              ),
+            ),
+            if (selected) const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckInButton extends StatelessWidget {
+  const _CheckInButton({required this.isSubmitting, required this.onPressed});
+
+  final bool isSubmitting;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: AppTheme.brandGradient,
+        boxShadow: [BoxShadow(color: AppTheme.brandBlue.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 5))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onPressed,
+          child: SizedBox(
+            height: 58,
+            child: isSubmitting
+                ? const Center(child: SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+                : const Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text('Check In', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                      Positioned(right: 20, child: Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 26)),
+                    ],
+                  ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -529,120 +940,4 @@ int _naturalCompare(String a, String b) {
     if (c != 0) return c;
   }
   return pa.length.compareTo(pb.length);
-}
-
-class _FlatChip extends StatelessWidget {
-  const _FlatChip({required this.flat, required this.selected, required this.onTap});
-
-  final Flat flat;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // House Closed: shown in red so the guard sees it before sending.
-    final color = flat.houseClosed ? Colors.red.shade400 : AppTheme.brandBlue;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 56),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: selected ? 1 : 0.3)),
-        ),
-        child: Text(
-          flat.flatNumber,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: selected ? Colors.white : color),
-        ),
-      ),
-    );
-  }
-}
-
-/// Full-screen-ish sheet: big search box + big tappable rows, so a guard can
-/// find a flat with a thumb in a couple of taps instead of typing carefully.
-class _FlatPickerSheet extends ConsumerWidget {
-  const _FlatPickerSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final flats = ref.watch(guardFlatListProvider);
-
-    return FractionallySizedBox(
-      heightFactor: 0.85,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Row(
-                  children: [
-                    Expanded(child: Text('Select Flat', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Search by flat number, owner or block',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: const Color(0xFFF2F3F7),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                  onChanged: (value) => ref.read(guardFlatSearchProvider.notifier).state = value,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: AsyncView<List<Flat>>(
-                  value: flats,
-                  onRetry: () => ref.invalidate(guardFlatListProvider),
-                  builder: (context, items) {
-                    if (items.isEmpty) {
-                      return const EmptyState(message: 'No matching flat found.', icon: Icons.home_outlined);
-                    }
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final flat = items[index];
-
-                        return ListTile(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.brandBlue.withValues(alpha: 0.12),
-                            child: const Icon(Icons.home_rounded, color: AppTheme.brandBlueDark),
-                          ),
-                          title: Text(flat.displayLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: flat.ownerName != null ? Text(flat.ownerName!) : null,
-                          onTap: () => Navigator.of(context).pop(flat),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -6,7 +6,6 @@ import '../../../core/widgets/fc/fc_dialogs.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
-import '../data/duty_repository.dart';
 import '../providers/gatekeeper_providers.dart';
 
 /// The Gatekeeper equivalent of features/home/screens/home_screen.dart —
@@ -33,8 +32,6 @@ class GatekeeperHomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 children: const [
-                  _DutyStatusCard(),
-                  SizedBox(height: 16),
                   _GateDutyPanel(),
                   SizedBox(height: 16),
                   _GroupCard(
@@ -108,136 +105,6 @@ class _GatekeeperHeader extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// On/off-duty toggle at the top of the home screen — the guard's most
-/// frequent action after logging in.
-class _DutyStatusCard extends ConsumerStatefulWidget {
-  const _DutyStatusCard();
-
-  @override
-  ConsumerState<_DutyStatusCard> createState() => _DutyStatusCardState();
-}
-
-class _DutyStatusCardState extends ConsumerState<_DutyStatusCard> {
-  bool _isUpdating = false;
-
-  Future<void> _startShift(String shift) async {
-    setState(() => _isUpdating = true);
-    try {
-      await ref.read(dutyRepositoryProvider).start(shift);
-      ref.invalidate(dutyStatusProvider);
-    } finally {
-      if (mounted) setState(() => _isUpdating = false);
-    }
-  }
-
-  Future<void> _endShift() async {
-    setState(() => _isUpdating = true);
-    try {
-      await ref.read(dutyRepositoryProvider).end();
-      ref.invalidate(dutyStatusProvider);
-    } finally {
-      if (mounted) setState(() => _isUpdating = false);
-    }
-  }
-
-  static const _onDutyGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF2AB930), Color(0xFF1E9CE0)],
-  );
-  static const _offDutyGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF5B6472), Color(0xFF0B1E3D)],
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final duty = ref.watch(dutyStatusProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: duty.valueOrNull?.onDuty ?? false ? _onDutyGradient : _offDutyGradient,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 6))],
-      ),
-      child: duty.when(
-        loading: () => const SizedBox(
-          height: 40,
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white))),
-        ),
-        error: (error, stackTrace) => Row(
-          children: [
-            const Expanded(
-              child: Text("Couldn't load duty status.", style: TextStyle(color: Colors.white)),
-            ),
-            TextButton(
-              onPressed: () => ref.invalidate(dutyStatusProvider),
-              child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-        data: (status) {
-          final onDuty = status.onDuty;
-
-          return Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-                child: Text(onDuty ? '🛡️' : '💤', style: const TextStyle(fontSize: 19)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      onDuty ? 'On Duty · ${_shiftLabel(status.currentShift)}' : 'Off Duty',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.white),
-                    ),
-                    Text(
-                      onDuty ? 'Assigned shift: ${_shiftLabel(status.assignedShift)}' : 'Tap Start to begin your shift',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              if (_isUpdating)
-                const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
-                )
-              else if (onDuty)
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white70)),
-                  onPressed: _endShift,
-                  child: const Text('End Shift'),
-                )
-              else
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF0B1E3D)),
-                  onPressed: () => _startShift(status.assignedShift),
-                  child: const Text('Start Shift'),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  String _shiftLabel(String? shift) => switch (shift) {
-        'day' => 'Day',
-        'night' => 'Night',
-        _ => '-',
-      };
 }
 
 class _MenuItem {
