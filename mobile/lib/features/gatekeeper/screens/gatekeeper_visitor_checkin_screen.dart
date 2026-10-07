@@ -32,14 +32,12 @@ class GatekeeperVisitorCheckinScreen extends ConsumerStatefulWidget {
 
 class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisitorCheckinScreen> {
   static const _noBlock = 'Other';
-  static const _countryCodes = ['+91', '+1', '+44', '+971', '+977', '+61'];
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _vehicleController = TextEditingController();
   String _purpose = Visitor.purposes.first;
-  String _countryCode = _countryCodes.first;
   String? _block;
   Flat? _flat;
   XFile? _photo;
@@ -79,17 +77,12 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
     }
     if (!formValid) return;
 
-    // Indian numbers are stored as plain 10 digits, like everywhere else in
-    // the app; any other country keeps its code.
-    final digits = _phoneController.text.trim();
-    final phone = _countryCode == '+91' ? digits : '$_countryCode $digits';
-
     setState(() => _isSubmitting = true);
     try {
       await ref.read(guardVisitorRepositoryProvider).checkInWalkIn(
             flatId: _flat!.id,
             visitorName: _nameController.text.trim(),
-            visitorPhone: phone,
+            visitorPhone: _phoneController.text.trim(),
             purpose: _purpose,
             vehicleNumber: _vehicleController.text.trim(),
             photoPath: _photo?.path,
@@ -266,33 +259,17 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
           icon: Icons.phone_outlined,
           label: 'Phone Number',
           required: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: _CountryCodePicker(
-                  value: _countryCode,
-                  codes: _countryCodes,
-                  onChanged: (code) => setState(() => _countryCode = code),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(15)],
-                  decoration: _bareInput('Enter phone number').copyWith(contentPadding: const EdgeInsets.only(top: 14, bottom: 6)),
-                  validator: (value) {
-                    final digits = value?.trim() ?? '';
-                    if (digits.isEmpty) return 'Enter the phone number';
-                    if (_countryCode == '+91' ? digits.length != 10 : digits.length < 6) return 'Enter a valid phone number';
-                    return null;
-                  },
-                ),
-              ),
-            ],
+          child: TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+            decoration: _bareInput('Enter phone number'),
+            validator: (value) {
+              final digits = value?.trim() ?? '';
+              if (digits.isEmpty) return 'Enter the phone number';
+              if (digits.length != 10) return 'Enter a 10-digit phone number';
+              return null;
+            },
           ),
         ),
         const SizedBox(height: 10),
@@ -779,39 +756,6 @@ class _FieldBox extends StatelessWidget {
   }
 }
 
-class _CountryCodePicker extends StatelessWidget {
-  const _CountryCodePicker({required this.value, required this.codes, required this.onChanged});
-
-  final String value;
-  final List<String> codes;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      initialValue: value,
-      onSelected: onChanged,
-      itemBuilder: (context) => [for (final code in codes) PopupMenuItem(value: code, child: Text(code))],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2F5F9),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _fieldBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _ink)),
-            const SizedBox(width: 6),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(0xFF5B6472)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PurposeGrid extends StatelessWidget {
   const _PurposeGrid({required this.selected, required this.onSelected});
 
@@ -866,25 +810,28 @@ class _PurposeChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: style.color.withValues(alpha: selected ? 1 : 0.35)),
         ),
-        child: Row(
-          children: [
-            Text(style.emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
+        // Scales down rather than truncating "Delivery" on narrow phones.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(style.emoji, style: const TextStyle(fontSize: 17)),
+              const SizedBox(width: 6),
+              Text(
                 style.label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: selected ? Colors.white : style.color,
                   fontWeight: FontWeight.w700,
                   fontSize: 14.5,
                 ),
               ),
-            ),
-            if (selected) const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-          ],
+              if (selected) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -911,6 +858,7 @@ class _CheckInButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: onPressed,
           child: SizedBox(
+            width: double.infinity,
             height: 58,
             child: isSubmitting
                 ? const Center(child: SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
