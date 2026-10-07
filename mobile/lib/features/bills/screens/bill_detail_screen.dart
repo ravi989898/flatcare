@@ -364,10 +364,6 @@ class _BillBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
         _SummaryCard(bill: bill),
-        if (bill.flat != null) ...[
-          const SizedBox(height: 14),
-          _PropertySection(bill: bill),
-        ],
         const SizedBox(height: 14),
         _BillInfoSection(bill: bill),
         const SizedBox(height: 14),
@@ -417,7 +413,7 @@ class _SummaryCard extends StatelessWidget {
     final paidOn = bill.lastPayment?.paymentDate;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -431,10 +427,10 @@ class _SummaryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.receipt_long_rounded, color: AppTheme.brandBlue, size: 24),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.receipt_long_rounded, color: AppTheme.brandBlue, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -443,11 +439,13 @@ class _SummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       bill.heading,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
                     ),
                     Text(
                       bill.subheading ?? 'Maintenance bill',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
                     ),
                   ],
                 ),
@@ -456,7 +454,7 @@ class _SummaryCard extends StatelessWidget {
               BillStatusBadge(bill: bill, large: true),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Text(
             bill.isPending ? 'Amount Due' : 'Amount Paid',
             style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w500),
@@ -465,7 +463,7 @@ class _SummaryCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: BillAmount(bill.isPending ? bill.balance : bill.amount, size: 34, color: color, weight: FontWeight.w800),
+            child: BillAmount(bill.isPending ? bill.balance : bill.amount, size: 28, color: color, weight: FontWeight.w800),
           ),
           if (bill.isPartiallyPaid) ...[
             const SizedBox(height: 10),
@@ -484,9 +482,9 @@ class _SummaryCard extends StatelessWidget {
               style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.brandBlue).withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
@@ -538,67 +536,6 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Flat, tower, floor and type as a 2-column grid of tiles.
-class _PropertySection extends StatelessWidget {
-  const _PropertySection({required this.bill});
-
-  final Bill bill;
-
-  @override
-  Widget build(BuildContext context) {
-    final flat = bill.flat!;
-    final tiles = [
-      (Icons.home_outlined, 'Flat No.', flat.flatNumber),
-      if (flat.blockName != null) (Icons.apartment_outlined, 'Tower / Building', flat.blockName!),
-      if (flat.floorNumber != null) (Icons.layers_outlined, 'Floor', flat.floorNumber!),
-      if (flat.flatType != null) (Icons.sell_outlined, 'Flat Type', flat.flatType!),
-    ];
-
-    return BillSection(
-      title: 'Property Details',
-      icon: Icons.location_city_outlined,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = (constraints.maxWidth - 10) / 2;
-
-          return Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (final (icon, label, value) in tiles)
-                Container(
-                  width: width,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppTheme.pageBackground, borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Icon(icon, size: 20, color: AppTheme.brandBlue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
-                            Text(
-                              value,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.brandNavy),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          );
-        },
       ),
     );
   }
