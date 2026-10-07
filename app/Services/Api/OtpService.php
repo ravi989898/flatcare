@@ -39,10 +39,19 @@ class OtpService
         }
 
         $phone = $this->normalize($mobileNumber);
-        $url = self::BASE_URL.'/'.rawurlencode($apiKey).'/SMS/'.$phone.'/AUTOGEN';
-        if ($template = config('services.twofactor.otp_template')) {
-            $url .= '/'.rawurlencode($template);
+
+        // Without an approved (DLT) template name 2Factor reads the OTP out
+        // over a voice call instead of texting it - never send without one.
+        $template = config('services.twofactor.otp_template');
+        if (!$template) {
+            Log::error('2Factor OTP not sent: TWOFACTOR_OTP_TEMPLATE is empty (OTP would go as a voice call).');
+
+            throw ValidationException::withMessages([
+                'mobile_number' => "Couldn't send the OTP right now. Please try again in a minute.",
+            ]);
         }
+
+        $url = self::BASE_URL.'/'.rawurlencode($apiKey).'/SMS/'.$phone.'/AUTOGEN/'.rawurlencode($template);
 
         try {
             $response = Http::timeout((int) config('services.twofactor.timeout', 10))->get($url);

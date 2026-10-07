@@ -51,8 +51,9 @@ return [
     /*
     | 2Factor.in SMS OTP for app login (App\Services\Api\OtpService).
     | TWOFACTOR_API_KEY is the API key from the 2Factor dashboard;
-    | TWOFACTOR_OTP_TEMPLATE is the name of the approved OTP template (leave
-    | empty to use 2Factor's default). With no API key, OTP stays on the
+    | TWOFACTOR_OTP_TEMPLATE is the name of the approved (DLT) OTP template -
+    | required: without it 2Factor sends the OTP as a voice call, so no OTP
+    | is sent at all. With no API key, OTP stays on the
     | fixed OTP_DEFAULT_CODE (local/dev only).
     */
     'twofactor' => [
