@@ -51,8 +51,14 @@ import 'alert_setup.dart';
 /// still runs and works over plain API calls without it.
 bool firebaseReady = false;
 
-const _channelId = 'visitor_requests_v2';
-const _sound = RawResourceAndroidNotificationSound('plectron');
+// Only a visitor waiting at the gate rings with the custom tone; every
+// other push (decisions, bills, announcements...) uses the phone's default
+// notification sound. A channel's sound can't change once created, hence
+// the new ids - the old plectron channel is deleted in _initLocalNotifications.
+const _visitorChannelId = 'visitor_requests_v3';
+const _generalChannelId = 'general';
+const _oldChannelIds = ['visitor_requests_v2'];
+const _visitorSound = RawResourceAndroidNotificationSound('visitor_ring');
 const _actionApprove = 'approve';
 const _actionReject = 'reject';
 
@@ -103,15 +109,25 @@ Future<void> _initLocalNotifications({DidReceiveNotificationResponseCallback? on
     onDidReceiveBackgroundNotificationResponse: onBackgroundNotificationResponse,
   );
 
-  await _local
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(const AndroidNotificationChannel(
-        _channelId,
-        'Visitor requests',
-        description: 'Visitors waiting at the gate and gate decisions',
-        importance: Importance.max,
-        sound: _sound,
-      ));
+  final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  if (android == null) return;
+
+  for (final id in _oldChannelIds) {
+    await android.deleteNotificationChannel(channelId: id);
+  }
+  await android.createNotificationChannel(const AndroidNotificationChannel(
+    _visitorChannelId,
+    'Visitor requests',
+    description: 'Visitors waiting at the gate for your approval',
+    importance: Importance.max,
+    sound: _visitorSound,
+  ));
+  await android.createNotificationChannel(const AndroidNotificationChannel(
+    _generalChannelId,
+    'General',
+    description: 'Gate decisions, bills, announcements and other updates',
+    importance: Importance.high,
+  ));
 }
 
 Future<void> _showNotification(Map<String, dynamic> data, {String? title, String? body}) async {
@@ -129,11 +145,11 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
     payload: jsonEncode(data),
     notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
-        _channelId,
-        'Visitor requests',
-        importance: Importance.max,
+        actionable ? _visitorChannelId : _generalChannelId,
+        actionable ? 'Visitor requests' : 'General',
+        importance: actionable ? Importance.max : Importance.high,
         priority: Priority.high,
-        sound: _sound,
+        sound: actionable ? _visitorSound : null,
         // A visitor waiting at the gate: rings through like a call and, on a
         // locked phone, opens the gate-approval screen full screen (see
         // MainActivity). Android may still show it as a heads-up banner.
@@ -149,7 +165,7 @@ Future<void> _showNotification(Map<String, dynamic> data, {String? title, String
               ]
             : null,
       ),
-      iOS: const DarwinNotificationDetails(sound: 'plectron.wav'),
+      iOS: DarwinNotificationDetails(sound: actionable ? 'plectron.wav' : null),
     ),
   );
 }

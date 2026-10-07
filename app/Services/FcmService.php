@@ -43,8 +43,14 @@ class FcmService
      * @param  array<string, scalar|null>  $data  FCM data values must be strings; they are cast here.
      * @return array{0: string, 1: string|null}  [result, error message]
      */
-    public function send(string $deviceToken, string $title, string $body, array $data = [], ?string $platform = null, string $channelId = 'visitor_requests_v2'): array
+    public function send(string $deviceToken, string $title, string $body, array $data = [], ?string $platform = null): array
     {
+        // Only a visitor waiting at the gate rings with the custom tone (the
+        // app's visitor_requests_v3 channel); every other push uses the
+        // phone's default notification sound on the app's general channel.
+        $isVisitorRequest = ($data['type'] ?? null) === 'visitor_request';
+        $channelId = $isVisitorRequest ? 'visitor_requests_v3' : 'general';
+
         // A notification that carries Approve/Reject buttons is sent to
         // Android as a data-only message: Android draws an FCM "notification"
         // message itself (in the background) with no way to add buttons,
@@ -65,11 +71,11 @@ class FcmService
                         'data' => array_map('strval', array_filter($data, fn ($v) => $v !== null)),
                         'android' => array_filter([
                             'priority' => 'HIGH',
-                            'notification' => $androidDataOnly ? null : ['title' => $title, 'body' => $body, 'channel_id' => $channelId, 'sound' => 'plectron'],
+                            'notification' => $androidDataOnly ? null : ['title' => $title, 'body' => $body, 'channel_id' => $channelId, 'sound' => $isVisitorRequest ? 'visitor_ring' : 'default'],
                         ]),
                         'apns' => [
                             'headers' => ['apns-priority' => '10'],
-                            'payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'plectron.wav']],
+                            'payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => $isVisitorRequest ? 'plectron.wav' : 'default']],
                         ],
                         'webpush' => ['notification' => ['title' => $title, 'body' => $body]],
                     ],

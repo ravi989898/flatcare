@@ -157,7 +157,7 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
 
     companion object {
         const val CHANNEL = "flatcare/alert_setup"
-        private const val VISITOR_CHANNEL = "visitor_requests_v2"
+        private const val VISITOR_CHANNEL = "visitor_requests_v3"
         private const val KEY_AUTO_START_OPENED = "auto_start_opened"
         private const val KEY_LAST_PROMPTED = "last_prompted"
     }

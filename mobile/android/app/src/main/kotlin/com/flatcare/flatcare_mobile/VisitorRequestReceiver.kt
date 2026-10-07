@@ -68,12 +68,14 @@ class VisitorRequestReceiver : BroadcastReceiver() {
 
     private fun show(context: Context, data: Map<String, String>) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val sound = Uri.parse("android.resource://${context.packageName}/${R.raw.plectron}")
+        val sound = Uri.parse("android.resource://${context.packageName}/${R.raw.visitor_ring}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // The old channel rang with plectron; a channel's sound can't be changed.
+            manager.deleteNotificationChannel(OLD_CHANNEL_ID)
             // Same settings as push_service.dart creates it with; a no-op if it exists.
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, "Visitor requests", NotificationManager.IMPORTANCE_MAX).apply {
-                    description = "Visitors waiting at the gate and gate decisions"
+                    description = "Visitors waiting at the gate for your approval"
                     setSound(sound, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
                 }
             )
@@ -166,7 +168,8 @@ class VisitorRequestReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "VisitorRequestReceiver"
-        private const val CHANNEL_ID = "visitor_requests_v2"
+        private const val CHANNEL_ID = "visitor_requests_v3"
+        private const val OLD_CHANNEL_ID = "visitor_requests_v2"
         private const val ACTION_APPROVE = "approve"
         private const val ACTION_REJECT = "reject"
 
