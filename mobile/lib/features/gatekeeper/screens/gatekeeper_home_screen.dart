@@ -251,10 +251,10 @@ class _GatekeeperDrawer extends ConsumerWidget {
   }
 }
 
-/// Gate Duty: the five things a guard does all day, in order of use —
-/// 1 Walk-in Check-in (full width), then 2 Pending Requests, 3 Visitor Log,
-/// 4 Gate Passes and 5 Closed Houses, each with its own color and a live
-/// count from /guard/summary.
+/// Gate Duty: the five things a guard does all day, in order of use -
+/// the Walk-in Check-in banner, then Pending Requests, Visitor Log, Gate
+/// Passes and Closed Houses, each with its own color and a live count from
+/// /guard/summary.
 class _GateDutyPanel extends ConsumerWidget {
   const _GateDutyPanel();
 
@@ -274,15 +274,7 @@ class _GateDutyPanel extends ConsumerWidget {
           padding: EdgeInsets.only(left: 4, bottom: 10),
           child: Text('Gate Duty', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
         ),
-        _DutyTile(
-          number: 1,
-          label: 'Walk-in Check-in',
-          caption: 'Register a visitor at the gate',
-          icon: Icons.person_add_alt_1_rounded,
-          colors: const [Color(0xFF34C38F), AppColors.success],
-          wide: true,
-          onTap: () => open('/gatekeeper/visitors/check-in'),
-        ),
+        _WalkInBanner(onTap: () => open('/gatekeeper/visitors/check-in')),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
@@ -290,41 +282,39 @@ class _GateDutyPanel extends ConsumerWidget {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.08,
+          childAspectRatio: 1.55,
           children: [
             _DutyTile(
-              number: 2,
               label: 'Pending Requests',
-              caption: 'Today · awaiting resident',
+              caption: 'Today · awaiting resident approval',
               icon: Icons.hourglass_top_rounded,
-              colors: const [Color(0xFFF6B23C), AppColors.warning],
+              color: const Color(0xFFF08A00),
+              tintCaption: true,
               count: summary?.pendingRequests,
               onTap: () => open('/gatekeeper/requests'),
             ),
             _DutyTile(
-              number: 3,
               label: 'Visitor Log',
               caption: '${summary?.insideNow ?? 0} inside now',
-              icon: Icons.menu_book_rounded,
-              colors: const [AppColors.secondary, AppColors.primary],
+              icon: Icons.assignment_rounded,
+              color: const Color(0xFF1D5FD1),
               count: summary?.visitorsToday,
               onTap: () => open('/gatekeeper/visitors'),
             ),
             _DutyTile(
-              number: 4,
               label: 'Gate Passes',
               caption: 'Issued by residents',
               icon: Icons.confirmation_number_rounded,
-              colors: const [Color(0xFF7B7BE8), AppColors.accentIndigo],
+              color: const Color(0xFF6A4BD8),
               count: summary?.activePasses,
               onTap: () => open('/gatekeeper/passes'),
             ),
             _DutyTile(
-              number: 5,
               label: 'Closed Houses',
               caption: 'No entry allowed',
               icon: Icons.lock_rounded,
-              colors: const [Color(0xFFEF6B75), AppColors.danger],
+              color: const Color(0xFFE02434),
+              alert: true,
               count: summary?.closedHouses,
               onTap: () => open('/gatekeeper/closed-houses'),
             ),
@@ -335,96 +325,236 @@ class _GateDutyPanel extends ConsumerWidget {
   }
 }
 
-class _DutyTile extends StatelessWidget {
-  const _DutyTile({
-    required this.number,
-    required this.label,
-    required this.caption,
-    required this.icon,
-    required this.colors,
-    required this.onTap,
-    this.count,
-    this.wide = false,
-  });
+/// Full-width blue banner for the guard's most used action, with a small
+/// boom-barrier-and-car scene on the left.
+class _WalkInBanner extends StatelessWidget {
+  const _WalkInBanner({required this.onTap});
 
-  final int number;
-  final String label;
-  final String caption;
-  final IconData icon;
-  final List<Color> colors;
   final VoidCallback onTap;
-  final int? count;
-  final bool wide;
+
+  static const _blue = Color(0xFF1560D8);
 
   @override
   Widget build(BuildContext context) {
-    final iconBox = Container(
-      width: wide ? 54 : 46,
-      height: wide ? 54 : 46,
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(15)),
-      child: Icon(icon, color: Colors.white, size: wide ? 30 : 26),
-    );
-    final numberDot = Container(
-      width: 24,
-      height: 24,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), shape: BoxShape.circle),
-      child: Text('$number', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
-    );
-    const titleStyle = TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16);
-    final captionStyle = TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 12.5, fontWeight: FontWeight.w500);
-
     return Material(
       color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF3FA2F6), _blue],
+          ),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: colors.last.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6))],
+          boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.3), blurRadius: 14, offset: const Offset(0, 6))],
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: onTap,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SizedBox(
+              height: 96,
+              child: Row(
+                children: [
+                  const _GateScene(),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1BC5B4),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
+                    ),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Walk-in Check-in',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Register a visitor at the gate',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    margin: const EdgeInsets.only(left: 8, right: 14),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.chevron_right_rounded, color: _blue, size: 26),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A raised red-and-white boom barrier, some bushes and a car.
+class _GateScene extends StatelessWidget {
+  const _GateScene();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 92,
+      height: 96,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 12,
+            bottom: 14,
+            child: Container(
+              width: 12,
+              height: 46,
+              decoration: BoxDecoration(color: const Color(0xFFF26B1D), borderRadius: BorderRadius.circular(3)),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            top: 30,
+            child: Transform.rotate(
+              angle: -0.45,
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 76,
+                height: 8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE53935), Color(0xFFE53935), Colors.white, Colors.white],
+                    stops: [0, .5, .5, 1],
+                    end: Alignment(-0.8, 0),
+                    tileMode: TileMode.repeated,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(left: -12, bottom: -12, child: _bush(36)),
+          Positioned(left: 14, bottom: -16, child: _bush(28)),
+          const Positioned(
+            right: 2,
+            bottom: 8,
+            child: Icon(Icons.directions_car_filled_rounded, color: Colors.white, size: 46),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _bush(double size) => Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(color: Color(0xFF2E9D57), shape: BoxShape.circle),
+      );
+}
+
+/// Light, tinted gate-duty tile: icon bubble + live count and a chevron on
+/// top, the label and caption below.
+class _DutyTile extends StatelessWidget {
+  const _DutyTile({
+    required this.label,
+    required this.caption,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.count,
+    this.alert = false,
+    this.tintCaption = false,
+  });
+
+  final String label;
+  final String caption;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final int? count;
+  // Closed Houses: count, label and caption all in the tile color.
+  final bool alert;
+  final bool tintCaption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(color.withValues(alpha: 0.07), Colors.white),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: wide
-                ? Row(
-                    children: [
-                      iconBox,
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(label, style: titleStyle.copyWith(fontSize: 18)),
-                            const SizedBox(height: 2),
-                            Text(caption, style: captionStyle),
-                          ],
+            padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                      child: Icon(icon, color: color, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        count == null ? '-' : '$count',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: alert ? color : AppColors.textPrimary,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_rounded, color: Colors.white),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          iconBox,
-                          const Spacer(),
-                          if (count != null)
-                            Text('$count', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, height: 1))
-                          else
-                            numberDot,
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
-                      const SizedBox(height: 2),
-                      Text(caption, maxLines: 1, overflow: TextOverflow.ellipsis, style: captionStyle),
-                    ],
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: color, size: 24),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: alert ? color : AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  caption,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: alert || tintCaption ? color : AppColors.textSecondary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
                   ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
