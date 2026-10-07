@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,11 +7,8 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
-/// Step 2 of OTP login. There's no SMS gateway wired up on the backend yet
-/// (see OtpService's docblock) - every number's OTP is the same fixed code
-/// for now, so it's pre-filled here rather than making a tester copy it out
-/// of a log file. Nothing here needs to change when a real gateway is added
-/// later — only this field's default value should come out.
+/// Step 2 of OTP login: the code texted by the backend's SMS gateway
+/// (OtpService, via 2Factor).
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key, required this.mobileNumber});
 
@@ -22,7 +20,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _otpController = TextEditingController(text: '0000');
+  final _otpController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
@@ -90,6 +88,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       TextFormField(
                         controller: _otpController,
                         keyboardType: TextInputType.number,
+                        autofocus: true,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 8),
                         decoration: InputDecoration(

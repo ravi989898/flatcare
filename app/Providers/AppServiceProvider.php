@@ -48,10 +48,10 @@ class AppServiceProvider extends ServiceProvider
                 Log::channel('security')->critical('APP_DEBUG was true in production; forced off. Fix the .env file.');
             }
 
-            if ((string) config('flatcare.otp_default_code') === '0000') {
+            if (!config('services.twofactor.api_key') && (string) config('flatcare.otp_default_code') === '0000') {
                 Log::channel('security')->critical(
                     'OTP_DEFAULT_CODE is the publicly-known default "0000" in production: anyone who knows a registered '
-                    .'mobile number can sign in as that resident. Connect an SMS OTP gateway (App\Services\Api\OtpService).'
+                    .'mobile number can sign in as that resident. Set TWOFACTOR_API_KEY (App\Services\Api\OtpService).'
                 );
             }
         }
