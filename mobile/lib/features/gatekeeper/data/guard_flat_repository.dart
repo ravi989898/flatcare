@@ -21,6 +21,13 @@ class GuardFlatRepository {
     return (response['data'] as List).map((item) => Flat.fromJson(item as Map<String, dynamic>)).toList();
   }
 
+  /// Every active flat in the society, for the check-in form's block picker.
+  Future<List<Flat>> all() async {
+    final response = await _client.get('/guard/flats', query: {'all': 1});
+
+    return (response['data'] as List).map((item) => Flat.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
   /// Flats whose resident has switched on House Closed, with their residents.
   Future<List<Flat>> closedHouses({String search = ''}) async {
     final response = await _client.get('/guard/flats', query: {

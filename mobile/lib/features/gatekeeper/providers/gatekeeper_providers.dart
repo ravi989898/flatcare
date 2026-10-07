@@ -35,6 +35,11 @@ final guardFlatListProvider = FutureProvider.autoDispose<List<Flat>>((ref) {
   return ref.watch(guardFlatRepositoryProvider).search(ref.watch(guardFlatSearchProvider));
 });
 
+/// Every flat, for the walk-in form's block -> flat picker.
+final guardAllFlatsProvider = FutureProvider.autoDispose<List<Flat>>((ref) {
+  return ref.watch(guardFlatRepositoryProvider).all();
+});
+
 final guardVehicleSearchProvider = StateProvider.autoDispose<String>((ref) => '');
 
 final guardVehicleListProvider = FutureProvider.autoDispose<List<GuardVehicle>>((ref) {

@@ -16,11 +16,10 @@ import '../widgets/purpose_style.dart';
 
 /// Walk-in check-in — a visitor who showed up without a resident's
 /// pre-invite. Modeled on features/visitors/screens/invite_visitor_screen.dart,
-/// but the flat picker searches the whole society via a full-screen sheet
-/// (Api\V1\Guard\FlatController) instead of the resident's own flat(s) —
-/// tapping through a big list is faster at a gate than typing while
-/// someone's waiting — and submitting lands the visitor already checked_in
-/// instead of pending.
+/// but the guard picks any flat in the society (Api\V1\Guard\FlatController):
+/// tap a block in the horizontal strip, then one of its flats - faster at a
+/// gate than typing while someone's waiting (a search sheet is still one tap
+/// away). Laid out to fit one screen, with Submit pinned at the bottom.
 class GatekeeperVisitorCheckinScreen extends ConsumerStatefulWidget {
   const GatekeeperVisitorCheckinScreen({super.key});
 
@@ -33,7 +32,6 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _vehicleController = TextEditingController();
-  final _notesController = TextEditingController();
   String _purpose = Visitor.purposes.first;
   Flat? _flat;
   XFile? _photo;
@@ -46,7 +44,6 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
     _nameController.dispose();
     _phoneController.dispose();
     _vehicleController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -79,7 +76,6 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
             visitorPhone: _phoneController.text.trim(),
             purpose: _purpose,
             vehicleNumber: _vehicleController.text.trim(),
-            notes: _notesController.text.trim(),
             photoPath: _photo?.path,
             requiresApproval: _requiresApproval,
           );
@@ -106,6 +102,8 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
 
   @override
   Widget build(BuildContext context) {
+    final canSubmit = !_isSubmitting && _flat != null;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F3F7),
       appBar: AppBar(
@@ -114,107 +112,135 @@ class _GatekeeperVisitorCheckinScreenState extends ConsumerState<GatekeeperVisit
         flexibleSpace: const DecoratedBox(decoration: BoxDecoration(gradient: AppTheme.brandGradient)),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _SectionCard(
-                  title: 'Which flat?',
-                  child: _FlatField(flat: _flat, onTap: _pickFlat),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: 'Visitor photo (optional)',
-                  child: _PhotoField(photo: _photo, onTakePhoto: _takePhoto, onRemove: () => setState(() => _photo = null)),
-                ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: 'Visitor details',
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(labelText: 'Visitor Name', prefixIcon: Icon(Icons.badge_outlined)),
-                        validator: (value) => (value == null || value.trim().isEmpty) ? "Enter the visitor's name" : null,
+                      _SectionCard(
+                        title: 'Which flat?',
+                        child: _BlockFlatPicker(
+                          selected: _flat,
+                          onSelected: (flat) => setState(() => _flat = flat),
+                          onSearch: _pickFlat,
+                        ),
                       ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(labelText: 'Phone (optional)', prefixIcon: Icon(Icons.phone_outlined)),
+                      const SizedBox(height: 10),
+                      _SectionCard(
+                        title: 'Visitor details',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _PhotoField(photo: _photo, onTakePhoto: _takePhoto, onRemove: () => setState(() => _photo = null)),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Visitor Name',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                                isDense: true,
+                              ),
+                              validator: (value) => (value == null || value.trim().isEmpty) ? "Enter the visitor's name" : null,
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _phoneController,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Phone (optional)',
+                                      prefixIcon: Icon(Icons.phone_outlined),
+                                      isDense: true,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _vehicleController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Vehicle (optional)',
+                                      prefixIcon: Icon(Icons.directions_car_outlined),
+                                      isDense: true,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _vehicleController,
-                        decoration:
-                            const InputDecoration(labelText: 'Vehicle Number (optional)', prefixIcon: Icon(Icons.directions_car_outlined)),
+                      const SizedBox(height: 10),
+                      _SectionCard(
+                        title: 'Purpose of visit',
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final purpose in Visitor.purposes) _PurposeChip(
+                              purpose: purpose,
+                              selected: purpose == _purpose,
+                              onTap: () => setState(() => _purpose = purpose),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _notesController,
-                        decoration: const InputDecoration(labelText: 'Notes (optional)', prefixIcon: Icon(Icons.notes_outlined)),
-                        maxLines: 2,
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.only(left: 12, right: 4),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Text('Ask resident to approve', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                            ),
+                            Switch.adaptive(
+                              value: _requiresApproval,
+                              onChanged: (value) => setState(() => _requiresApproval = value),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: 'Purpose of visit',
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final purpose in Visitor.purposes) _PurposeChip(
-                        purpose: purpose,
-                        selected: purpose == _purpose,
-                        onTap: () => setState(() => _purpose = purpose),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
+            // Pinned, so it's always on screen - no scrolling down to submit.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: canSubmit ? AppTheme.brandGradient : null,
+                  color: canSubmit ? null : Colors.grey.shade300,
                 ),
-                const SizedBox(height: 14),
-                _SectionCard(
-                  title: 'Entry',
-                  child: SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    value: _requiresApproval,
-                    onChanged: (value) => setState(() => _requiresApproval = value),
-                    title: const Text('Ask resident to approve', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text(
-                      "Waits for the resident's approval instead of letting the visitor in right away.",
-                      style: TextStyle(fontSize: 12.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    gradient: (_isSubmitting || _flat == null) ? null : AppTheme.brandGradient,
-                    color: (_isSubmitting || _flat == null) ? Colors.grey.shade300 : null,
-                  ),
+                child: SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                     ),
-                    onPressed: (_isSubmitting || _flat == null) ? null : _submit,
+                    onPressed: canSubmit ? _submit : null,
                     child: _isSubmitting
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : Text(_requiresApproval ? 'Send Request' : 'Check In', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -230,10 +256,10 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
@@ -243,7 +269,7 @@ class _SectionCard extends StatelessWidget {
             title,
             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.brandBlueDark, letterSpacing: .2),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           child,
         ],
       ),
@@ -267,7 +293,7 @@ class _PurposeChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? style.color : style.color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(999),
@@ -276,8 +302,8 @@ class _PurposeChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(style.emoji, style: const TextStyle(fontSize: 15)),
-            const SizedBox(width: 6),
+            Text(style.emoji, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 5),
             Text(
               purpose.replaceAll('_', ' '),
               style: TextStyle(
@@ -293,8 +319,8 @@ class _PurposeChip extends StatelessWidget {
   }
 }
 
-/// Camera-only photo capture — a big "Take Photo" tap target when empty,
-/// a thumbnail with a retake/remove overlay once one's been taken.
+/// Camera-only photo capture (optional) — a slim "Take Photo" bar when
+/// empty, a small thumbnail with retake/remove once one's been taken.
 class _PhotoField extends StatelessWidget {
   const _PhotoField({required this.photo, required this.onTakePhoto, required this.onRemove});
 
@@ -310,17 +336,18 @@ class _PhotoField extends StatelessWidget {
         onTap: onTakePhoto,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             border: Border.all(color: AppTheme.brandBlue.withValues(alpha: 0.35), style: BorderStyle.solid),
             borderRadius: BorderRadius.circular(12),
             color: AppTheme.brandBlue.withValues(alpha: 0.05),
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.camera_alt_rounded, color: AppTheme.brandBlueDark, size: 28),
-              const SizedBox(height: 8),
-              Text('Take Photo', style: TextStyle(color: AppTheme.brandBlueDark, fontWeight: FontWeight.w700)),
+              const Icon(Icons.camera_alt_rounded, color: AppTheme.brandBlueDark, size: 20),
+              const SizedBox(width: 8),
+              Text('Take Photo (optional)', style: TextStyle(color: AppTheme.brandBlueDark, fontWeight: FontWeight.w700, fontSize: 13)),
             ],
           ),
         ),
@@ -331,7 +358,7 @@ class _PhotoField extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.file(File(photo!.path), width: 72, height: 72, fit: BoxFit.cover),
+          child: Image.file(File(photo!.path), width: 48, height: 48, fit: BoxFit.cover),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -358,44 +385,179 @@ class _PhotoField extends StatelessWidget {
   }
 }
 
-/// Tap target that opens the flat-picker sheet — looks like a form field so
-/// it sits naturally among the real TextFormFields around it.
-class _FlatField extends StatelessWidget {
-  const _FlatField({required this.flat, required this.onTap});
+/// Blocks in a horizontal strip (like the directory's filter chips); tapping
+/// one lists that block's flats right below as chips. The search icon opens
+/// the full search sheet (by owner name, too).
+class _BlockFlatPicker extends ConsumerStatefulWidget {
+  const _BlockFlatPicker({required this.selected, required this.onSelected, required this.onSearch});
 
-  final Flat? flat;
+  final Flat? selected;
+  final ValueChanged<Flat> onSelected;
+  final VoidCallback onSearch;
+
+  @override
+  ConsumerState<_BlockFlatPicker> createState() => _BlockFlatPickerState();
+}
+
+class _BlockFlatPickerState extends ConsumerState<_BlockFlatPicker> {
+  static const _noBlock = 'Other';
+  String? _block;
+
+  @override
+  void didUpdateWidget(covariant _BlockFlatPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A flat picked through search jumps the strip to its block.
+    final picked = widget.selected;
+    if (picked != null && picked.id != oldWidget.selected?.id) _block = picked.blockName ?? _noBlock;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final flats = ref.watch(guardAllFlatsProvider);
+
+    return flats.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Row(
+        children: [
+          const Expanded(child: Text("Couldn't load flats.", style: TextStyle(color: Colors.black54))),
+          TextButton(onPressed: () => ref.invalidate(guardAllFlatsProvider), child: const Text('Retry')),
+        ],
+      ),
+      data: (items) {
+        if (items.isEmpty) return const Text('No flats found.', style: TextStyle(color: Colors.black54));
+
+        final byBlock = <String, List<Flat>>{};
+        for (final flat in items) {
+          byBlock.putIfAbsent(flat.blockName ?? _noBlock, () => []).add(flat);
+        }
+        final blocks = byBlock.keys.toList()..sort(_naturalCompare);
+        for (final list in byBlock.values) {
+          list.sort((a, b) => _naturalCompare(a.flatNumber, b.flatNumber));
+        }
+
+        final block = byBlock.containsKey(_block) ? _block! : blocks.first;
+        final picked = widget.selected;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 36,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: blocks.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 6),
+                      itemBuilder: (context, index) {
+                        final name = blocks[index];
+                        final isSelected = name == block;
+
+                        return ChoiceChip(
+                          label: Text(name),
+                          selected: isSelected,
+                          showCheckmark: false,
+                          visualDensity: VisualDensity.compact,
+                          selectedColor: AppTheme.brandBlue,
+                          labelStyle: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                            color: isSelected ? Colors.white : AppTheme.brandBlueDark,
+                          ),
+                          onSelected: (_) => setState(() => _block = name),
+                        );
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Search flat or owner',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.search_rounded, color: AppTheme.brandBlueDark),
+                    onPressed: widget.onSearch,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Capped so a big block never pushes the rest of the form off screen.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 120),
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final flat in byBlock[block]!)
+                      _FlatChip(
+                        flat: flat,
+                        selected: flat.id == picked?.id,
+                        onTap: () => widget.onSelected(flat),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (picked != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                [picked.displayLabel, if (picked.ownerName != null) picked.ownerName!].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.brandBlueDark),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Orders "A-2" before "A-10", and "Block 2" before "Block 10".
+int _naturalCompare(String a, String b) {
+  final pattern = RegExp(r'(\d+)|(\D+)');
+  final pa = pattern.allMatches(a.toLowerCase()).map((m) => m.group(0)!).toList();
+  final pb = pattern.allMatches(b.toLowerCase()).map((m) => m.group(0)!).toList();
+  for (var i = 0; i < pa.length && i < pb.length; i++) {
+    final na = int.tryParse(pa[i]);
+    final nb = int.tryParse(pb[i]);
+    final c = (na != null && nb != null) ? na.compareTo(nb) : pa[i].compareTo(pb[i]);
+    if (c != 0) return c;
+  }
+  return pa.length.compareTo(pb.length);
+}
+
+class _FlatChip extends StatelessWidget {
+  const _FlatChip({required this.flat, required this.selected, required this.onTap});
+
+  final Flat flat;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    // House Closed: shown in red so the guard sees it before sending.
+    final color = flat.houseClosed ? Colors.red.shade400 : AppTheme.brandBlue;
+
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        constraints: const BoxConstraints(minWidth: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: flat == null ? Colors.red.shade300 : AppTheme.brandBlue.withValues(alpha: 0.4)),
-          borderRadius: BorderRadius.circular(12),
-          color: flat == null ? Colors.red.withValues(alpha: 0.03) : AppTheme.brandBlue.withValues(alpha: 0.05),
+          color: selected ? color : color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: selected ? 1 : 0.3)),
         ),
-        child: Row(
-          children: [
-            Icon(Icons.home_rounded, color: flat == null ? Colors.red.shade300 : AppTheme.brandBlueDark),
-            const SizedBox(width: 12),
-            Expanded(
-              child: flat == null
-                  ? const Text('Tap to select the flat being visited', style: TextStyle(color: Colors.black54))
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(flat!.displayLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                        if (flat!.ownerName != null)
-                          Text(flat!.ownerName!, style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5)),
-                      ],
-                    ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.black38),
-          ],
+        child: Text(
+          flat.flatNumber,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: selected ? Colors.white : color),
         ),
       ),
     );

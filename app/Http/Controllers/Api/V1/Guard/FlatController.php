@@ -35,7 +35,10 @@ class FlatController extends ApiController
             });
         }
 
-        $flats = $query->orderBy('flat_number')->limit($closedOnly ? 500 : 50)->get();
+        // `all`: every flat at once, for the check-in form's block -> flat
+        // picker; a plain search stays capped at 50 matches.
+        $limit = ($closedOnly || $request->boolean('all')) ? 2000 : 50;
+        $flats = $query->orderBy('flat_number')->limit($limit)->get();
 
         return $this->ok(FlatResource::collection($flats));
     }
