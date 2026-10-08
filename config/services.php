@@ -49,7 +49,8 @@ return [
     ],
 
     /*
-    | 2Factor.in SMS OTP for app login (App\Services\Api\OtpService).
+    | 2Factor.in SMS OTP for app login (App\Services\Api\OtpService), used
+    | only when OTP_CHANNEL=sms.
     | TWOFACTOR_API_KEY is the API key from the 2Factor dashboard;
     | TWOFACTOR_OTP_TEMPLATE is the name of the approved (DLT) OTP template -
     | required: without it 2Factor sends the OTP as a voice call, so no OTP
@@ -60,6 +61,25 @@ return [
         'api_key' => env('TWOFACTOR_API_KEY'),
         'otp_template' => env('TWOFACTOR_OTP_TEMPLATE', 'FlatCare'),
         'timeout' => env('TWOFACTOR_TIMEOUT', 10),
+    ],
+
+
+    /*
+    | WhatsApp OTP for app login (App\Services\Api\OtpService, the default
+    | OTP_CHANNEL) through Meta's WhatsApp Cloud API. WHATSAPP_TOKEN is a
+    | permanent System User access token, WHATSAPP_PHONE_NUMBER_ID the sending
+    | number's id (WhatsApp Manager > API Setup), WHATSAPP_OTP_TEMPLATE the
+    | name of an approved "Authentication" template with a Copy code button.
+    | With no token, OTP stays on the fixed OTP_DEFAULT_CODE (local/dev only).
+    */
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'otp_template' => env('WHATSAPP_OTP_TEMPLATE', 'flatcare_otp'),
+        'otp_language' => env('WHATSAPP_OTP_LANGUAGE', 'en'),
+        'otp_length' => env('WHATSAPP_OTP_LENGTH', 6),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'timeout' => env('WHATSAPP_TIMEOUT', 10),
     ],
 
 ];

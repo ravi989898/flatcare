@@ -48,10 +48,10 @@ class AppServiceProvider extends ServiceProvider
                 Log::channel('security')->critical('APP_DEBUG was true in production; forced off. Fix the .env file.');
             }
 
-            if (!config('services.twofactor.api_key') && (string) config('flatcare.otp_default_code') === '0000') {
+            if (!app(\App\Services\Api\OtpService::class)->isLive() && (string) config('flatcare.otp_default_code') === '0000') {
                 Log::channel('security')->critical(
                     'OTP_DEFAULT_CODE is the publicly-known default "0000" in production: anyone who knows a registered '
-                    .'mobile number can sign in as that resident. Set TWOFACTOR_API_KEY (App\Services\Api\OtpService).'
+                    .'mobile number can sign in as that resident. Set WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID (or TWOFACTOR_API_KEY with OTP_CHANNEL=sms).'
                 );
             }
         }

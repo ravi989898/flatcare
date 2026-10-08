@@ -123,7 +123,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'otp',
-            builder: (context, state) => OtpScreen(mobileNumber: state.extra as String? ?? ''),
+            builder: (context, state) {
+              final extra = state.extra;
+              return extra is ({String mobileNumber, String channel})
+                  ? OtpScreen(mobileNumber: extra.mobileNumber, channel: extra.channel)
+                  : OtpScreen(mobileNumber: extra as String? ?? '');
+            },
           ),
           GoRoute(path: 'email', builder: (context, state) => const EmailLoginScreen()),
         ],

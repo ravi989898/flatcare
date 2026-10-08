@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
-/// Step 2 of OTP login: the code texted by the backend's SMS gateway
-/// (OtpService, via 2Factor).
+/// Step 2 of OTP login: the code the backend's OtpService sent - on
+/// WhatsApp (default) or by SMS through 2Factor, per [channel].
 class OtpScreen extends ConsumerStatefulWidget {
-  const OtpScreen({super.key, required this.mobileNumber});
+  const OtpScreen({super.key, required this.mobileNumber, this.channel = 'whatsapp'});
 
   final String mobileNumber;
+
+  /// 'whatsapp' or 'sms', as returned by /auth/otp/request.
+  final String channel;
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -78,12 +82,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('🔐', style: TextStyle(fontSize: 36)),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Enter the OTP sent to ${widget.mobileNumber}.',
-                        style: const TextStyle(color: Colors.black54),
-                      ),
+                      if (widget.channel == 'whatsapp') ...[
+                        _WhatsAppNotice(mobileNumber: widget.mobileNumber),
+                      ] else ...[
+                        const Text('🔐', style: TextStyle(fontSize: 36)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Enter the OTP sent to ${widget.mobileNumber}.',
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _otpController,
@@ -138,6 +146,62 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Tells the user the code went to WhatsApp, not SMS, so they don't sit
+/// waiting for a text message.
+class _WhatsAppNotice extends StatelessWidget {
+  const _WhatsAppNotice({required this.mobileNumber});
+
+  final String mobileNumber;
+
+  static const _whatsAppGreen = Color(0xFF25D366);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(color: _whatsAppGreen, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 36),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Check your WhatsApp',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _whatsAppGreen.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _whatsAppGreen.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF128C7E), size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Your OTP has been sent on WhatsApp to $mobileNumber - not by SMS. '
+                  "Open WhatsApp, copy the code from FlatCare's message and enter it below.",
+                  style: const TextStyle(color: Colors.black87, height: 1.35),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -50,8 +50,12 @@ class AuthRepository {
   /// Step 1 of OTP login — throws ApiException (with a friendly message)
   /// if the number isn't registered to any flat yet, which the mobile
   /// number screen shows as an alert rather than moving on to the OTP step.
-  Future<void> requestOtp(String mobileNumber) =>
-      _client.post('/auth/otp/request', data: {'mobile_number': mobileNumber});
+  /// Returns where the code went: 'whatsapp' or 'sms'.
+  Future<String> requestOtp(String mobileNumber) async {
+    final response = await _client.post('/auth/otp/request', data: {'mobile_number': mobileNumber});
+    final data = response['data'];
+    return (data is Map && data['channel'] is String) ? data['channel'] as String : 'sms';
+  }
 
   /// Step 2 of OTP login.
   Future<LoginResult> verifyOtp({
