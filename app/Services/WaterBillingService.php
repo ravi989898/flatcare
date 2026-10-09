@@ -92,7 +92,7 @@ class WaterBillingService
         $fixedMaintenance = (float) ($society?->fixed_maintenance ?? 0);
         $waterUnitRate = (float) ($society?->water_unit_rate ?? 0);
         $dueDay = (int) ($society?->due_day ?? 5);
-        $dueDate = $month->copy()->addMonthNoOverflow()->startOfMonth()->addDays($dueDay - 1);
+        $dueDate = $month->copy()->addDays($dueDay - 1);
 
         $toSave = [];
 
