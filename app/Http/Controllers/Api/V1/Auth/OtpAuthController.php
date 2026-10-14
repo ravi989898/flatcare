@@ -61,10 +61,7 @@ class OtpAuthController extends ApiController
 
         $otp->send($mobileNumber);
 
-        // The app tells the user where to look (WhatsApp or SMS).
-        return $this->ok(['channel' => $otp->channel()], $otp->channel() === OtpService::CHANNEL_WHATSAPP
-            ? 'An OTP has been sent on WhatsApp.'
-            : 'An OTP has been sent.');
+        return $this->ok(null, 'An OTP has been sent.');
     }
 
     public function verify(OtpVerifyRequest $request, OtpService $otp, TenantAccountLocator $locator, ApiTokenService $tokenService): JsonResponse

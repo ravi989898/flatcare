@@ -48,10 +48,9 @@ class AppServiceProvider extends ServiceProvider
                 Log::channel('security')->critical('APP_DEBUG was true in production; forced off. Fix the .env file.');
             }
 
-            if (!app(\App\Services\Api\OtpService::class)->isLive() && (string) config('flatcare.otp_default_code') === '0000') {
+            if (!app(\App\Services\Api\OtpService::class)->isLive()) {
                 Log::channel('security')->critical(
-                    'OTP_DEFAULT_CODE is the publicly-known default "0000" in production: anyone who knows a registered '
-                    .'mobile number can sign in as that resident. Set WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID (or TWOFACTOR_API_KEY with OTP_CHANNEL=sms).'
+                    'TWOFACTOR_API_KEY is not set in production: app OTP login is switched off until it is (App\Services\Api\OtpService).'
                 );
             }
         }
@@ -97,7 +96,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('otp-request', function (Request $request) {
             return [
                 Limit::perMinute(5)->by($request->ip()),
-                Limit::perHour(10)->by('otp:'.sha1((string) $request->input('mobile_number'))),
+                // Keyed by the normalized number so "+91 98..." and "98..."
+                // share one budget.
+                Limit::perHour(10)->by('otp:'.sha1(
+                    \App\Services\Api\OtpService::normalize((string) $request->input('mobile_number')) ?? (string) $request->input('mobile_number')
+                )),
             ];
         });
     }

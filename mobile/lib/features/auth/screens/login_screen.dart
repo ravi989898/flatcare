@@ -39,9 +39,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final channel = await ref.read(authRepositoryProvider).requestOtp(mobileNumber);
+      await ref.read(authRepositoryProvider).requestOtp(mobileNumber);
       if (!mounted) return;
-      context.push('/login/otp', extra: (mobileNumber: mobileNumber, channel: channel));
+      context.push('/login/otp', extra: mobileNumber);
     } on ApiException catch (e) {
       if (!mounted) return;
       // A plain alert rather than a snackbar - this specific message ("not

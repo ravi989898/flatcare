@@ -36,8 +36,12 @@ class OtpVerifyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'mobile_number' => ['required', 'string', 'max:20'],
-            'otp' => ['required', 'string', 'max:10'],
+            'mobile_number' => ['required', 'string', 'max:20', function (string $attribute, mixed $value, \Closure $fail) {
+                if (!is_string($value) || OtpService::normalize($value) === null) {
+                    $fail('Enter a valid 10-digit mobile number.');
+                }
+            }],
+            'otp' => ['required', 'string', 'regex:/^\s*\d{4,8}\s*$/'],
             'device_id' => ['nullable', 'string', 'max:255'],
             'device_platform' => ['nullable', 'string', 'in:ios,android'],
         ];
@@ -122,7 +126,7 @@ class OtpVerifyRequest extends FormRequest
     private function throttleKey(): string
     {
         return Str::transliterate(
-            'otp|'.$this->string('mobile_number').'|'.$this->ip()
+            'otp|'.$this->normalizedMobileNumber().'|'.$this->ip()
         );
     }
 
@@ -136,6 +140,14 @@ class OtpVerifyRequest extends FormRequest
      */
     private function identifierKey(): string
     {
-        return Str::transliterate('otpid|'.$this->string('mobile_number'));
+        return Str::transliterate('otpid|'.$this->normalizedMobileNumber());
+    }
+
+    /** One throttle bucket per number, whatever prefix/spacing it was typed with. */
+    private function normalizedMobileNumber(): string
+    {
+        $mobileNumber = $this->string('mobile_number')->value();
+
+        return OtpService::normalize($mobileNumber) ?? $mobileNumber;
     }
 }

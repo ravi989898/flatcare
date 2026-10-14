@@ -9,169 +9,158 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * OTP delivery/verification for app login. config('flatcare.otp_channel')
- * picks how the code goes out:
+ * SMS OTP for app login through 2Factor.in (config/services.php
+ * 'twofactor'). 2Factor generates and checks the code itself: send() asks it
+ * to text a fresh OTP with the approved DLT template and keeps the session
+ * id it returns for 10 minutes; verify() checks the typed code against that
+ * session. A matched code is used up, and a session is thrown away after
+ * MAX_ATTEMPTS wrong guesses so the code can't be brute-forced.
  *
- *  - 'whatsapp' (default, cheaper than SMS): we generate the code, keep only
- *    its hash in the cache for 10 minutes and send it with the approved
- *    WhatsApp authentication template through Meta's WhatsApp Cloud API
- *    (config/services.php 'whatsapp').
- *  - 'sms': 2Factor.in (config/services.php 'twofactor') generates and checks
- *    the code itself: send() asks it to text a fresh OTP and keeps the
- *    session id it returns; verify() checks the typed code against that
- *    session. Switched off for now (cost) - set OTP_CHANNEL=sms to bring it
- *    back, nothing else needs to change.
- *
- * A matched code is used up. When the active channel has no credentials
- * (a dev machine), nothing is sent and every number's code is the fixed
- * config('flatcare.otp_default_code').
+ * Without TWOFACTOR_API_KEY nothing is sent: off production every number's
+ * code is the fixed config('flatcare.otp_default_code') (local dev); in
+ * production OTP login refuses to work rather than accept a known code.
  */
 class OtpService
 {
-    public const CHANNEL_WHATSAPP = 'whatsapp';
-
-    public const CHANNEL_SMS = 'sms';
-
-    private const TWOFACTOR_BASE_URL = 'https://2factor.in/API/V1';
+    private const BASE_URL = 'https://2factor.in/API/V1';
 
     private const SESSION_TTL_MINUTES = 10;
 
-    /** Wrong guesses a WhatsApp code survives before it is thrown away. */
+    /** Wrong guesses a session survives before it is thrown away. */
     private const MAX_ATTEMPTS = 5;
+
+    /** Minimum gap between two OTPs to the same number. */
+    private const RESEND_COOLDOWN_SECONDS = 30;
 
     private const SEND_FAILED = "Couldn't send the OTP right now. Please try again in a minute.";
 
-    /**
-     * Until WhatsApp's credentials are filled in, a server that still has a
-     * 2Factor key keeps sending SMS - never drop to the fixed dev code.
-     */
-    public function channel(): string
-    {
-        if (config('flatcare.otp_channel') === self::CHANNEL_SMS) {
-            return self::CHANNEL_SMS;
-        }
-
-        $whatsAppReady = config('services.whatsapp.token') && config('services.whatsapp.phone_number_id');
-
-        return !$whatsAppReady && config('services.twofactor.api_key') ? self::CHANNEL_SMS : self::CHANNEL_WHATSAPP;
-    }
-
-    /** Whether the active channel has the credentials it needs to really send. */
     public function isLive(): bool
     {
-        return $this->channel() === self::CHANNEL_SMS
-            ? (bool) config('services.twofactor.api_key')
-            : config('services.whatsapp.token') && config('services.whatsapp.phone_number_id');
+        return filled(config('services.twofactor.api_key'));
     }
 
+    /**
+     * The 10-digit Indian mobile number in $mobileNumber (+91 / 91 / 0
+     * prefixes, spaces and dashes allowed), or null when it isn't one.
+     */
+    public static function normalize(string $mobileNumber): ?string
+    {
+        $compact = preg_replace('/[\s\-()]/', '', trim($mobileNumber));
+
+        return preg_match('/^(?:\+?91|0)?([6-9]\d{9})$/', $compact, $m) ? $m[1] : null;
+    }
+
+    /**
+     * @throws ValidationException when the number is invalid, asked again
+     *                             too soon, or 2Factor didn't send the SMS
+     */
     public function send(string $mobileNumber): void
     {
+        $phone = self::normalize($mobileNumber)
+            ?? throw ValidationException::withMessages(['mobile_number' => 'Enter a valid 10-digit mobile number.']);
+
         if (!$this->isLive()) {
-            // The code itself is only written to the log on a local dev
-            // machine; elsewhere a log must never hold a working credential.
+            if (app()->isProduction()) {
+                Log::error('OTP not sent: TWOFACTOR_API_KEY is not set.');
+
+                throw ValidationException::withMessages(['mobile_number' => self::SEND_FAILED]);
+            }
+
             Log::info('OTP requested (stub - nothing sent)', [
-                'channel' => $this->channel(),
-                'mobile_number' => app()->environment('local') ? $mobileNumber : '******'.substr($mobileNumber, -4),
+                'mobile_number' => $this->mask($phone),
             ] + (app()->environment('local') ? ['code' => config('flatcare.otp_default_code')] : []));
 
             return;
         }
 
-        $phone = $this->normalize($mobileNumber);
+        // Without an approved (DLT) template name 2Factor reads the OTP out
+        // over a voice call instead of texting it - never send without one.
+        $template = (string) config('services.twofactor.otp_template');
+        if ($template === '') {
+            Log::error('2Factor OTP not sent: TWOFACTOR_OTP_TEMPLATE is empty (OTP would go as a voice call).');
 
-        $this->channel() === self::CHANNEL_SMS ? $this->sendSms($phone) : $this->sendWhatsApp($phone);
-    }
-
-    public function verify(string $mobileNumber, string $code): bool
-    {
-        if (!$this->isLive()) {
-            return hash_equals((string) config('flatcare.otp_default_code'), $code);
+            throw ValidationException::withMessages(['mobile_number' => self::SEND_FAILED]);
         }
 
-        $code = trim($code);
-        if ($code === '' || !ctype_digit($code)) {
-            return false;
+        if (!Cache::add($this->cooldownKey($phone), true, self::RESEND_COOLDOWN_SECONDS)) {
+            throw ValidationException::withMessages([
+                'mobile_number' => 'Please wait '.self::RESEND_COOLDOWN_SECONDS.' seconds before asking for a new OTP.',
+            ]);
         }
 
-        $phone = $this->normalize($mobileNumber);
-
-        return $this->channel() === self::CHANNEL_SMS
-            ? $this->verifySms($phone, $code)
-            : $this->verifyWhatsApp($phone, $code);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | WhatsApp (Meta WhatsApp Cloud API, authentication template)
-    |--------------------------------------------------------------------------
-    */
-
-    private function sendWhatsApp(string $phone): void
-    {
-        $config = config('services.whatsapp');
-        $length = max(4, min(8, (int) ($config['otp_length'] ?? 6)));
-        $code = str_pad((string) random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
-
-        $url = 'https://graph.facebook.com/'.($config['api_version'] ?? 'v21.0').'/'.rawurlencode($config['phone_number_id']).'/messages';
-
-        // An authentication template has the code as its only body
-        // parameter, plus the "Copy code" button that carries it again.
-        $payload = [
-            'messaging_product' => 'whatsapp',
-            'recipient_type' => 'individual',
-            'to' => '91'.$phone,
-            'type' => 'template',
-            'template' => [
-                'name' => $config['otp_template'],
-                'language' => ['code' => $config['otp_language'] ?? 'en'],
-                'components' => [
-                    ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
-                    ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
-                ],
-            ],
-        ];
+        $sessionId = null;
+        $error = null;
 
         try {
-            $response = Http::timeout((int) ($config['timeout'] ?? 10))
-                ->withToken($config['token'])
-                ->post($url, $payload);
-            $ok = $response->successful() && !empty($response->json('messages.0.id'));
-            $error = $ok ? null : ($response->json('error.message') ?? 'HTTP '.$response->status());
+            $response = $this->client()->get($this->url('SMS', '91'.$phone, 'AUTOGEN', $template));
+            $details = $response->json('Details');
+
+            if ($response->successful() && $response->json('Status') === 'Success'
+                && is_string($details) && preg_match('/^[A-Za-z0-9\-]{8,100}$/', $details)) {
+                $sessionId = $details;
+            } else {
+                $error = is_string($details) ? $details : 'HTTP '.$response->status();
+            }
         } catch (Throwable $e) {
-            $ok = false;
             $error = $e->getMessage();
         }
 
-        if (!$ok) {
-            Log::warning('WhatsApp OTP send failed', [
-                'mobile_number' => '******'.substr($phone, -4),
-                'details' => $error,
+        if ($sessionId === null) {
+            Cache::forget($this->cooldownKey($phone));
+            Log::warning('2Factor OTP send failed', [
+                'mobile_number' => $this->mask($phone),
+                'details' => $this->redact($error),
             ]);
 
             throw ValidationException::withMessages(['mobile_number' => self::SEND_FAILED]);
         }
 
-        Cache::put($this->cacheKey($phone), [
-            'hash' => hash_hmac('sha256', $code, (string) config('app.key')),
+        Cache::put($this->sessionKey($phone), [
+            'session_id' => $sessionId,
             'attempts' => 0,
         ], now()->addMinutes(self::SESSION_TTL_MINUTES));
     }
 
-    private function verifyWhatsApp(string $phone, string $code): bool
+    public function verify(string $mobileNumber, string $code): bool
     {
-        $key = $this->cacheKey($phone);
-        $entry = Cache::get($key);
-        if (!is_array($entry) || empty($entry['hash'])) {
+        $code = trim($code);
+        $phone = self::normalize($mobileNumber);
+
+        if ($phone === null || !preg_match('/^\d{4,8}$/', $code)) {
             return false;
         }
 
-        if (hash_equals($entry['hash'], hash_hmac('sha256', $code, (string) config('app.key')))) {
+        if (!$this->isLive()) {
+            return !app()->isProduction()
+                && hash_equals((string) config('flatcare.otp_default_code'), $code);
+        }
+
+        $key = $this->sessionKey($phone);
+        $entry = Cache::get($key);
+        if (!is_array($entry) || !is_string($entry['session_id'] ?? null)) {
+            return false;
+        }
+
+        try {
+            $response = $this->client()->get($this->url('SMS', 'VERIFY', $entry['session_id'], $code));
+        } catch (Throwable $e) {
+            // 2Factor unreachable - not the user's guess, so no attempt used.
+            Log::warning('2Factor OTP verify failed', ['details' => $this->redact($e->getMessage())]);
+
+            return false;
+        }
+
+        $matched = $response->successful()
+            && $response->json('Status') === 'Success'
+            && $response->json('Details') === 'OTP Matched';
+
+        if ($matched) {
             Cache::forget($key);
 
             return true;
         }
 
-        $entry['attempts'] = ($entry['attempts'] ?? 0) + 1;
+        $entry['attempts'] = (int) ($entry['attempts'] ?? 0) + 1;
         $entry['attempts'] >= self::MAX_ATTEMPTS
             ? Cache::forget($key)
             : Cache::put($key, $entry, now()->addMinutes(self::SESSION_TTL_MINUTES));
@@ -179,83 +168,39 @@ class OtpService
         return false;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SMS (2Factor.in) - kept for OTP_CHANNEL=sms
-    |--------------------------------------------------------------------------
-    */
-
-    private function sendSms(string $phone): void
+    private function client(): \Illuminate\Http\Client\PendingRequest
     {
-        $apiKey = config('services.twofactor.api_key');
-
-        // Without an approved (DLT) template name 2Factor reads the OTP out
-        // over a voice call instead of texting it - never send without one.
-        $template = config('services.twofactor.otp_template');
-        if (!$template) {
-            Log::error('2Factor OTP not sent: TWOFACTOR_OTP_TEMPLATE is empty (OTP would go as a voice call).');
-
-            throw ValidationException::withMessages(['mobile_number' => self::SEND_FAILED]);
-        }
-
-        $url = self::TWOFACTOR_BASE_URL.'/'.rawurlencode($apiKey).'/SMS/'.$phone.'/AUTOGEN/'.rawurlencode($template);
-
-        try {
-            $response = Http::timeout((int) config('services.twofactor.timeout', 10))->get($url);
-            $body = $response->json() ?? [];
-        } catch (Throwable $e) {
-            $body = ['Status' => 'Error', 'Details' => $e->getMessage()];
-        }
-
-        if (($body['Status'] ?? null) !== 'Success' || empty($body['Details'])) {
-            Log::warning('2Factor OTP send failed', [
-                'mobile_number' => '******'.substr($phone, -4),
-                'details' => $body['Details'] ?? null,
-            ]);
-
-            throw ValidationException::withMessages(['mobile_number' => self::SEND_FAILED]);
-        }
-
-        Cache::put($this->cacheKey($phone), $body['Details'], now()->addMinutes(self::SESSION_TTL_MINUTES));
+        return Http::acceptJson()->timeout((int) config('services.twofactor.timeout', 10));
     }
 
-    private function verifySms(string $phone, string $code): bool
+    private function url(string ...$segments): string
     {
-        $apiKey = config('services.twofactor.api_key');
-        $sessionId = Cache::get($this->cacheKey($phone));
-        if (!is_string($sessionId) || $sessionId === '') {
-            return false;
-        }
-
-        try {
-            $body = Http::timeout((int) config('services.twofactor.timeout', 10))
-                ->get(self::TWOFACTOR_BASE_URL.'/'.rawurlencode($apiKey).'/SMS/VERIFY/'.rawurlencode($sessionId).'/'.$code)
-                ->json() ?? [];
-        } catch (Throwable $e) {
-            Log::warning('2Factor OTP verify failed', ['details' => $e->getMessage()]);
-
-            return false;
-        }
-
-        $matched = ($body['Status'] ?? null) === 'Success';
-        if ($matched) {
-            Cache::forget($this->cacheKey($phone));
-        }
-
-        return $matched;
+        return self::BASE_URL.'/'.implode('/', array_map('rawurlencode', [
+            (string) config('services.twofactor.api_key'),
+            ...$segments,
+        ]));
     }
 
-    /**
-     * Last 10 digits - the app and the flat/guard records store Indian
-     * mobile numbers in different shapes (+91, 0-prefixed, spaces).
-     */
-    private function normalize(string $mobileNumber): string
+    /** The API key is part of every 2Factor URL - keep it out of the logs. */
+    private function redact(?string $message): ?string
     {
-        return substr(preg_replace('/\D/', '', $mobileNumber), -10);
+        $apiKey = (string) config('services.twofactor.api_key');
+
+        return $message === null || $apiKey === '' ? $message : str_replace($apiKey, '***', $message);
     }
 
-    private function cacheKey(string $phone): string
+    private function mask(string $phone): string
     {
-        return 'otp:'.$this->channel().':'.$phone;
+        return '******'.substr($phone, -4);
+    }
+
+    private function sessionKey(string $phone): string
+    {
+        return 'otp:sms:'.$phone;
+    }
+
+    private function cooldownKey(string $phone): string
+    {
+        return 'otp:cooldown:'.$phone;
     }
 }
