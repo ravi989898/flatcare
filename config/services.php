@@ -58,7 +58,7 @@ return [
     */
     'twofactor' => [
         'api_key' => env('TWOFACTOR_API_KEY'),
-        'otp_template' => env('TWOFACTOR_OTP_TEMPLATE', 'FlatCare'),
+        'otp_template' => env('TWOFACTOR_OTP_TEMPLATE', 'OTP1'),
         'timeout' => env('TWOFACTOR_TIMEOUT', 10),
     ],
 
