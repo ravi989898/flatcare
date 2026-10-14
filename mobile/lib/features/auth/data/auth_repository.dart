@@ -109,3 +109,13 @@ class AuthRepository {
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(apiClientProvider));
 });
+
+/// The bare 10-digit Indian mobile number in [input], or null if it isn't
+/// one. Autofill and pasted contacts on some phones give "+91 98765 43210"
+/// or "098765 43210", while the server's records hold just the 10 digits.
+String? normalizeIndianMobile(String input) {
+  var digits = input.replaceAll(RegExp(r'\D'), '');
+  if (digits.length == 12 && digits.startsWith('91')) digits = digits.substring(2);
+  if (digits.length == 11 && digits.startsWith('0')) digits = digits.substring(1);
+  return RegExp(r'^[6-9]\d{9}$').hasMatch(digits) ? digits : null;
+}

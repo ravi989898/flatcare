@@ -13,6 +13,19 @@ class OtpRequestRequest extends FormRequest
     }
 
     /**
+     * Records store the bare 10 digits, but a phone's autofill or a pasted
+     * contact often gives "+91 98765 43210" - match on the 10 digits.
+     */
+    protected function prepareForValidation(): void
+    {
+        $mobileNumber = $this->input('mobile_number');
+
+        if (is_string($mobileNumber) && ($normalized = OtpService::normalize($mobileNumber)) !== null) {
+            $this->merge(['mobile_number' => $normalized]);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array

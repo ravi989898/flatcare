@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final mobileNumber = _mobileController.text.trim();
+    final mobileNumber = normalizeIndianMobile(_mobileController.text)!;
 
     setState(() => _isSubmitting = true);
     try {
@@ -126,7 +126,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) return 'Enter your mobile number';
-                          if (value.trim().length < 10) return 'Enter a valid mobile number';
+                          if (normalizeIndianMobile(value) == null) return 'Enter a valid 10-digit mobile number';
                           return null;
                         },
                         onFieldSubmitted: (_) => _submit(),
