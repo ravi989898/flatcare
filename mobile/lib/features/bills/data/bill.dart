@@ -112,4 +112,8 @@ class Bill {
   /// rather than getting a third tab for what's really the same action
   /// (pay the remaining balance).
   bool get isPending => status != 'paid';
+
+  /// The bill's amount plus any late fee - what "Total Amount" shows and
+  /// what [balance] (sent by the server, late fee included) counts down from.
+  double get totalAmount => amount + lateFee;
 }

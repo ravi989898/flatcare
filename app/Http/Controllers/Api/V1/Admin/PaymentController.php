@@ -44,7 +44,7 @@ class PaymentController extends ApiController
             ->get();
 
         $summary = [
-            'total_billed' => round((float) $bills->sum('amount'), 2),
+            'total_billed' => round((float) $bills->sum(fn (MaintenanceBill $bill) => $bill->totalAmount()), 2),
             'total_collected' => round((float) $bills->sum('paid_amount'), 2),
             'total_pending' => round((float) $bills->sum('balance'), 2),
             'paid_count' => $bills->where('status', 'paid')->count(),
@@ -72,7 +72,7 @@ class PaymentController extends ApiController
                     'flat_number' => $bill->flat?->flat_number,
                     'flat_label' => $bill->flat?->display_label,
                     'resident_name' => $bill->flat?->residents->first()?->user?->name,
-                    'amount' => (float) $bill->amount,
+                    'amount' => $bill->totalAmount(),
                     'paid' => (float) $bill->paid_amount,
                     'balance' => (float) $bill->balance,
                     'status' => $bill->status,

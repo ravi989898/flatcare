@@ -166,6 +166,12 @@ class AdminAppFeaturesTest extends TestCase
 
         $this->as($this->resident);
 
+        // No block picked = every block's vehicles.
+        $this->getJson('/api/v1/society-vehicles')->assertOk()
+            ->assertJsonPath('data.block_id', null)
+            ->assertJsonCount(3, 'data.residents')
+            ->assertJsonPath('data.residents.2.name', 'Pravin (B-101)');
+
         $res = $this->getJson("/api/v1/society-vehicles?block_id={$this->blockA}")->assertOk();
         $res->assertJsonPath('data.blocks.0.name', 'Block A')
             ->assertJsonPath('data.blocks.1.name', 'Block B')

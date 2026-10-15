@@ -412,129 +412,118 @@ class _SummaryCard extends StatelessWidget {
     final hint = bill.dueHint;
     final paidOn = bill.lastPayment?.paymentDate;
 
+    final dateColor = bill.isOverdue ? AppTheme.statusDue : AppTheme.brandNavy;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border(top: BorderSide(color: color, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 18, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(18),
+        border: Border(top: BorderSide(color: color, width: 3)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.receipt_long_rounded, color: AppTheme.brandBlue, size: 20),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: AppTheme.brandBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.receipt_long_rounded, color: AppTheme.brandBlue, size: 18),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       bill.heading,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.brandNavy),
                     ),
                     Text(
                       bill.subheading ?? 'Maintenance bill',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              BillStatusBadge(bill: bill, large: true),
+              BillStatusBadge(bill: bill),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            bill.isPending ? 'Amount Due' : 'Amount Paid',
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: BillAmount(bill.isPending ? bill.balance : bill.amount, size: 28, color: color, weight: FontWeight.w800),
+          const SizedBox(height: 10),
+          // Amount on the left, due / paid date (and "Overdue by N days")
+          // on the right - one row instead of two stacked blocks.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bill.isPending ? 'Amount Due' : 'Amount Paid',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: BillAmount(bill.isPending ? bill.balance : bill.totalAmount, size: 24, color: color, weight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${bill.isPending ? 'Due' : 'Paid on'} ${formatDate(bill.isPending ? bill.dueDate : (paidOn ?? bill.dueDate))}',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: dateColor),
+                  ),
+                  if (hint != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        hint,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ),
           if (bill.isPartiallyPaid) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
-                value: bill.amount <= 0 ? 0 : (bill.paidAmount / bill.amount).clamp(0, 1).toDouble(),
-                minHeight: 8,
+                value: bill.totalAmount <= 0 ? 0 : (bill.paidAmount / bill.totalAmount).clamp(0, 1).toDouble(),
+                minHeight: 6,
                 backgroundColor: AppColors.border,
                 color: AppTheme.statusPaid,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
-              '${formatCurrency(bill.paidAmount)} of ${formatCurrency(bill.amount)} paid',
-              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              '${formatCurrency(bill.paidAmount)} of ${formatCurrency(bill.totalAmount)} paid',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.brandBlue).withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  bill.isPending ? Icons.event_outlined : Icons.event_available_outlined,
-                  size: 20,
-                  color: bill.isOverdue ? AppTheme.statusDue : AppTheme.brandBlue,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        bill.isPending ? 'Payment Due Date' : 'Paid On',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                      Text(
-                        formatDate(bill.isPending ? bill.dueDate : (paidOn ?? bill.dueDate)),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: bill.isOverdue ? AppTheme.statusDue : AppTheme.brandNavy,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (hint != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: (bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      hint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: bill.isOverdue ? AppTheme.statusDue : AppTheme.statusPending,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -620,11 +609,14 @@ class _BreakdownSection extends StatelessWidget {
             _MoneyRow(
               label: line.amount < 0 ? '${line.label} (Discount)' : line.label,
               amount: line.amount,
-              color: line.amount < 0 ? AppTheme.statusPaid : null,
+              color: line.amount < 0
+                  ? AppTheme.statusPaid
+                  : line.label.startsWith('Late Fee')
+                      ? AppTheme.statusDue
+                      : null,
             ),
-          if (bill.lateFee > 0) _MoneyRow(label: 'Late Fee', amount: bill.lateFee, color: AppTheme.statusDue),
           const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider(height: 1)),
-          _MoneyRow(label: 'Total Amount', amount: bill.amount, bold: true),
+          _MoneyRow(label: 'Total Amount', amount: bill.totalAmount, bold: true),
           if (bill.paidAmount > 0) _MoneyRow(label: 'Amount Paid', amount: -bill.paidAmount, color: AppTheme.statusPaid),
           if (bill.isPending) ...[
             const SizedBox(height: 8),

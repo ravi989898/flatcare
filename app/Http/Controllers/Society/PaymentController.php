@@ -38,7 +38,7 @@ class PaymentController extends Controller
         }
 
         $summary = [
-            'total_due' => $bills->sum('amount'),
+            'total_due' => $bills->sum(fn ($bill) => $bill->totalAmount()),
             'total_collected' => $bills->sum('paid_amount'),
             'overdue_count' => $bills->where('status', 'overdue')->count(),
         ];

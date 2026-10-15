@@ -25,8 +25,8 @@ Future<void> _whatsApp(String phone) {
   return launchUrl(Uri.parse('https://wa.me/$digits'), mode: LaunchMode.externalApplication);
 }
 
-/// Society-wide vehicle list: pick a block, see how many cars / bikes /
-/// scooters it has, and every resident's vehicles with call / WhatsApp.
+/// Society-wide vehicle list: all blocks by default, or pick a block - see
+/// how many cars / bikes / scooters there are, and every resident's vehicles with call / WhatsApp.
 /// "My Vehicles" at the bottom opens the user's own vehicles to add or edit.
 class SocietyVehiclesScreen extends ConsumerStatefulWidget {
   const SocietyVehiclesScreen({super.key});
@@ -56,7 +56,7 @@ class _SocietyVehiclesScreenState extends ConsumerState<SocietyVehiclesScreen> {
     final data = ref.watch(societyVehiclesProvider);
     // Keep the block tabs on screen while the next block loads.
     final blocks = data.valueOrNull?.blocks ?? const <VehicleBlock>[];
-    final selectedBlock = ref.watch(vehicleBlockProvider) ?? data.valueOrNull?.blockId;
+    final selectedBlock = ref.watch(vehicleBlockProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -103,13 +103,19 @@ class _SocietyVehiclesScreenState extends ConsumerState<SocietyVehiclesScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: blocks.length,
+                itemCount: blocks.length + 1,
                 separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, i) => _BlockTab(
-                  block: blocks[i],
-                  selected: blocks[i].id == selectedBlock,
-                  onTap: () => ref.read(vehicleBlockProvider.notifier).state = blocks[i].id,
-                ),
+                itemBuilder: (context, i) => i == 0
+                    ? _BlockTab(
+                        label: 'All',
+                        selected: selectedBlock == null,
+                        onTap: () => ref.read(vehicleBlockProvider.notifier).state = null,
+                      )
+                    : _BlockTab(
+                        label: blocks[i - 1].name,
+                        selected: blocks[i - 1].id == selectedBlock,
+                        onTap: () => ref.read(vehicleBlockProvider.notifier).state = blocks[i - 1].id,
+                      ),
               ),
             ),
           const SizedBox(height: 8),
@@ -138,7 +144,9 @@ class _SocietyVehiclesScreenState extends ConsumerState<SocietyVehiclesScreen> {
                             title: searching ? 'No matches' : 'No vehicles yet',
                             message: searching
                                 ? 'Try another name, flat or vehicle number.'
-                                : 'Nobody in this block has registered a vehicle.',
+                                : d.blockId == null
+                                    ? 'Nobody has registered a vehicle yet.'
+                                    : 'Nobody in this block has registered a vehicle.',
                           ),
                         )
                       else
@@ -159,9 +167,9 @@ class _SocietyVehiclesScreenState extends ConsumerState<SocietyVehiclesScreen> {
 }
 
 class _BlockTab extends StatelessWidget {
-  const _BlockTab({required this.block, required this.selected, required this.onTap});
+  const _BlockTab({required this.label, required this.selected, required this.onTap});
 
-  final VehicleBlock block;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -185,7 +193,7 @@ class _BlockTab extends StatelessWidget {
               : null,
         ),
         child: Text(
-          block.name,
+          label,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,

@@ -35,7 +35,10 @@
                     <div class="card stat-card h-100">
                         <div class="card-body text-center">
                             <div class="text-muted small">Billed</div>
-                            <div class="fw-semibold">₹{{ number_format($bill->amount, 2) }}</div>
+                            <div class="fw-semibold">₹{{ number_format($bill->totalAmount(), 2) }}</div>
+                            @if ($bill->lateFeeAmount() > 0)
+                                <div class="text-danger small">incl. ₹{{ number_format($bill->lateFeeAmount(), 2) }} late fee</div>
+                            @endif
                         </div>
                     </div>
                 </div>

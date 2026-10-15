@@ -327,7 +327,7 @@ class _BillCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        BillAmount(bill.isPending ? bill.balance : bill.amount, size: 15, color: color, weight: FontWeight.w800),
+                        BillAmount(bill.isPending ? bill.balance : bill.totalAmount, size: 15, color: color, weight: FontWeight.w800),
                         const SizedBox(height: 3),
                         BillStatusBadge(bill: bill),
                       ],

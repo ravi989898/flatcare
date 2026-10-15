@@ -106,7 +106,7 @@
                                 <tr>
                                     <td><a href="{{ route('society.payments.show', $bill->id) }}" class="text-decoration-none">{{ $bill->title }}</a></td>
                                     <td>{{ $bill->flat?->display_label ?? '—' }}</td>
-                                    <td>₹{{ number_format($bill->amount, 2) }}</td>
+                                    <td>₹{{ number_format($bill->totalAmount(), 2) }}</td>
                                     <td>₹{{ number_format($bill->paid_amount, 2) }}</td>
                                     <td>₹{{ number_format($bill->balance, 2) }}</td>
                                     <td class="text-muted small">{{ $bill->due_date->format('d M Y') }}</td>

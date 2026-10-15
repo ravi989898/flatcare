@@ -103,7 +103,7 @@ final societyVehicleRepositoryProvider = Provider<SocietyVehicleRepository>((ref
   return SocietyVehicleRepository(ref.watch(apiClientProvider));
 });
 
-/// null = let the server pick the first block.
+/// null = all blocks.
 final vehicleBlockProvider = StateProvider.autoDispose<int?>((ref) => null);
 final vehicleSearchProvider = StateProvider.autoDispose<String>((ref) => '');
 

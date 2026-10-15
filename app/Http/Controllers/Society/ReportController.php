@@ -25,7 +25,7 @@ class ReportController extends Controller
         $bills = $this->filteredBills($request);
 
         $summary = [
-            'total_billed' => $bills->sum('amount'),
+            'total_billed' => $bills->sum(fn ($bill) => $bill->totalAmount()),
             'total_collected' => $bills->sum('paid_amount'),
             'total_pending' => $bills->sum('balance'),
         ];
@@ -66,7 +66,7 @@ class ReportController extends Controller
                     $bill->title,
                     $bill->flat?->block?->name ?? '',
                     $bill->flat?->display_label ?? '',
-                    number_format((float) $bill->amount, 2, '.', ''),
+                    number_format($bill->totalAmount(), 2, '.', ''),
                     number_format($bill->paid_amount, 2, '.', ''),
                     number_format($bill->balance, 2, '.', ''),
                     $bill->due_date->format('d M Y'),

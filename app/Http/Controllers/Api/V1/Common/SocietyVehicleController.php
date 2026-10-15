@@ -10,9 +10,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Society-wide vehicle list for the app's Vehicles screen: one block at a
- * time, one card per resident (flat, owner/tenant, phone) with all of that
- * resident's active vehicles, plus a count per vehicle type for the block.
+ * Society-wide vehicle list for the app's Vehicles screen: every block by
+ * default, or just one when block_id is given - one card per resident
+ * (flat, owner/tenant, phone) with all of that resident's active vehicles,
+ * plus a count per vehicle type for the blocks shown.
  * Phone numbers are shown in full, same as the society directory
  * (DirectoryResource). A resident's own vehicles are managed through
  * Resident\VehicleController.
@@ -23,11 +24,14 @@ class SocietyVehicleController extends ApiController
     {
         $blocks = Block::active()->orderBy('name')->get(['id', 'name']);
 
-        $blockId = $request->integer('block_id') ?: $blocks->first()?->id;
+        // null = all blocks.
+        $blockId = $request->integer('block_id') ?: null;
         $search = $request->string('search')->trim()->value();
 
-        $residencies = $blockId === null ? collect() : FlatResident::active()
-            ->whereHas('flat', fn ($q) => $q->where('block_id', $blockId))
+        $residencies = FlatResident::active()
+            ->whereHas('flat', fn ($q) => $blockId === null
+                ? $q->whereIn('block_id', $blocks->pluck('id'))
+                : $q->where('block_id', $blockId))
             ->whereHas('user.vehicles', fn ($q) => $q->active())
             ->with([
                 'flat.block',
@@ -35,7 +39,7 @@ class SocietyVehicleController extends ApiController
             ])
             ->get();
 
-        // Type counts cover the whole block, before the search narrows the list.
+        // Type counts cover the whole block (or society), before the search narrows the list.
         $counts = $residencies->flatMap(fn ($r) => $r->user->vehicles)
             ->unique('id')
             ->countBy(fn (Vehicle $v) => $this->typeLabel($v->vehicle_type))
@@ -51,7 +55,7 @@ class SocietyVehicleController extends ApiController
         }
 
         $items = $residencies
-            ->sortBy(fn (FlatResident $r) => [$r->flat->flat_number, $r->is_primary ? 0 : 1])
+            ->sortBy(fn (FlatResident $r) => [$r->flat->block?->name, $r->flat->flat_number, $r->is_primary ? 0 : 1])
             ->values()
             ->map(fn (FlatResident $r) => [
                 'user_id' => $r->user_id,

@@ -110,7 +110,7 @@
             </tr>
             <tr class="total-row">
                 <td>Balance Due</td>
-                <td class="amount-col">{{ number_format($bill->balance + $lateFee, 2) }}</td>
+                <td class="amount-col">{{ number_format($bill->balance, 2) }}</td>
             </tr>
         </tbody>
     </table>

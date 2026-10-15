@@ -35,6 +35,7 @@ class BillResource extends JsonResource
             'billing_period' => $this->waterReading?->reading_month?->format('F Y')
                 ?? $this->due_date?->format('F Y'),
             'late_fee' => $this->lateFeeAmount($request->attributes->get('api_society')),
+            'total_amount' => $this->totalAmount($request->attributes->get('api_society')),
             'notes' => $this->notes,
             'breakdown' => $this->breakdown($request),
             'flat' => $this->whenLoaded('flat', fn () => new FlatResource($this->flat)),

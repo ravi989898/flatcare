@@ -120,7 +120,7 @@
             </tr>
             <tr class="grand">
                 <td class="label">Balance Due</td>
-                <td class="amount">₹{{ number_format($bill->balance + $lateFee + $previousDues, 2) }}</td>
+                <td class="amount">₹{{ number_format($bill->balance + $previousDues, 2) }}</td>
             </tr>
         </table>
 
