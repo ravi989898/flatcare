@@ -76,7 +76,7 @@ class _AlertSetupScreenState extends State<AlertSetupScreen> with WidgetsBinding
                 _Step(
                   done: status.battery,
                   title: 'Remove battery restriction',
-                  subtitle: 'Tap Allow, or choose "Unrestricted" / "Don\'t optimise" for FlatCare.',
+                  subtitle: 'Switch the list to "All apps", find FlatCare and choose "Don\'t optimise".',
                   onTap: () => _open(AlertSetup.openBattery),
                 ),
                 if (status.autoStartNeeded)

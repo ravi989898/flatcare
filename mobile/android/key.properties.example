@@ -1,16 +1,10 @@
-# Copy to key.properties (git-ignored) for LOCAL release builds.
-# CI writes its own key.properties from GitHub secrets — see
-# .github/workflows/release-apk.yml.
-#
-# Generate the keystore once (keep the .jks file and these passwords safe —
-# losing them means you can never ship an update to installed apps):
-#
-#   keytool -genkey -v -keystore upload-keystore.jks -storetype JKS \
-#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-#
-# Put upload-keystore.jks in mobile/android/app/ (also git-ignored).
+# The real key.properties (git-ignored) sits next to this file and points at
+# app/upload-keystore.jks (also git-ignored): the FlatCare release key, used
+# for the Play Store bundle (build-aab.ps1) and the website APK
+# (build-apk.ps1). Keep a backup of BOTH files somewhere safe - losing them
+# means you can never ship an update to installed apps.
 
 storeFile=upload-keystore.jks
 storePassword=CHANGE_ME
-keyAlias=upload
+keyAlias=flatcare
 keyPassword=CHANGE_ME

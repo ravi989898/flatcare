@@ -1,6 +1,5 @@
 package com.flatcare.flatcare_mobile
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.ComponentName
@@ -91,11 +90,11 @@ class AlertSetup(private val activity: Activity) : MethodChannel.MethodCallHandl
         return start(intent) || start(appDetails())
     }
 
-    @SuppressLint("BatteryLife")
     private fun openBattery(): Boolean {
-        // The one-tap "Allow" dialog; the full list as a fallback.
-        val request = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${activity.packageName}"))
-        return start(request) || start(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) || start(appDetails())
+        // The full list, where the resident picks FlatCare > "Don't optimise".
+        // Not the one-tap ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS dialog:
+        // its permission isn't allowed on Google Play for an FCM-based app.
+        return start(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) || start(appDetails())
     }
 
     private fun openAutoStart(): Boolean {

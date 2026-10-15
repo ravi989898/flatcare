@@ -8,10 +8,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Release signing config is read from android/key.properties (git-ignored,
-// created locally) or, on CI, from a key.properties the workflow writes from
-// GitHub secrets. If it is absent, the release build falls back to the debug
-// key so `flutter run --release` still works on a fresh checkout.
+// Release signing config is read from android/key.properties (git-ignored),
+// pointing at android/app/upload-keystore.jks - the FlatCare release key used
+// for both the Play Store bundle and the website APK. If it is absent, the
+// release build falls back to the debug key so `flutter run --release` still
+// works on a fresh checkout; build-apk.ps1 / build-aab.ps1 refuse to ship that.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
@@ -63,8 +64,8 @@ android {
                 signingConfigs.getByName("release")
             } else {
                 // No release keystore on this machine — sign with the debug key
-                // so a plain `flutter run --release` still works. CI always has
-                // the real keystore, so published APKs are properly signed.
+                // so a plain `flutter run --release` still works. The build
+                // scripts check the signer, so this never gets shipped.
                 signingConfigs.getByName("debug")
             }
             // Code shrinking (R8/minify) is left off deliberately: Dart
