@@ -27,7 +27,7 @@
                         <thead>
                             <tr>
                                 <th>Flat Number</th>
-                                <th>Floor</th>
+                                <th>Name</th>
                                 <th>Ownership</th>
                                 <th>Owner</th>
                                 <th>Status</th>
@@ -39,7 +39,7 @@
                             @foreach ($flats as $flat)
                                 <tr>
                                     <td>{{ $flat->flat_number }}</td>
-                                    <td>{{ $flat->floor_number }}</td>
+                                    <td>{{ $flat->residents->first()?->user?->name ?? '—' }}</td>
                                     <td>{{ ucfirst($flat->ownership_type) }}</td>
                                     <td>{{ $flat->owner_name ?? '—' }}</td>
                                     <td><span class="badge bg-{{ $statusBadge[$flat->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_', ' ', $flat->status)) }}</span></td>

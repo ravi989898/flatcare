@@ -9,8 +9,13 @@ use App\Http\Requests\Admin\UpdateFlatRequest;
 use App\Models\Society;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\FlatResident;
+use App\Models\Tenant\Role;
+use App\Models\Tenant\User;
 use App\Services\TenantService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -236,7 +241,14 @@ class SocietyStructureController extends Controller
         $block = Block::findOrFail($blockId);
         $flat = Flat::where('block_id', $block->id)->findOrFail($flatId);
 
-        return view('admin.societies.blocks.flats.edit', compact('society', 'block', 'flat'));
+        $residentUser = FlatResident::where('flat_id', $flat->id)
+            ->active()
+            ->orderByDesc('is_primary')
+            ->with('user')
+            ->first()
+            ?->user;
+
+        return view('admin.societies.blocks.flats.edit', compact('society', 'block', 'flat', 'residentUser'));
     }
 
     public function flatsUpdate(UpdateFlatRequest $request, int $societyId, int $blockId, int $flatId): RedirectResponse
@@ -254,9 +266,71 @@ class SocietyStructureController extends Controller
             'floor_number' => $this->deriveFloorNumber($validated['flat_number']),
         ]);
 
+        $this->syncResident($flat, trim((string) ($validated['resident_name'] ?? '')), trim((string) ($validated['resident_email'] ?? '')));
+
         return redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
             ->with('success', 'Flat updated successfully.');
+    }
+
+    /**
+     * Writes Name/Email through to the flat's linked resident User, the
+     * same account the FlatCare app's Profile screen edits (see
+     * Api\V1\Resident\ProfileController::update()) — so this form and the
+     * resident's own app stay pointed at one record instead of drifting.
+     * Mirrors Api\V1\Auth\OtpAuthController::findOrCreateResident(): if no
+     * resident is linked yet but a mobile number is set, provisions the
+     * account now instead of waiting for the resident's first OTP login.
+     * Same logic as Society\BlockController::syncResident() — this is the
+     * Super Admin's cross-tenant equivalent.
+     */
+    private function syncResident(Flat $flat, string $name, string $email): void
+    {
+        $residency = FlatResident::where('flat_id', $flat->id)->active()->orderByDesc('is_primary')->with('user')->first();
+
+        if ($residency) {
+            $updates = array_filter(['name' => $name ?: null, 'email' => $email ?: null]);
+
+            if ($updates) {
+                $residency->user->update($updates);
+            }
+
+            return;
+        }
+
+        if (!$flat->mobile_number) {
+            return;
+        }
+
+        $user = User::where('phone', $flat->mobile_number)->first();
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $name ?: "Resident of {$flat->flat_number}",
+                // users.email is required + unique — same placeholder scheme
+                // as findOrCreateResident() when the admin leaves it blank.
+                'email' => $email ?: Str::uuid().'@resident.flatcare.local',
+                'phone' => $flat->mobile_number,
+                'password' => Hash::make(Str::password(20)),
+                'country' => 'India',
+                'status' => 'active',
+            ]);
+
+            if ($residentRole = Role::where('name', 'resident')->first()) {
+                $user->assignRole($residentRole);
+            }
+        } elseif ($name || $email) {
+            $user->update(array_filter(['name' => $name ?: null, 'email' => $email ?: null]));
+        }
+
+        FlatResident::create([
+            'flat_id' => $flat->id,
+            'user_id' => $user->id,
+            'resident_type' => 'owner',
+            'moved_in_date' => now(),
+            'status' => 'active',
+            'is_primary' => !FlatResident::where('flat_id', $flat->id)->active()->exists(),
+        ]);
     }
 
     /**

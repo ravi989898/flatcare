@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ResetSocietyAdminPasswordRequest;
 use App\Http\Requests\Society\AdminUserRequest;
 use App\Http\Requests\Society\StoreAdminUserRequest;
+use App\Models\Tenant\Block;
+use App\Models\Tenant\Flat;
 use App\Models\Tenant\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -49,13 +51,20 @@ class AdminController extends Controller
             ->where('name', '!=', 'super_admin')
             ->get();
 
-        // Only plain residents (no elevated role yet) can be promoted here.
-        $users = User::whereDoesntHave('roles', fn ($query) => $query->where('name', '!=', 'resident'))
-            ->with(['residencies' => fn ($query) => $query->where('status', 'active')->with('flat')])
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone']);
+        // Drive the Block -> Flat cascading selects (see
+        // public/js/block-flat-filter.js, the same pattern as
+        // admin.societies.users.create). Picking a Flat is how the user to
+        // promote gets chosen — each flat's active primary resident is
+        // eager-loaded so the form can autofill name/email/phone and set
+        // the hidden user_id straight off the selected <option>, with no
+        // separate "Select User" dropdown.
+        $blocks = Block::active()->orderBy('name')->get(['id', 'name']);
+        $flats = Flat::active()
+            ->with(['residents' => fn ($query) => $query->where('status', 'active')->orderByDesc('is_primary')->with('user:id,name,email,phone')])
+            ->orderBy('flat_number')
+            ->get(['id', 'block_id', 'flat_number']);
 
-        return view('society.admins.create', compact('roles', 'users'));
+        return view('society.admins.create', compact('roles', 'blocks', 'flats'));
     }
 
     /**
@@ -73,15 +82,10 @@ class AdminController extends Controller
                 'updated_at' => now(),
             ]);
 
-        // insertOrIgnore: the user may already hold this role.
-        DB::connection('society')
-            ->table('role_user')
-            ->insertOrIgnore([
-                'user_id' => $validated['user_id'],
-                'role_id' => $validated['role'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        // The selected user may already hold an elevated role (e.g. picking
+        // an existing admin to switch their role) — swap it rather than
+        // accumulating a second role_user row.
+        $this->replaceElevatedRole((int) $validated['user_id'], (int) $validated['role']);
 
         SecurityLog::info('admin.role_granted', ['actor_id' => Auth::guard('society')->id(), 'target_user_id' => (int) $validated['user_id'], 'role_id' => (int) $validated['role']]);
 

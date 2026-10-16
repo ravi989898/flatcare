@@ -12,27 +12,38 @@
         <form action="{{ route('society.admins.store') }}" method="POST" novalidate>
             @csrf
             <div class="card-body">
-                <div class="mb-3">
-                    <label class="font-weight-bold mb-1 d-block">Select User <span class="text-danger">*</span></label>
-                    <select class="form-control @error('user_id') is-invalid @enderror" id="user_id" name="user_id" required>
-                        <option value="">-- Select User --</option>
-                        @foreach ($users as $user)
-                            @php
-                                $residency = $user->residencies->firstWhere('is_primary', true) ?? $user->residencies->first();
-                                $flatNumber = $residency?->flat?->flat_number;
-                            @endphp
-                            <option value="{{ $user->id }}"
-                                data-name="{{ $user->name }}"
-                                data-email="{{ $user->email }}"
-                                data-phone="{{ $user->phone }}"
-                                {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                {{ $user->name }} ({{ $flatNumber ?? $user->phone }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('user_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <small class="form-text text-muted">Only existing society users who aren't already admins are listed.</small>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold mb-1 d-block">Block <span class="text-danger">*</span></label>
+                        <select class="form-control" id="block_select">
+                            <option value="">-- Select Block --</option>
+                            @foreach ($blocks as $block)
+                                <option value="{{ $block->id }}">{{ $block->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold mb-1 d-block">Flat <span class="text-danger">*</span></label>
+                        <select class="form-control @error('user_id') is-invalid @enderror" id="flat_select" data-filtered-by="block_select" required>
+                            <option value="">-- Select a block first --</option>
+                            @foreach ($flats as $flat)
+                                @php $resident = $flat->residents->first()?->user; @endphp
+                                <option value="{{ $flat->id }}"
+                                    data-block-id="{{ $flat->block_id }}"
+                                    data-user-id="{{ $resident?->id }}"
+                                    data-name="{{ $resident?->name }}"
+                                    data-email="{{ $resident?->email }}"
+                                    data-phone="{{ $resident?->phone }}"
+                                    {{ !$resident ? 'disabled' : '' }}
+                                    {{ old('user_id') && $resident && old('user_id') == $resident->id ? 'selected' : '' }}>
+                                    {{ $flat->flat_number }}{{ $resident ? " ({$resident->name})" : ' (no resident yet)' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('user_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    </div>
                 </div>
+                <input type="hidden" id="user_id" name="user_id" value="{{ old('user_id') }}">
 
                 <div class="mb-3">
                     <label class="font-weight-bold mb-1 d-block">Full Name</label>
