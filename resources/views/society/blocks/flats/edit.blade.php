@@ -31,6 +31,32 @@
                     </small>
                     @error('mobile_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+
+                @php
+                    // Auto-provisioned accounts (first OTP login, or no name/email given here
+                    // before one) carry a placeholder name/email - not worth showing back to
+                    // the admin as if it were real resident-entered data.
+                    $residentName = str_starts_with((string) $residentUser?->name, 'Resident of ') ? null : $residentUser?->name;
+                    $residentEmail = str_ends_with((string) $residentUser?->email, '@resident.flatcare.local') ? null : $residentUser?->email;
+                @endphp
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Resident Name</label>
+                        <input type="text" class="form-control @error('resident_name') is-invalid @enderror"
+                            name="resident_name" value="{{ old('resident_name', $residentName) }}" maxlength="255">
+                        @error('resident_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Resident Email</label>
+                        <input type="email" class="form-control @error('resident_email') is-invalid @enderror"
+                            name="resident_email" value="{{ old('resident_email', $residentEmail) }}" maxlength="255">
+                        @error('resident_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <small class="form-text text-muted d-block mb-3">
+                    Both optional. This is the same resident account the FlatCare app's Profile screen edits - updates
+                    here or from the app keep each other in sync.
+                </small>
             </div>
             <div class="card-footer bg-white">
                 <a href="{{ route('society.blocks.flats.index', $block->id) }}" class="btn btn-outline-secondary">Cancel</a>

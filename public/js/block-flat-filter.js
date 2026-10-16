@@ -1,29 +1,35 @@
 /**
- * Filters a "Flat" <select> down to just the flats in the chosen "Block",
- * without an AJAX round trip — every flat is already in the page, each
- * <option> just carries a data-block-id attribute. Unobtrusive/data-attribute
- * driven for the same CSP reason as public/js/society-ui.js (no inline
- * onchange handlers): the target select declares which block-select drives
- * it via data-filtered-by="<id of the block select>".
+ * Filters a <select> down to just the options matching the chosen value of
+ * another "driver" <select>, without an AJAX round trip — every option is
+ * already in the page, each carries a data attribute naming the driver's
+ * option it belongs under. Unobtrusive/data-attribute driven for the same
+ * CSP reason as public/js/society-ui.js (no inline onchange handlers): the
+ * target select declares its driver via data-filtered-by="<id of driver
+ * select>", and optionally which attribute to filter on via
+ * data-filter-attr="<attr>" (defaults to "data-block-id", e.g. Flat
+ * filtered by Block). Chains of more than one level (e.g. Block -> Flat ->
+ * User, see society.admins.create) work the same way — each select only
+ * needs to know its immediate driver.
  */
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('select[data-filtered-by]').forEach(function (targetSelect) {
-        var blockSelect = document.getElementById(targetSelect.getAttribute('data-filtered-by'));
+        var driverSelect = document.getElementById(targetSelect.getAttribute('data-filtered-by'));
+        var filterAttr = targetSelect.getAttribute('data-filter-attr') || 'data-block-id';
 
-        if (!blockSelect) {
+        if (!driverSelect) {
             return;
         }
 
-        var allOptions = Array.prototype.slice.call(targetSelect.querySelectorAll('option[data-block-id]'));
-        var placeholder = targetSelect.querySelector('option:not([data-block-id])');
+        var allOptions = Array.prototype.slice.call(targetSelect.querySelectorAll('option[' + filterAttr + ']'));
+        var placeholder = targetSelect.querySelector('option:not([' + filterAttr + '])');
 
         function applyFilter() {
-            var blockId = blockSelect.value;
+            var driverValue = driverSelect.value;
             var currentValue = targetSelect.value;
             var currentStillVisible = false;
 
             allOptions.forEach(function (option) {
-                var matches = !blockId || option.getAttribute('data-block-id') === blockId;
+                var matches = !driverValue || option.getAttribute(filterAttr) === driverValue;
                 option.hidden = !matches;
                 option.disabled = !matches;
 
@@ -34,20 +40,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!currentStillVisible) {
                 targetSelect.value = placeholder ? placeholder.value : '';
+                // Propagate to any select chained off this one (e.g. a User
+                // select filtered by this Flat select) even though this was
+                // a programmatic reset, not a real user interaction.
+                targetSelect.dispatchEvent(new Event('change'));
             }
         }
 
-        blockSelect.addEventListener('change', applyFilter);
+        driverSelect.addEventListener('change', applyFilter);
 
         // On initial load (e.g. after a validation error round-trip that
-        // re-selects a flat via old()), pre-select the matching block so the
-        // flat list isn't filtered down to nothing.
+        // re-selects an option via old()), pre-select the matching driver
+        // value so the list isn't filtered down to nothing.
         var preselected = targetSelect.value
             ? targetSelect.querySelector('option[value="' + targetSelect.value + '"]')
             : null;
 
         if (preselected) {
-            blockSelect.value = preselected.getAttribute('data-block-id');
+            driverSelect.value = preselected.getAttribute(filterAttr);
         }
 
         applyFilter();
