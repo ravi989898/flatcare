@@ -24,4 +24,10 @@ return [
 
     'otp_default_code' => env('OTP_DEFAULT_CODE', '0000'),
 
+    // Store-review login: this one number gets no SMS and its OTP is always
+    // otp_review_code (4-8 digits), in production too. Leave either empty
+    // to turn it off. Give both to Google Play / App Store reviewers.
+    'otp_review_phone' => env('OTP_REVIEW_PHONE'),
+    'otp_review_code' => env('OTP_REVIEW_CODE'),
+
 ];

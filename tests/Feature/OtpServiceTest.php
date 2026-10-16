@@ -117,4 +117,34 @@ class OtpServiceTest extends TestCase
 
         $this->assertFalse(app(OtpService::class)->verify('9876543210', (string) config('flatcare.otp_default_code')));
     }
+
+    public function test_store_review_number_takes_its_fixed_code_in_production_without_an_sms(): void
+    {
+        $this->fake2Factor();
+        config(['flatcare.otp_review_phone' => '9999999999', 'flatcare.otp_review_code' => '1234']);
+        $this->app['env'] = 'production';
+
+        $otp = app(OtpService::class);
+        $otp->send('+91 99999 99999');
+        $otp->send('9999999999'); // no resend cooldown either
+
+        $this->assertTrue($otp->verify('9999999999', '1234'));
+        $this->assertTrue($otp->verify('09999999999', '1234'), 'reusable for every review');
+        $this->assertFalse($otp->verify('9999999999', '0000'));
+        Http::assertNothingSent();
+
+        $this->assertFalse($otp->verify('9876543210', '1234'), 'other numbers still go through 2Factor');
+    }
+
+    public function test_store_review_login_is_off_unless_both_number_and_code_are_set(): void
+    {
+        $this->fake2Factor('OTP Mismatch');
+        config(['flatcare.otp_review_phone' => '9999999999', 'flatcare.otp_review_code' => '']);
+
+        $otp = app(OtpService::class);
+        $otp->send('9999999999');
+
+        Http::assertSentCount(1);
+        $this->assertFalse($otp->verify('9999999999', '0000'));
+    }
 }

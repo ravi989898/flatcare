@@ -19,6 +19,10 @@ use Throwable;
  * Without TWOFACTOR_API_KEY nothing is sent: off production every number's
  * code is the fixed config('flatcare.otp_default_code') (local dev); in
  * production OTP login refuses to work rather than accept a known code.
+ *
+ * The one store-review number (flatcare.otp_review_phone) gets no SMS and
+ * always takes its fixed flatcare.otp_review_code, so Google Play / App Store
+ * reviewers can sign in. Both must be set; either empty turns it off.
  */
 class OtpService
 {
@@ -58,6 +62,10 @@ class OtpService
     {
         $phone = self::normalize($mobileNumber)
             ?? throw ValidationException::withMessages(['mobile_number' => 'Enter a valid 10-digit mobile number.']);
+
+        if ($this->reviewCode($phone) !== null) {
+            return;
+        }
 
         if (!$this->isLive()) {
             if (app()->isProduction()) {
@@ -130,6 +138,11 @@ class OtpService
             return false;
         }
 
+        $reviewCode = $this->reviewCode($phone);
+        if ($reviewCode !== null) {
+            return hash_equals($reviewCode, $code);
+        }
+
         if (!$this->isLive()) {
             return !app()->isProduction()
                 && hash_equals((string) config('flatcare.otp_default_code'), $code);
@@ -166,6 +179,15 @@ class OtpService
             : Cache::put($key, $entry, now()->addMinutes(self::SESSION_TTL_MINUTES));
 
         return false;
+    }
+
+    /** The fixed store-review OTP when $phone is the review number, else null. */
+    private function reviewCode(string $phone): ?string
+    {
+        $reviewPhone = self::normalize((string) config('flatcare.otp_review_phone'));
+        $code = trim((string) config('flatcare.otp_review_code'));
+
+        return $reviewPhone === $phone && preg_match('/^\d{4,8}$/', $code) ? $code : null;
     }
 
     private function client(): \Illuminate\Http\Client\PendingRequest
