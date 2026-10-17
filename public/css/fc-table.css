@@ -90,11 +90,18 @@
 /* Icon actions */
 .fc-actions { display: flex; gap: .35rem; justify-content: flex-end; align-items: center; flex-wrap: nowrap; }
 .fc-actions form { display: inline-flex; margin: 0; }
-.fc-act { width: 32px; height: 32px; padding: 0; border-radius: .55rem; border: 1px solid var(--fc-border); background: #fff; color: #475467; display: inline-flex; align-items: center; justify-content: center; position: relative; font-size: .95rem; cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease; }
-.fc-act:hover, .fc-act:focus-visible { background: var(--fc-brand-light); color: var(--fc-brand); border-color: #cfe6d8; text-decoration: none; outline: none; }
-.fc-act.danger:hover, .fc-act.danger:focus-visible { background: #fdecec; color: #c0392b; border-color: #f5c6c6; }
-.fc-act.warning:hover, .fc-act.warning:focus-visible { background: #fff4e5; color: #b45309; border-color: #fbd9a5; }
-.fc-act:disabled, .fc-act.disabled { opacity: .35; pointer-events: none; }
+.fc-act { --c: #1f7a4a; --bg: #e8f6ee; --bd: #c4e6d2; height: 30px; padding: 0 .7rem; gap: .35rem; border-radius: .55rem; border: 1px solid var(--bd); background: var(--bg); color: var(--c); display: inline-flex; align-items: center; justify-content: center; position: relative; font-size: .8rem; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease; }
+.fc-act .bi { font-size: .9rem; }
+.fc-act:hover, .fc-act:focus-visible { background: var(--c); color: #fff; border-color: var(--c); text-decoration: none; outline: none; }
+.fc-act-blue { --c: #2563eb; --bg: #eaf1ff; --bd: #c9dafd; }
+.fc-act-teal { --c: #0e7490; --bg: #e6f6f9; --bd: #bfe6ee; }
+.fc-act-purple { --c: #7c3aed; --bg: #f2ecff; --bd: #dccdfd; }
+.fc-act-amber { --c: #b45309; --bg: #fff4e5; --bd: #fbd9a5; }
+.fc-act-red { --c: #dc2626; --bg: #fdecec; --bd: #f5c6c6; }
+.fc-act-green { --c: #1f7a4a; --bg: #e8f6ee; --bd: #c4e6d2; }
+.fc-act-grey { --c: #667085; --bg: #f2f4f7; --bd: #e3e7ec; }
+.fc-act:disabled, .fc-act.disabled { opacity: .55; cursor: not-allowed; }
+.fc-act:disabled:hover, .fc-act.disabled:hover { background: var(--bg); color: var(--c); border-color: var(--bd); }
 .fc-act[data-tip]::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(2px); background: var(--fc-ink); color: #fff; font-size: .72rem; font-weight: 500; padding: .2rem .5rem; border-radius: .35rem; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .12s ease, transform .12s ease; z-index: 20; }
 .fc-act[data-tip]:hover::after, .fc-act[data-tip]:focus-visible::after { opacity: 1; visibility: visible; transform: translateX(-50%); }
 /* First rows: show the tooltip below so the table header doesn't clip it. */

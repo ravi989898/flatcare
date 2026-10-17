@@ -456,7 +456,7 @@ return [
                 [
                     'type' => 'css',
                     'asset' => true,
-                    'location' => 'css/fc-table.css?v=3',
+                    'location' => 'css/fc-table.css?v=4',
                 ],
                 [
                     'type' => 'js',
