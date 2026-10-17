@@ -27,7 +27,7 @@ class StoreResidentRequest extends FormRequest
             'resident_type' => ['required', 'in:owner,tenant,occupant'],
             'is_primary' => ['boolean'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
         ];
     }
