@@ -247,6 +247,14 @@ class BlockController extends Controller
             $updates = array_filter(['name' => $name ?: null, 'email' => $email ?: null]);
 
             if ($updates) {
+                // Guards against data left over from before this check
+                // existed: if this flat's resident account is still shared
+                // with another flat (see UnlinkFlatResident command), editing
+                // the name/email here would silently change it there too.
+                if (FlatResident::where('user_id', $residency->user_id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
+                    return "This flat's resident account is also linked to another flat - run `flats:unlink-resident` to separate them before editing the name/email.";
+                }
+
                 $residency->user->update($updates);
             }
 
