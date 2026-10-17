@@ -6,13 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\StoreWaterReadingsRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\WaterReading;
 use App\Services\WaterBillingService;
+use App\Support\ListQuery;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -34,12 +37,43 @@ class WaterReadingController extends Controller
 {
     public function index(Request $request): View
     {
-        $readings = WaterReading::with(['flat.block', 'bill.payments'])
-            ->latest('reading_month')
-            ->orderBy('flat_id')
-            ->paginate(20);
+        $query = WaterReading::query();
 
-        return view('society.water-readings.index', compact('readings'));
+        ListQuery::applySearch($query, $request, ['flat.flat_number', 'flat.block.name', 'flat.block.block_number']);
+
+        if ($month = $request->string('month')->trim()->value()) {
+            $query->whereDate('reading_month', $month);
+        }
+
+        if ($blockId = $request->integer('block_id')) {
+            $query->whereHas('flat', fn ($q) => $q->where('block_id', $blockId));
+        }
+
+        $summary = [
+            'count' => (clone $query)->count(),
+            'units' => (float) (clone $query)->sum(DB::raw('current_reading - previous_reading')),
+            'billed' => (float) MaintenanceBill::whereIn('water_reading_id', (clone $query)->select('id'))->sum('amount'),
+        ];
+
+        $flatNumber = Flat::select('flat_number')->whereColumn('flats.id', 'water_readings.flat_id');
+        $billAmount = MaintenanceBill::select('amount')->whereColumn('maintenance_bills.water_reading_id', 'water_readings.id')->limit(1);
+
+        ListQuery::applySort($query, $request, [
+            'month' => fn ($q, $dir) => $q->orderBy('reading_month', $dir)->orderBy('flat_id'),
+            'flat' => fn ($q, $dir) => $q->orderBy($flatNumber, $dir)->orderByDesc('reading_month'),
+            'units' => fn ($q, $dir) => $q->orderByRaw('(current_reading - previous_reading) '.$dir),
+            'amount' => fn ($q, $dir) => $q->orderBy($billAmount, $dir),
+        ], 'month');
+
+        $readings = $query->with(['flat.block', 'bill.payments'])
+            ->paginate(ListQuery::perPage($request, 25))
+            ->withQueryString();
+
+        $months = WaterReading::query()->distinct()->orderByDesc('reading_month')->pluck('reading_month')
+            ->mapWithKeys(fn ($month) => [$month->toDateString() => $month->format('F Y')]);
+        $blocks = Block::orderBy('name')->pluck('name', 'id');
+
+        return view('society.water-readings.index', compact('readings', 'summary', 'months', 'blocks'));
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Society;
 
+use App\Http\Controllers\Concerns\ListsBills;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\StoreExtraChargeRequest;
 use App\Models\Tenant\Block;
@@ -11,7 +12,6 @@ use App\Models\Tenant\MaintenanceBill;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -28,34 +28,17 @@ use Illuminate\View\View;
  */
 class ExtraChargeController extends Controller
 {
+    use ListsBills;
+
     public function index(Request $request): View
     {
-        $charges = MaintenanceBill::extraCharges()->with(['flat.block', 'payments', 'feeType'])->latest('due_date')->get();
+        $charges = MaintenanceBill::extraCharges()->with(['flat.block', 'payments', 'feeType'])->get();
 
-        if ($status = $request->string('status')->trim()->value()) {
-            $charges = $charges->filter(fn ($bill) => $bill->status === $status)->values();
-        }
+        [$charges, $summary, $statusCounts] = $this->listBills($charges, $request, fn (MaintenanceBill $bill) => (float) $bill->amount);
 
-        $summary = [
-            'total_due' => $charges->sum('amount'),
-            'total_collected' => $charges->sum('paid_amount'),
-            'overdue_count' => $charges->where('status', 'overdue')->count(),
-        ];
+        $blocks = Block::orderBy('name')->pluck('name', 'id');
 
-        $page = (int) $request->input('page', 1);
-        $perPage = 15;
-        $paginated = new LengthAwarePaginator(
-            $charges->forPage($page, $perPage),
-            $charges->count(),
-            $perPage,
-            $page,
-        );
-        $paginated->withPath($request->url())->appends($request->query());
-
-        return view('society.extra-charges.index', [
-            'charges' => $paginated,
-            'summary' => $summary,
-        ]);
+        return view('society.extra-charges.index', compact('charges', 'summary', 'statusCounts', 'blocks'));
     }
 
     public function create(): View

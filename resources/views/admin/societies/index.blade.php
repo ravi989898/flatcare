@@ -2,16 +2,21 @@
 
 @section('title', 'Societies')
 
+@php
+    $statusTone = ['active' => 'success', 'inactive' => 'neutral', 'expired' => 'danger', 'archived' => 'neutral'];
+    $dbTone = ['active' => 'success', 'creating' => 'info', 'created' => 'info', 'failed' => 'danger'];
+    $statusTabs = ['' => ['All', $statusCounts->sum()]];
+    foreach (['active', 'inactive', 'expired', 'archived'] as $status) {
+        $statusTabs[$status] = [ucfirst($status), $statusCounts->get($status, 0)];
+    }
+@endphp
+
 @section('content_header')
-    <div class="row">
-        <div class="col-sm-6">
-            <h1>Societies</h1>
-        </div>
-        <div class="col-sm-6 text-right">
-            <a href="{{ route('admin.societies.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> New Society
-            </a>
-        </div>
+    <div class="fc-page-head">
+        <h1 class="mb-0">Societies</h1>
+        <a href="{{ route('admin.societies.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Society
+        </a>
     </div>
 @stop
 
@@ -30,80 +35,74 @@
         </div>
     @endif
 
-    <div class="card">
-        <div class="card-header">
-            <form action="{{ route('admin.societies.index') }}" method="GET" class="form-inline">
-                <input type="text" name="search" class="form-control mr-2" placeholder="Search name, email, city…" value="{{ request('search') }}">
-                <select name="status" class="form-control mr-2">
-                    <option value="">All Statuses</option>
-                    @foreach (['active', 'inactive', 'expired', 'archived'] as $status)
-                        <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>{{ ucfirst($status) }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="btn btn-secondary"><i class="fas fa-search"></i> Filter</button>
-                @if (request('search') || request('status'))
-                    <a href="{{ route('admin.societies.index') }}" class="btn btn-link">Clear</a>
-                @endif
-            </form>
-        </div>
-        <div class="card-body p-0">
-            @if ($societies->count() > 0)
-                <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <x-fc.tabs name="status" label="Society status" :tabs="$statusTabs" />
+
+        <x-fc.toolbar placeholder="Search name, email, city…" :keep="['status']" />
+
+        @if ($societies->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>City</th>
+                            <x-fc.th sort="name">Society</x-fc.th>
+                            <x-fc.th sort="city">City</x-fc.th>
                             <th>Status</th>
                             <th>Database</th>
-                            <th>Access Period</th>
-                            <th>Actions</th>
+                            <x-fc.th sort="access" first="desc">Access Period</x-fc.th>
+                            <th class="text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($societies as $society)
+                            @php
+                                $dbStatus = $society->database->status ?? 'not_created';
+                                $daysLeft = $society->end_date ? (int) now()->startOfDay()->diffInDays($society->end_date, false) : null;
+                            @endphp
                             <tr>
                                 <td>
-                                    <a href="{{ route('admin.societies.show', $society->id) }}">{{ $society->name }}</a>
-                                    @if ($society->is_trial)
-                                        <span class="badge badge-secondary">Trial</span>
+                                    <div class="fc-person">
+                                        <x-fc.avatar :name="$society->name" />
+                                        <div>
+                                            <a href="{{ route('admin.societies.show', $society->id) }}" class="fc-strong">{{ $society->name }}</a>
+                                            @if ($society->is_trial)
+                                                <x-fc.pill tone="purple" :dot="false" label="Trial" class="ml-1" />
+                                            @endif
+                                            <span class="fc-sub">{{ $society->email }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {{ $society->city }}
+                                    <span class="fc-sub">{{ $society->state }}</span>
+                                </td>
+                                <td><x-fc.pill :status="$society->status" :tone="$statusTone[$society->status] ?? 'neutral'" /></td>
+                                <td><x-fc.pill :status="$dbStatus" :tone="$dbTone[$dbStatus] ?? 'neutral'" :dot="false" /></td>
+                                <td class="fc-nowrap">
+                                    {{ $society->start_date->format('d M Y') }} &ndash; {{ $society->end_date->format('d M Y') }}
+                                    @if ($daysLeft !== null && $society->status === 'active')
+                                        <span class="fc-sub {{ $daysLeft < 0 ? 'text-danger' : ($daysLeft <= 30 ? 'text-warning' : '') }}">
+                                            {{ $daysLeft < 0 ? 'Ended '.abs($daysLeft).' days ago' : $daysLeft.' days left' }}
+                                        </span>
                                     @endif
                                 </td>
-                                <td>{{ $society->city }}, {{ $society->state }}</td>
                                 <td>
-                                    @php
-                                        $statusColors = ['active' => 'success', 'inactive' => 'secondary', 'expired' => 'danger', 'archived' => 'dark'];
-                                    @endphp
-                                    <span class="badge badge-{{ $statusColors[$society->status] ?? 'secondary' }}">{{ ucfirst($society->status) }}</span>
-                                </td>
-                                <td>
-                                    @php $dbStatus = $society->database->status ?? 'not created'; @endphp
-                                    @php
-                                        $dbColors = ['active' => 'success', 'creating' => 'info', 'created' => 'info', 'failed' => 'danger'];
-                                    @endphp
-                                    <span class="badge badge-{{ $dbColors[$dbStatus] ?? 'secondary' }}">{{ ucfirst($dbStatus) }}</span>
-                                </td>
-                                <td>{{ $society->start_date->format('d M Y') }} &ndash; {{ $society->end_date->format('d M Y') }}</td>
-                                <td>
-                                    <a href="{{ route('admin.societies.show', $society->id) }}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
+                                    <div class="fc-actions">
+                                        <x-fc.action icon="eye" label="View society" :href="route('admin.societies.show', $society->id)" />
+                                        <x-fc.action icon="building" label="Blocks & flats" :href="route('admin.societies.blocks.index', $society->id)" />
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            @else
-                <div class="p-4 text-center text-muted">
-                    <p>No societies found.</p>
-                    <a href="{{ route('admin.societies.create') }}" class="btn btn-primary">Create First Society</a>
-                </div>
-            @endif
-        </div>
-    </div>
+            </div>
+        @else
+            <x-fc.empty icon="buildings" title="No societies yet" :keep="['status']">
+                <a href="{{ route('admin.societies.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Create First Society</a>
+            </x-fc.empty>
+        @endif
 
-    @if ($societies->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $societies->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$societies" />
+    </div>
 @stop

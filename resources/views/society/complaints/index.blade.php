@@ -3,21 +3,20 @@
 @section('title', 'Complaints')
 
 @php
-    $statusBadge = [
-        'open' => 'danger', 'in_review' => 'warning', 'resolved' => 'info',
-        'closed' => 'secondary', 'rejected' => 'dark',
-    ];
-    $priorityBadge = ['low' => 'secondary', 'medium' => 'info', 'high' => 'warning', 'urgent' => 'danger'];
+    $statusTone = ['open' => 'warning', 'in_review' => 'info', 'resolved' => 'success', 'closed' => 'neutral', 'rejected' => 'danger'];
+    $priorityTone = ['low' => 'neutral', 'medium' => 'info', 'high' => 'warning', 'urgent' => 'danger'];
+    $openCount = $statusCounts->get('open', 0) + $statusCounts->get('in_review', 0);
+    $statusTabs = ['' => ['All', $statusCounts->sum()]];
+    foreach (\App\Models\Tenant\Complaint::STATUSES as $status) {
+        $statusTabs[$status] = [ucfirst(str_replace('_', ' ', $status)), $statusCounts->get($status, 0)];
+    }
 @endphp
 
 @section('content_header')
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="fc-page-head">
         <div>
             <h1 class="h3 mb-1">Complaints</h1>
-            <p class="text-muted mb-0">
-                {{ $statusCounts->get('open', 0) + $statusCounts->get('in_review', 0) }} open &middot;
-                {{ $statusCounts->sum() }} total
-            </p>
+            <p class="text-muted mb-0">{{ $openCount }} open &middot; {{ $statusCounts->sum() }} total</p>
         </div>
         <a href="{{ route('society.complaints.create') }}" class="btn btn-brand">
             <i class="bi bi-plus-lg"></i> Log Complaint
@@ -26,102 +25,67 @@
 @stop
 
 @section('content')
-    <div class="card stat-card mb-3">
-        <div class="card-body">
-            <form action="{{ route('society.complaints.index') }}" method="GET" class="row align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Search</label>
-                    <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Subject, resident, or against">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="custom-select">
-                        <option value="">All</option>
-                        @foreach (\App\Models\Tenant\Complaint::STATUSES as $status)
-                            <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>
-                                {{ ucfirst(str_replace('_', ' ', $status)) }} ({{ $statusCounts->get($status, 0) }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted">Priority</label>
-                    <select name="priority" class="custom-select">
-                        <option value="">All</option>
-                        @foreach (\App\Models\Tenant\Complaint::PRIORITIES as $priority)
-                            <option value="{{ $priority }}" {{ request('priority') === $priority ? 'selected' : '' }}>{{ ucfirst($priority) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted">Category</label>
-                    <select name="category" class="custom-select">
-                        <option value="">All</option>
-                        @foreach (\App\Models\Tenant\Complaint::CATEGORIES as $category)
-                            <option value="{{ $category }}" {{ request('category') === $category ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $category)) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
-                    @if (request()->anyFilled(['search', 'status', 'priority', 'category']))
-                        <a href="{{ route('society.complaints.index') }}" class="btn btn-link">Clear</a>
-                    @endif
-                </div>
-            </form>
-        </div>
-    </div>
+    <div class="fc-card">
+        <x-fc.tabs name="status" label="Complaint status" :tabs="$statusTabs" />
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($complaints->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+        <x-fc.toolbar placeholder="Search subject, resident, flat…" :keep="['status']">
+            <x-fc.select name="priority" placeholder="Any priority"
+                :options="collect(\App\Models\Tenant\Complaint::PRIORITIES)->mapWithKeys(fn ($p) => [$p => ucfirst($p)])" />
+            <x-fc.select name="category" placeholder="All categories"
+                :options="collect(\App\Models\Tenant\Complaint::CATEGORIES)->mapWithKeys(fn ($c) => [$c => ucfirst(str_replace('_', ' ', $c))])" />
+        </x-fc.toolbar>
+
+        @if ($complaints->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <x-fc.th sort="subject">Complaint</x-fc.th>
+                            <th>Flat</th>
+                            <th>Against</th>
+                            <x-fc.th sort="priority" first="desc">Priority</x-fc.th>
+                            <x-fc.th sort="status">Status</x-fc.th>
+                            <x-fc.th sort="logged" :default="true" first="desc">Logged</x-fc.th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($complaints as $complaint)
                             <tr>
-                                <th>Subject</th>
-                                <th>Flat</th>
-                                <th>Category</th>
-                                <th>Against</th>
-                                <th>Raised By</th>
-                                <th>Priority</th>
-                                <th>Status</th>
-                                <th>Logged</th>
-                                <th></th>
+                                <td>
+                                    <a href="{{ route('society.complaints.show', $complaint->id) }}" class="fc-strong">{{ $complaint->subject }}</a>
+                                    <span class="fc-sub">{{ ucfirst(str_replace('_', ' ', $complaint->category)) }} &middot; by {{ $complaint->raised_by_name }}</span>
+                                </td>
+                                <td class="fc-nowrap">
+                                    @if ($complaint->flat)
+                                        <span class="fc-strong">{{ $complaint->flat->flat_number }}</span>
+                                        <span class="fc-sub">{{ $complaint->flat->block?->name }}</span>
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
+                                <td>{!! $complaint->against ? e($complaint->against) : '<span class="fc-dim">—</span>' !!}</td>
+                                <td><x-fc.pill :status="$complaint->priority" :tone="$priorityTone[$complaint->priority] ?? 'neutral'" /></td>
+                                <td><x-fc.pill :status="$complaint->status" :tone="$statusTone[$complaint->status] ?? 'neutral'" /></td>
+                                <td class="fc-nowrap" title="{{ $complaint->created_at->format('d M Y, h:i A') }}">
+                                    {{ $complaint->created_at->format('d M Y') }}
+                                    <span class="fc-sub">{{ $complaint->created_at->diffForHumans() }}</span>
+                                </td>
+                                <td>
+                                    <div class="fc-actions">
+                                        <x-fc.action icon="eye" label="View complaint" :href="route('society.complaints.show', $complaint->id)" />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($complaints as $complaint)
-                                <tr>
-                                    <td><a href="{{ route('society.complaints.show', $complaint->id) }}" class="text-decoration-none">{{ $complaint->subject }}</a></td>
-                                    <td>{{ $complaint->flat?->display_label ?? '—' }}</td>
-                                    <td>{{ ucfirst(str_replace('_', ' ', $complaint->category)) }}</td>
-                                    <td>{{ $complaint->against ?: '—' }}</td>
-                                    <td>{{ $complaint->raised_by_name }}</td>
-                                    <td><span class="badge bg-{{ $priorityBadge[$complaint->priority] }}">{{ ucfirst($complaint->priority) }}</span></td>
-                                    <td><span class="badge bg-{{ $statusBadge[$complaint->status] }}">{{ ucfirst(str_replace('_', ' ', $complaint->status)) }}</span></td>
-                                    <td class="text-muted small">{{ $complaint->created_at->diffForHumans() }}</td>
-                                    <td class="text-end">
-                                        <a href="{{ route('society.complaints.show', $complaint->id) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-megaphone fs-1 d-block mb-2"></i>
-                    <p class="mb-2">No complaints found.</p>
-                    <a href="{{ route('society.complaints.create') }}" class="btn btn-brand btn-sm">Log the first one</a>
-                </div>
-            @endif
-        </div>
-    </div>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="megaphone" title="No complaints" text="Complaints raised by residents appear here." :keep="['status']"
+                :action-url="route('society.complaints.create')" action-label="Log a complaint" />
+        @endif
 
-    @if ($complaints->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $complaints->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$complaints" />
+    </div>
 @stop

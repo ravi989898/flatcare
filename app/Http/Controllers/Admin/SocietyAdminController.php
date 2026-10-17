@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateSocietyAdminRequest;
 use App\Models\Society;
 use App\Models\Tenant\User;
 use App\Services\TenantService;
+use App\Support\ListQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -36,11 +37,19 @@ class SocietyAdminController extends Controller
         // Society Admin, Committee Member, Chairman, Treasurer, etc. — not
         // just the literal 'admin' role, since the create form below lets
         // you grant any of those roles.
-        $admins = User::whereHas('roles', function ($query) {
+        $query = User::whereHas('roles', function ($query) {
             $query->where('name', '!=', 'resident');
-        })
-            ->with('roles')
-            ->paginate(10);
+        });
+
+        ListQuery::applySearch($query, $request, ['name', 'email', 'phone']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, ['name' => 'name', 'last_login' => 'last_login_at'], 'name', 'asc');
+
+        $admins = $query->with('roles')->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('admin.societies.admins.index', compact('society', 'admins'));
     }

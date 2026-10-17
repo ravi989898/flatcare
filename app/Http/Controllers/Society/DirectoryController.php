@@ -10,6 +10,7 @@ use App\Models\Tenant\Flat;
 use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -30,19 +31,23 @@ class DirectoryController extends Controller
             $query->whereHas('flat', fn ($q) => $q->where('block_id', $blockId));
         }
 
-        if ($search = $request->string('search')->trim()->value()) {
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('user', function ($u) use ($search) {
-                    $u->where('name', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                })->orWhereHas('flat', function ($f) use ($search) {
-                    $f->where('flat_number', 'like', "%{$search}%");
-                });
-            });
+        ListQuery::applySearch($query, $request, ['user.name', 'user.phone', 'user.email', 'flat.flat_number']);
+
+        if (in_array($type = $request->string('resident_type')->value(), ['owner', 'tenant', 'occupant'], true)) {
+            $query->where('resident_type', $type);
         }
 
-        $residencies = $query->orderByDesc('is_primary')->latest()->paginate(15)->withQueryString();
+        $userName = User::select('name')->whereColumn('users.id', 'flat_residents.user_id');
+        $flatNumber = Flat::select('flat_number')->whereColumn('flats.id', 'flat_residents.flat_id');
+
+        ListQuery::applySort($query, $request, [
+            'recent' => fn ($q, $dir) => $q->orderByDesc('is_primary')->orderBy('created_at', $dir),
+            'name' => fn ($q, $dir) => $q->orderBy($userName, $dir),
+            'flat' => fn ($q, $dir) => $q->orderBy($flatNumber, $dir),
+            'moved_in' => 'moved_in_date',
+        ], 'recent');
+
+        $residencies = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
         $blocks = Block::active()->orderBy('name')->get();
         $residentCount = FlatResident::active()->count();
 

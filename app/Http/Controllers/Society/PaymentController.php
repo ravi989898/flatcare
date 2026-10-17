@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers\Society;
 
+use App\Http\Controllers\Concerns\ListsBills;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\RecordPaymentRequest;
 use App\Http\Requests\Society\StoreBillRequest;
+use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\MaintenanceBill;
 use App\Models\Tenant\Payment;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
 {
+    use ListsBills;
+
     /**
      * Bill list with status/flat filters. Status is computed per-bill from
      * its payments (see MaintenanceBill::getStatusAttribute()) rather than
@@ -27,39 +30,13 @@ class PaymentController extends Controller
      */
     public function index(Request $request): View
     {
-        $bills = MaintenanceBill::maintenanceOnly()->with(['flat.block', 'payments'])->latest('due_date')->get();
+        $bills = MaintenanceBill::maintenanceOnly()->with(['flat.block', 'payments'])->get();
 
-        if ($status = $request->string('status')->trim()->value()) {
-            $bills = $bills->filter(fn ($bill) => $bill->status === $status)->values();
-        }
+        [$bills, $summary, $statusCounts] = $this->listBills($bills, $request, fn (MaintenanceBill $bill) => $bill->totalAmount());
 
-        if ($flatId = $request->string('flat_id')->trim()->value()) {
-            $bills = $bills->where('flat_id', $flatId)->values();
-        }
+        $blocks = Block::orderBy('name')->pluck('name', 'id');
 
-        $summary = [
-            'total_due' => $bills->sum(fn ($bill) => $bill->totalAmount()),
-            'total_collected' => $bills->sum('paid_amount'),
-            'overdue_count' => $bills->where('status', 'overdue')->count(),
-        ];
-
-        $page = (int) $request->input('page', 1);
-        $perPage = 15;
-        $paginated = new LengthAwarePaginator(
-            $bills->forPage($page, $perPage),
-            $bills->count(),
-            $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
-
-        $flats = Flat::active()->with('block')->orderBy('flat_number')->get();
-
-        return view('society.payments.index', [
-            'bills' => $paginated,
-            'summary' => $summary,
-            'flats' => $flats,
-        ]);
+        return view('society.payments.index', compact('bills', 'summary', 'statusCounts', 'blocks'));
     }
 
     public function create(): View

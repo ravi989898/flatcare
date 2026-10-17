@@ -7,50 +7,44 @@
 @stop
 
 @section('content')
-    <div class="card">
-        <div class="card-header">
-            <form action="{{ route('admin.permission_logs.index') }}" method="GET" class="form-inline">
-                <select name="society_id" class="form-control form-control-sm mr-2 mb-1">
-                    <option value="">All Societies</option>
-                    @foreach ($societies as $society)
-                        <option value="{{ $society->id }}" {{ (string) request('society_id') === (string) $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
-                    @endforeach
-                </select>
-                <select name="role" class="form-control form-control-sm mr-2 mb-1">
-                    <option value="">All Roles</option>
-                    @foreach ($roles as $role)
-                        <option value="{{ $role->name }}" {{ request('role') === $role->name ? 'selected' : '' }}>{{ $role->display_name }}</option>
-                    @endforeach
-                </select>
-                <input type="date" name="from" class="form-control form-control-sm mr-2 mb-1" value="{{ request('from') }}" placeholder="From">
-                <input type="date" name="to" class="form-control form-control-sm mr-2 mb-1" value="{{ request('to') }}" placeholder="To">
-                <button type="submit" class="btn btn-sm btn-secondary mb-1"><i class="fas fa-search"></i> Filter</button>
-                @if (request()->anyFilled(['society_id', 'role', 'from', 'to']))
-                    <a href="{{ route('admin.permission_logs.index') }}" class="btn btn-sm btn-link mb-1">Clear</a>
-                @endif
-            </form>
-        </div>
-        <div class="card-body p-0">
-            @if ($logs->count() > 0)
-                <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search by person…">
+            <x-fc.select name="society_id" placeholder="All societies" :options="$societies->pluck('name', 'id')" />
+            <x-fc.select name="role" placeholder="All roles" :options="$roles->pluck('display_name', 'name')" />
+            <input type="date" name="from" class="form-control" value="{{ is_string(request('from')) ? request('from') : '' }}" aria-label="From date" title="From">
+            <input type="date" name="to" class="form-control" value="{{ is_string(request('to')) ? request('to') : '' }}" aria-label="To date" title="To">
+        </x-fc.toolbar>
+
+        @if ($logs->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
                     <thead>
                         <tr>
                             <th>Society</th>
                             <th>Changed By</th>
                             <th>Changes</th>
-                            <th>When</th>
+                            <x-fc.th sort="when" :default="true" first="desc">When</x-fc.th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($logs as $log)
                             <tr>
-                                <td>{{ $log->society?->name ?? '—' }}</td>
+                                <td>
+                                    @if ($log->society)
+                                        <div class="fc-person">
+                                            <x-fc.avatar :name="$log->society->name" />
+                                            <span class="fc-strong">{{ $log->society->name }}</span>
+                                        </div>
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
                                 <td>{{ $log->performed_by ?? '—' }}</td>
                                 <td>
                                     @php $changes = $log->getChangeSummary(); @endphp
                                     @if (!empty($changes))
                                         <button type="button" class="btn btn-xs btn-outline-secondary" data-toggle="collapse" data-target="#changes-{{ $log->id }}">
-                                            {{ count($changes) }} permission(s) changed
+                                            <i class="bi bi-chevron-down"></i> {{ count($changes) }} permission(s) changed
                                         </button>
                                         <div id="changes-{{ $log->id }}" class="collapse mt-2">
                                             <table class="table table-sm table-bordered mb-0 bg-white">
@@ -71,23 +65,22 @@
                                             </table>
                                         </div>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="fc-dim">—</span>
                                     @endif
                                 </td>
-                                <td title="{{ $log->created_at }}">{{ $log->created_at->diffForHumans() }}</td>
+                                <td class="fc-nowrap" title="{{ $log->created_at->format('d M Y, h:i:s A') }}">
+                                    {{ $log->created_at->format('d M Y, h:i A') }}
+                                    <span class="fc-sub">{{ $log->created_at->diffForHumans() }}</span>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            @else
-                <div class="p-4 text-center text-muted">No permission changes logged yet.</div>
-            @endif
-        </div>
-    </div>
+            </div>
+        @else
+            <x-fc.empty icon="shield-check" title="No permission changes logged yet" text="Menu permission changes made for each society are recorded here." />
+        @endif
 
-    @if ($logs->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $logs->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$logs" />
+    </div>
 @stop

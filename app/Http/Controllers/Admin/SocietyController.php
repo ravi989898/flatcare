@@ -11,6 +11,7 @@ use App\Models\SocietyDatabase;
 use App\Models\SocietyModule;
 use App\Models\SuperAdmin;
 use App\Services\TenantService;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,21 +31,24 @@ class SocietyController extends Controller
     {
         $query = Society::query()->with('database');
 
-        if ($search = $request->string('search')->trim()->value()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%");
-            });
-        }
+        ListQuery::applySearch($query, $request, ['name', 'email', 'city', 'state']);
+
+        $statusCounts = (clone $query)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
 
         if ($status = $request->string('status')->trim()->value()) {
             $query->where('status', $status);
         }
 
-        $societies = $query->latest()->paginate(15)->withQueryString();
+        ListQuery::applySort($query, $request, [
+            'created' => 'created_at',
+            'name' => 'name',
+            'city' => 'city',
+            'access' => 'end_date',
+        ], 'created');
 
-        return view('admin.societies.index', compact('societies'));
+        $societies = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
+
+        return view('admin.societies.index', compact('societies', 'statusCounts'));
     }
 
     /**

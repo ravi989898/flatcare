@@ -45,13 +45,17 @@ class AdminMenuServiceProvider extends ServiceProvider
             $logoUrl = PlatformSetting::current()->logoUrl();
 
             if ($logoUrl) {
+                // The uploaded logo is a full wordmark, too wide for the
+                // 33px round icon slot next to the "FlatCare" text. Show it
+                // on its own (white card, public/css/fc-table.css) while
+                // the sidebar is open, and the square app icon when it is
+                // collapsed - AdminLTE's logo switch.
                 config([
-                    'adminlte.logo_img' => $logoUrl,
+                    'adminlte.logo_img' => 'favicon-192.png',
+                    'adminlte.logo_img_class' => 'brand-image-xl fc-brand-icon',
+                    'adminlte.logo_img_xl' => $logoUrl,
+                    'adminlte.logo_img_xl_class' => 'brand-image-xs fc-brand-wordmark',
                     'adminlte.logo_img_alt' => 'FlatCare',
-                    // AdminLTELogo.png ships as a round icon; a rectangular
-                    // uploaded logo shouldn't be forced into that same
-                    // circular crop.
-                    'adminlte.logo_img_class' => 'brand-image',
                 ]);
             }
         } catch (\Throwable $e) {

@@ -3,11 +3,9 @@
 @section('title', 'Roles')
 
 @section('content_header')
-    <div class="row">
-        <div class="col-sm-6">
-            <h1>Roles</h1>
-        </div>
-        <div class="col-sm-6 text-right">
+    <div class="fc-page-head">
+        <h1 class="mb-0">Roles</h1>
+        <div class="fc-page-actions">
             <form action="{{ route('admin.settings.roles.sync') }}" method="POST" class="d-inline" data-confirm="Push the current role catalog into every provisioned society? Existing role assignments are kept.">
                 @csrf
                 <button type="submit" class="btn btn-outline-secondary">
@@ -35,53 +33,55 @@
         </div>
     @endif
 
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <div class="table-responsive">
+            <table class="table fc-table">
                 <thead>
                     <tr>
                         <th>Role</th>
                         <th>Description</th>
-                        <th>Priority</th>
+                        <th class="num">Priority</th>
                         <th>Type</th>
-                        <th>Actions</th>
+                        <th class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($roles as $role)
                         <tr>
-                            <td><strong>{{ $role->display_name }}</strong> <code class="text-muted">{{ $role->name }}</code></td>
+                            <td>
+                                <span class="fc-strong">{{ $role->display_name }}</span>
+                                <span class="fc-sub"><code class="text-muted">{{ $role->name }}</code></span>
+                            </td>
                             <td class="text-muted small">{{ $role->description }}</td>
-                            <td>{{ $role->priority }}</td>
+                            <td class="num">{{ $role->priority }}</td>
                             <td>
                                 @if ($role->is_system_role)
-                                    <span class="badge badge-info">System</span>
+                                    <x-fc.pill tone="info" :dot="false" label="System" />
                                 @else
-                                    <span class="badge badge-secondary">Custom</span>
+                                    <x-fc.pill tone="neutral" :dot="false" label="Custom" />
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('admin.settings.roles.edit', $role->id) }}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                                @unless ($role->is_system_role)
-                                    <form action="{{ route('admin.settings.roles.destroy', $role->id) }}" method="POST" class="d-inline" data-confirm="Delete this role?">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                                    </form>
-                                @endunless
+                                <div class="fc-actions">
+                                    <x-fc.action icon="pencil" label="Edit role" :href="route('admin.settings.roles.edit', $role->id)" />
+                                    @unless ($role->is_system_role)
+                                        <x-fc.post-action :action="route('admin.settings.roles.destroy', $role->id)" method="DELETE"
+                                            icon="trash" label="Delete role" tone="danger" confirm="Delete this role?" />
+                                    @endunless
+                                </div>
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
-        <div class="card-footer text-muted small">
-            This is the role template new societies are provisioned with. Editing a role here does not change
-            an already-provisioned society until you click "Sync to Societies" — existing role assignments and
-            permissions are never removed by a sync. To control which sidebar menus each role sees, go to
-            <a href="{{ route('admin.settings.menu.edit') }}">Menu Settings</a>.
+        <div class="fc-footer small">
+            <span>
+                This is the role template new societies are provisioned with. Editing a role here does not change
+                an already-provisioned society until you click "Sync to Societies" — existing role assignments and
+                permissions are never removed by a sync. To control which sidebar menus each role sees, go to
+                <a href="{{ route('admin.settings.menu.edit') }}">Menu Settings</a>.
+            </span>
         </div>
     </div>
 @stop

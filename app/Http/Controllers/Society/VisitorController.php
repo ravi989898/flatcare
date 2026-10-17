@@ -7,6 +7,7 @@ use App\Http\Requests\Society\StoreVisitorRequest;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\Visitor;
 use App\Services\NotificationService;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,18 +28,23 @@ class VisitorController extends Controller
             $query->status($status);
         }
 
-        if ($search = $request->string('search')->trim()->value()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('visitor_name', 'like', "%{$search}%")
-                    ->orWhere('visitor_phone', 'like', "%{$search}%")
-                    ->orWhere('vehicle_number', 'like', "%{$search}%");
-            });
+        ListQuery::applySearch($query, $request, ['visitor_name', 'visitor_phone', 'vehicle_number', 'flat.flat_number']);
+
+        if (($purpose = $request->string('purpose')->trim()->value()) && in_array($purpose, Visitor::PURPOSES, true)) {
+            $query->where('purpose', $purpose);
         }
 
-        $visitors = $query->latest('check_in_at')->paginate(15)->withQueryString();
-        $currentlyInCount = Visitor::currentlyIn()->count();
+        ListQuery::applySort($query, $request, [
+            'check_in' => 'check_in_at',
+            'check_out' => 'check_out_at',
+            'name' => 'visitor_name',
+        ], 'check_in');
 
-        return view('society.visitors.index', compact('visitors', 'currentlyInCount', 'status'));
+        $visitors = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
+        $currentlyInCount = Visitor::currentlyIn()->count();
+        $statusCounts = Visitor::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+
+        return view('society.visitors.index', compact('visitors', 'currentlyInCount', 'status', 'statusCounts'));
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
 use App\Services\TenantService;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -35,7 +36,11 @@ class SocietyUserController extends Controller
 
         $this->tenantService->switchConnection($societyId);
 
-        $users = User::whereDoesntHave('roles', fn ($query) => $query->where('name', 'admin'))
+        $query = User::whereDoesntHave('roles', fn ($query) => $query->where('name', 'admin'));
+
+        ListQuery::applySearch($query, $request, ['name', 'email', 'phone', 'residencies.flat.flat_number']);
+
+        $users = $query
             ->with(['roles', 'residencies' => fn ($query) => $query->where('status', 'active')->with('flat.block')])
             ->orderBy('name')
             ->get();

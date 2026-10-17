@@ -8,9 +8,12 @@ use App\Http\Requests\Society\AdminUserRequest;
 use App\Http\Requests\Society\StoreAdminUserRequest;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
+use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use App\Support\SecurityLog;
 use App\Services\Api\ApiTokenService;
 use Illuminate\Support\Facades\Auth;
@@ -28,20 +31,35 @@ use Illuminate\View\View;
  */
 class AdminController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         // Any user holding an elevated role granted from this screen —
         // Society Admin, Committee Member, Chairman, Treasurer, etc. — not
         // just the literal 'admin' role, since the create form below lets
         // you grant any of those roles.
-        $admins = User::whereHas('roles', function ($query) {
+        $query = User::whereHas('roles', function ($query) {
             $query->where('name', '!=', 'resident');
-        })
-            ->with('roles')
-            ->orderBy('name')
-            ->paginate(10);
+        });
 
-        return view('society.admins.index', compact('admins'));
+        ListQuery::applySearch($query, $request, ['name', 'email', 'phone']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        if ($role = $request->string('role')->trim()->value()) {
+            $query->whereHas('roles', fn ($q) => $q->where('name', $role));
+        }
+
+        ListQuery::applySort($query, $request, [
+            'name' => 'name',
+            'last_login' => 'last_login_at',
+        ], 'name', 'asc');
+
+        $admins = $query->with('roles')->paginate(ListQuery::perPage($request, 25))->withQueryString();
+        $roles = Role::where('name', '!=', 'resident')->orderByDesc('priority')->pluck('display_name', 'name');
+
+        return view('society.admins.index', compact('admins', 'roles'));
     }
 
     public function create(): View

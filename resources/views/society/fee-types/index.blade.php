@@ -3,7 +3,7 @@
 @section('title', 'Fee Types')
 
 @section('content')
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="fc-page-head mb-4">
         <div>
             <h1 class="h3 mb-1">Fee Types</h1>
             <p class="text-muted mb-0">One-off charge types available when raising an Extra Charge.</p>
@@ -12,10 +12,6 @@
             <i class="bi bi-arrow-left"></i> Back to Extra Charges
         </a>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
 
     <div class="card stat-card mb-3">
         <div class="card-header bg-white"><strong>Add a Fee Type</strong></div>
@@ -41,48 +37,47 @@
         </div>
     </div>
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($feeTypes->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+    <div class="fc-card">
+        @if ($feeTypes->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Default Amount</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($feeTypes as $feeType)
+                            <form id="edit-fee-type-{{ $feeType->id }}" action="{{ route('society.fee-types.update', $feeType->id) }}" method="POST" novalidate></form>
                             <tr>
-                                <th>Name</th>
-                                <th>Default Amount</th>
-                                <th></th>
+                                <td><input form="edit-fee-type-{{ $feeType->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $feeType->name }}" maxlength="100" aria-label="Name"></td>
+                                <td style="max-width: 220px;">
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
+                                        <input form="edit-fee-type-{{ $feeType->id }}" type="number" name="default_amount" step="0.01" min="0" class="form-control" value="{{ $feeType->default_amount }}" aria-label="Default amount">
+                                    </div>
+                                </td>
+                                <td>
+                                    <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="_method" value="PUT">
+                                    <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="sort_order" value="{{ $feeType->sort_order }}">
+                                    <div class="fc-actions">
+                                        <x-fc.action type="submit" form="edit-fee-type-{{ $feeType->id }}" icon="check-lg" label="Save changes" />
+                                        <x-fc.post-action :action="route('society.fee-types.destroy', $feeType->id)" method="DELETE"
+                                            icon="trash" label="Remove" tone="danger" confirm="Remove this fee type?" />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($feeTypes as $feeType)
-                                <form id="edit-fee-type-{{ $feeType->id }}" action="{{ route('society.fee-types.update', $feeType->id) }}" method="POST" novalidate></form>
-                                <tr>
-                                    <td><input form="edit-fee-type-{{ $feeType->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $feeType->name }}" maxlength="100"></td>
-                                    <td><input form="edit-fee-type-{{ $feeType->id }}" type="number" name="default_amount" step="0.01" min="0" class="form-control form-control-sm" value="{{ $feeType->default_amount }}"></td>
-                                    <td class="text-right text-nowrap">
-                                        @csrf
-                                        @method('PUT')
-                                        <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="_token" value="{{ csrf_token() }}">
-                                        <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="_method" value="PUT">
-                                        <input form="edit-fee-type-{{ $feeType->id }}" type="hidden" name="sort_order" value="{{ $feeType->sort_order }}">
-                                        <button form="edit-fee-type-{{ $feeType->id }}" type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check-lg"></i></button>
-                                        <form action="{{ route('society.fee-types.destroy', $feeType->id) }}" method="POST" class="d-inline" data-confirm="Remove this fee type?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-tag fs-1 d-block mb-2"></i>
-                    No fee types added yet.
-                </div>
-            @endif
-        </div>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="tag" title="No fee types yet" text="Add the one-off charges your society raises, like event or penalty charges." />
+        @endif
+
+        <x-fc.footer :paginator="$feeTypes" noun="fee types" />
     </div>
 @stop

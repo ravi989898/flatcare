@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Society;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\StoreDocumentRequest;
 use App\Models\Tenant\Document;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,9 +29,18 @@ class DocumentController extends Controller
             $query->where('category', $category);
         }
 
-        $documents = $query->latest()->paginate(20)->withQueryString();
+        ListQuery::applySearch($query, $request, ['title', 'file_name']);
 
-        return view('society.documents.index', ['documents' => $documents, 'category' => $category]);
+        ListQuery::applySort($query, $request, [
+            'uploaded' => 'created_at',
+            'title' => 'title',
+            'category' => 'category',
+        ], 'uploaded');
+
+        $documents = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
+        $categoryCounts = Document::query()->selectRaw('category, count(*) as total')->groupBy('category')->pluck('total', 'category');
+
+        return view('society.documents.index', compact('documents', 'category', 'categoryCounts'));
     }
 
     public function store(StoreDocumentRequest $request): RedirectResponse

@@ -13,7 +13,9 @@ use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
 use App\Services\TenantService;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -30,12 +32,22 @@ class SocietyStructureController extends Controller
     /**
      * List blocks for a society.
      */
-    public function blocksIndex(int $societyId): View
+    public function blocksIndex(Request $request, int $societyId): View
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
-        $blocks = Block::withCount('flats')->orderBy('name')->paginate(15);
+        $query = Block::withCount('flats');
+
+        ListQuery::applySearch($query, $request, ['name', 'block_number']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, ['name' => 'name', 'flats' => 'flats_count', 'status' => 'status'], 'name', 'asc');
+
+        $blocks = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('admin.societies.blocks.index', compact('society', 'blocks'));
     }
@@ -130,13 +142,30 @@ class SocietyStructureController extends Controller
     /**
      * List flats within one block.
      */
-    public function flatsIndex(int $societyId, int $blockId): View
+    public function flatsIndex(Request $request, int $societyId, int $blockId): View
     {
         $society = Society::findOrFail($societyId);
         $this->tenantService->switchConnection($societyId);
 
         $block = Block::findOrFail($blockId);
-        $flats = Flat::where('block_id', $block->id)->orderBy('flat_number')->paginate(20);
+        $query = Flat::where('block_id', $block->id);
+
+        ListQuery::applySearch($query, $request, ['flat_number', 'owner_name', 'mobile_number']);
+
+        foreach (['status', 'ownership_type'] as $filter) {
+            if ($value = $request->string($filter)->trim()->value()) {
+                $query->where($filter, $value);
+            }
+        }
+
+        ListQuery::applySort($query, $request, [
+            'flat' => fn ($q, $dir) => $q->orderByRaw('LENGTH(flat_number) '.$dir)->orderBy('flat_number', $dir),
+            'floor' => fn ($q, $dir) => $q->orderByRaw('CAST(floor_number AS SIGNED) '.$dir),
+            'owner' => 'owner_name',
+            'status' => 'status',
+        ], 'flat', 'asc');
+
+        $flats = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('admin.societies.blocks.flats.index', compact('society', 'block', 'flats'));
     }

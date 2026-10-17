@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\RoleDefinition;
 use App\Models\Society;
+use App\Support\ListQuery;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -26,8 +27,9 @@ class PermissionLogController extends Controller
     public function index(Request $request): View
     {
         $query = AuditLog::with('society')
-            ->where('module', 'permission_management')
-            ->latest();
+            ->where('module', 'permission_management');
+
+        ListQuery::applySearch($query, $request, ['performed_by']);
 
         if ($societyId = $request->string('society_id')->trim()->value()) {
             $query->bySociety((int) $societyId);
@@ -49,7 +51,9 @@ class PermissionLogController extends Controller
             $query->whereDate('created_at', '<=', $to);
         }
 
-        $logs = $query->paginate(25)->withQueryString();
+        ListQuery::applySort($query, $request, ['when' => 'created_at'], 'when');
+
+        $logs = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         $societies = Society::orderBy('name')->get(['id', 'name']);
         $roles = RoleDefinition::whereIn('name', self::MANAGED_ROLES)->orderByDesc('priority')->get(['name', 'display_name']);

@@ -3,12 +3,21 @@
 @section('title', 'Visitors')
 
 @php
-    $statusBadge = ['pending' => 'warning', 'approved' => 'info', 'checked_in' => 'success', 'checked_out' => 'secondary', 'denied' => 'danger'];
+    $statusTone = ['pending' => 'warning', 'approved' => 'info', 'checked_in' => 'success', 'checked_out' => 'neutral', 'denied' => 'danger'];
     $purposeLabel = ['guest' => 'Guest', 'delivery' => 'Delivery', 'cab' => 'Cab/Taxi', 'service' => 'Service', 'other' => 'Other'];
+    $purposeIcon = ['guest' => 'person', 'delivery' => 'box-seam', 'cab' => 'taxi-front', 'service' => 'tools', 'other' => 'three-dots'];
+    $statusTabs = [
+        'checked_in' => ['Currently in', $statusCounts->get('checked_in', 0)],
+        'pending' => ['Pending', $statusCounts->get('pending', 0)],
+        'approved' => ['Approved', $statusCounts->get('approved', 0)],
+        'checked_out' => ['Checked out', $statusCounts->get('checked_out', 0)],
+        'denied' => ['Denied', $statusCounts->get('denied', 0)],
+        'all' => ['All', $statusCounts->sum()],
+    ];
 @endphp
 
 @section('content_header')
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="fc-page-head">
         <div>
             <h1 class="h3 mb-1">Visitors</h1>
             <p class="text-muted mb-0">{{ $currentlyInCount }} currently in the society</p>
@@ -20,91 +29,84 @@
 @stop
 
 @section('content')
-    <div class="card stat-card mb-3">
-        <div class="card-body">
-            <form action="{{ route('society.visitors.index') }}" method="GET" class="row align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Search</label>
-                    <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Name, phone or vehicle number">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="custom-select">
-                        <option value="checked_in" {{ $status === 'checked_in' ? 'selected' : '' }}>Currently In</option>
-                        <option value="checked_out" {{ $status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
-                        <option value="all" {{ $status === 'all' ? 'selected' : '' }}>All</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
-                    @if (request('search'))
-                        <a href="{{ route('society.visitors.index', ['status' => $status]) }}" class="btn btn-link">Clear</a>
-                    @endif
-                </div>
-            </form>
-        </div>
-    </div>
+    <div class="fc-card">
+        <x-fc.tabs name="status" label="Visitor status" :tabs="$statusTabs" :current="$status" />
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($visitors->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+        <x-fc.toolbar placeholder="Search name, phone, vehicle, flat…" :keep="['status']">
+            <x-fc.select name="purpose" placeholder="Any purpose" :options="$purposeLabel" />
+        </x-fc.toolbar>
+
+        @if ($visitors->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <x-fc.th sort="name">Visitor</x-fc.th>
+                            <th>Visiting</th>
+                            <th>Purpose</th>
+                            <th>Vehicle</th>
+                            <x-fc.th sort="check_in" :default="true" first="desc">Check In</x-fc.th>
+                            <x-fc.th sort="check_out" first="desc">Check Out</x-fc.th>
+                            <th>Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($visitors as $visitor)
                             <tr>
-                                <th>Visitor</th>
-                                <th>Visiting</th>
-                                <th>Purpose</th>
-                                <th>Vehicle</th>
-                                <th>Check In</th>
-                                <th>Check Out</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($visitors as $visitor)
-                                <tr>
-                                    <td>
-                                        {{ $visitor->visitor_name }}
-                                        @if ($visitor->visitor_phone)
-                                            <div class="text-muted small">{{ $visitor->visitor_phone }}</div>
-                                        @endif
-                                    </td>
-                                    <td>{{ $visitor->flat?->display_label ?? '—' }}</td>
-                                    <td>{{ $purposeLabel[$visitor->purpose] }}</td>
-                                    <td>{{ $visitor->vehicle_number ?: '—' }}</td>
-                                    <td class="text-muted small">{{ $visitor->check_in_at?->format('d M, h:i A') }}</td>
-                                    <td class="text-muted small">{{ $visitor->check_out_at?->format('d M, h:i A') ?? '—' }}</td>
-                                    <td><span class="badge bg-{{ $statusBadge[$visitor->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_', ' ', $visitor->status)) }}</span></td>
-                                    <td class="text-end">
+                                <td>
+                                    <div class="fc-person">
+                                        <x-fc.avatar :name="$visitor->visitor_name" :round="true" />
+                                        <div>
+                                            <span class="fc-strong">{{ $visitor->visitor_name }}</span>
+                                            @if ($visitor->visitor_phone)
+                                                <span class="fc-sub">{{ $visitor->visitor_phone }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="fc-nowrap">
+                                    @if ($visitor->flat)
+                                        <span class="fc-strong">{{ $visitor->flat->flat_number }}</span>
+                                        <span class="fc-sub">{{ $visitor->flat->block?->name }}</span>
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
+                                <td class="fc-nowrap"><i class="bi bi-{{ $purposeIcon[$visitor->purpose] ?? 'three-dots' }} text-muted mr-1"></i>{{ $purposeLabel[$visitor->purpose] ?? ucfirst($visitor->purpose) }}</td>
+                                <td class="fc-nowrap">{!! $visitor->vehicle_number ? e($visitor->vehicle_number) : '<span class="fc-dim">—</span>' !!}</td>
+                                <td class="fc-nowrap">
+                                    @if ($visitor->check_in_at)
+                                        {{ $visitor->check_in_at->format('d M, h:i A') }}
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
+                                <td class="fc-nowrap">
+                                    @if ($visitor->check_out_at)
+                                        {{ $visitor->check_out_at->format('d M, h:i A') }}
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
+                                <td><x-fc.pill :status="$visitor->status" :tone="$statusTone[$visitor->status] ?? 'neutral'" /></td>
+                                <td>
+                                    <div class="fc-actions">
                                         @if ($visitor->isCheckedIn())
-                                            <form action="{{ route('society.visitors.check_out', $visitor->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-box-arrow-right"></i> Check Out
-                                                </button>
-                                            </form>
+                                            <x-fc.post-action :action="route('society.visitors.check_out', $visitor->id)" icon="box-arrow-right" label="Check out" />
                                         @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-person-badge fs-1 d-block mb-2"></i>
-                    <p class="mb-2">No visitors found.</p>
-                    <a href="{{ route('society.visitors.create') }}" class="btn btn-brand btn-sm">Check in a visitor</a>
-                </div>
-            @endif
-        </div>
-    </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="person-badge" title="No visitors here" text="Visitors checked in at the gate appear here." :keep="['status']"
+                :action-url="route('society.visitors.create')" action-label="Check in a visitor" />
+        @endif
 
-    @if ($visitors->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $visitors->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$visitors" />
+    </div>
 @stop

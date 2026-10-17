@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Society;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\MaintenanceBill;
+use App\Support\ListQuery;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -30,18 +30,8 @@ class ReportController extends Controller
             'total_pending' => $bills->sum('balance'),
         ];
 
-        $page = (int) $request->input('page', 1);
-        $perPage = 20;
-        $paginated = new LengthAwarePaginator(
-            $bills->forPage($page, $perPage),
-            $bills->count(),
-            $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
-
         return view('society.reports.payments', [
-            'bills' => $paginated,
+            'bills' => ListQuery::paginateCollection($bills, $request, ListQuery::perPage($request, 25)),
             'summary' => $summary,
         ]);
     }
@@ -87,7 +77,15 @@ class ReportController extends Controller
      */
     private function filteredBills(Request $request): Collection
     {
-        $bills = MaintenanceBill::maintenanceOnly()->with(['flat.block', 'payments'])->latest('due_date')->get();
+        $bills = MaintenanceBill::maintenanceOnly()->with(['flat.block', 'payments'])->get();
+
+        if ($term = ListQuery::search($request)) {
+            $needle = mb_strtolower($term);
+            $bills = $bills->filter(fn ($bill) => str_contains(
+                mb_strtolower($bill->title.' '.$bill->flat?->flat_number.' '.$bill->flat?->block?->name),
+                $needle,
+            ))->values();
+        }
 
         if ($status = $request->string('status')->trim()->value()) {
             $bills = $bills->filter(fn ($bill) => $bill->status === $status)->values();
@@ -103,6 +101,12 @@ class ReportController extends Controller
             $bills = $bills->filter(fn ($bill) => $bill->due_date->lte($toDate))->values();
         }
 
-        return $bills;
+        return ListQuery::sortCollection($bills, $request, [
+            'due' => fn ($bill) => $bill->due_date->timestamp,
+            'title' => 'title',
+            'flat' => fn ($bill) => $bill->flat?->flat_number,
+            'amount' => fn ($bill) => $bill->totalAmount(),
+            'balance' => 'balance',
+        ], 'due');
     }
 }

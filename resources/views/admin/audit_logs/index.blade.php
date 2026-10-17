@@ -2,66 +2,56 @@
 
 @section('title', 'Audit Logs')
 
+@php
+    $actionTone = fn (string $action) => match (true) {
+        str_contains($action, 'delete') || str_contains($action, 'remove') => 'danger',
+        str_contains($action, 'create') || str_contains($action, 'add') => 'success',
+        str_contains($action, 'update') || str_contains($action, 'edit') => 'info',
+        default => 'neutral',
+    };
+@endphp
+
 @section('content_header')
     <h1>Audit Logs</h1>
 @stop
 
 @section('content')
-    <div class="card">
-        <div class="card-header">
-            <form action="{{ route('admin.audit_logs.index') }}" method="GET" class="form-inline">
-                <select name="action" class="form-control form-control-sm mr-2 mb-1">
-                    <option value="">All Actions</option>
-                    @foreach ($actions as $action)
-                        <option value="{{ $action }}" {{ request('action') === $action ? 'selected' : '' }}>{{ str($action)->headline() }}</option>
-                    @endforeach
-                </select>
-                <select name="module" class="form-control form-control-sm mr-2 mb-1">
-                    <option value="">All Modules</option>
-                    @foreach ($modules as $module)
-                        <option value="{{ $module }}" {{ request('module') === $module ? 'selected' : '' }}>{{ str($module)->headline() }}</option>
-                    @endforeach
-                </select>
-                <select name="society_id" class="form-control form-control-sm mr-2 mb-1">
-                    <option value="">All Societies</option>
-                    @foreach ($societies as $society)
-                        <option value="{{ $society->id }}" {{ (string) request('society_id') === (string) $society->id ? 'selected' : '' }}>{{ $society->name }}</option>
-                    @endforeach
-                </select>
-                <input type="date" name="from" class="form-control form-control-sm mr-2 mb-1" value="{{ request('from') }}" placeholder="From">
-                <input type="date" name="to" class="form-control form-control-sm mr-2 mb-1" value="{{ request('to') }}" placeholder="To">
-                <button type="submit" class="btn btn-sm btn-secondary mb-1"><i class="fas fa-search"></i> Filter</button>
-                @if (request()->anyFilled(['action', 'module', 'society_id', 'from', 'to']))
-                    <a href="{{ route('admin.audit_logs.index') }}" class="btn btn-sm btn-link mb-1">Clear</a>
-                @endif
-            </form>
-        </div>
-        <div class="card-body p-0">
-            @if ($logs->count() > 0)
-                <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search by person or IP…">
+            <x-fc.select name="action" placeholder="All actions" :options="$actions->mapWithKeys(fn ($a) => [$a => str($a)->replace('.', ' ')->headline()->value()])" />
+            <x-fc.select name="module" placeholder="All modules" :options="$modules->mapWithKeys(fn ($m) => [$m => str($m)->headline()->value()])" />
+            <x-fc.select name="society_id" placeholder="All societies" :options="$societies->pluck('name', 'id')" />
+            <input type="date" name="from" class="form-control" value="{{ is_string(request('from')) ? request('from') : '' }}" aria-label="From date" title="From">
+            <input type="date" name="to" class="form-control" value="{{ is_string(request('to')) ? request('to') : '' }}" aria-label="To date" title="To">
+        </x-fc.toolbar>
+
+        @if ($logs->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
                     <thead>
                         <tr>
                             <th>Action</th>
-                            <th>Module</th>
                             <th>Society</th>
                             <th>By</th>
                             <th>Details</th>
                             <th>IP Address</th>
-                            <th>When</th>
+                            <x-fc.th sort="when" :default="true" first="desc">When</x-fc.th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($logs as $log)
                             <tr>
-                                <td>{{ str($log->action)->headline() }}</td>
-                                <td class="text-muted small">{{ str($log->module)->headline() }}</td>
-                                <td>{{ $log->society?->name ?? '—' }}</td>
+                                <td>
+                                    <x-fc.pill :tone="$actionTone($log->action)" :label="str($log->action)->replace('.', ' ')->headline()->value()" />
+                                    <span class="fc-sub mt-1">{{ str($log->module)->headline() }}</span>
+                                </td>
+                                <td>{!! $log->society ? e($log->society->name) : '<span class="fc-dim">—</span>' !!}</td>
                                 <td>{{ $log->superAdmin?->name ?? $log->performed_by ?? '—' }}</td>
                                 <td>
                                     @php $changes = $log->getChangeSummary(); @endphp
                                     @if (!empty($changes))
                                         <button type="button" class="btn btn-xs btn-outline-secondary" data-toggle="collapse" data-target="#changes-{{ $log->id }}">
-                                            {{ count($changes) }} field(s) changed
+                                            <i class="bi bi-chevron-down"></i> {{ count($changes) }} field(s) changed
                                         </button>
                                         <div id="changes-{{ $log->id }}" class="collapse mt-2">
                                             <table class="table table-sm table-bordered mb-0 bg-white">
@@ -82,24 +72,23 @@
                                     @elseif ($log->new_values)
                                         <span class="text-muted small">{{ Str::limit(json_encode($log->new_values), 60) }}</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="fc-dim">—</span>
                                     @endif
                                 </td>
-                                <td class="text-muted small">{{ $log->ip_address ?? '—' }}</td>
-                                <td title="{{ $log->created_at }}">{{ $log->created_at->diffForHumans() }}</td>
+                                <td class="text-muted small fc-nowrap">{{ $log->ip_address ?? '—' }}</td>
+                                <td class="fc-nowrap" title="{{ $log->created_at->format('d M Y, h:i:s A') }}">
+                                    {{ $log->created_at->format('d M Y, h:i A') }}
+                                    <span class="fc-sub">{{ $log->created_at->diffForHumans() }}</span>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            @else
-                <div class="p-4 text-center text-muted">No audit log entries found.</div>
-            @endif
-        </div>
-    </div>
+            </div>
+        @else
+            <x-fc.empty icon="journal-text" title="No audit log entries yet" text="Changes made in the Super Admin panel are recorded here." />
+        @endif
 
-    @if ($logs->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $logs->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$logs" />
+    </div>
 @stop

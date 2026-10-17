@@ -3,65 +3,61 @@
 @section('title', 'Security Duty History')
 
 @section('content_header')
-    <div class="row">
-        <div class="col-sm-6">
-            <h1>{{ $society->name }} - Security Duty History</h1>
+    <div class="fc-page-head">
+        <div>
+            <h1 class="mb-0">{{ $society->name }} - Security Duty History</h1>
+            <p class="text-muted mb-0">Who was on Day/Night duty, and when.</p>
         </div>
-        <div class="col-sm-6 text-right">
-            <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Security
-            </a>
-        </div>
+        <a href="{{ route('admin.societies.security.index', $society->id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Security
+        </a>
     </div>
 @stop
 
 @section('content')
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Duty Periods</h3>
-            <div class="card-tools">
-                <small class="text-muted">Who was on Day/Night duty, and when.</small>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            @if ($logs->count() > 0)
-                <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search guard name or phone…">
+            <x-fc.select name="shift" placeholder="Any shift" :options="['day' => 'Day', 'night' => 'Night']" />
+        </x-fc.toolbar>
+
+        @if ($logs->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
                     <thead>
                         <tr>
                             <th>Guard</th>
                             <th>Shift</th>
-                            <th>From</th>
-                            <th>To</th>
+                            <x-fc.th sort="started" :default="true" first="desc">From</x-fc.th>
+                            <x-fc.th sort="ended" first="desc">To</x-fc.th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($logs as $log)
                             <tr>
-                                <td>{{ $log->securityGuard->name ?? '—' }}</td>
-                                <td>{{ ucfirst($log->shift) }}</td>
-                                <td>{{ $log->started_at->format('d M Y, h:i A') }}</td>
                                 <td>
+                                    <div class="fc-person">
+                                        <x-fc.avatar :name="$log->securityGuard->name ?? '?'" :round="true" />
+                                        <span class="fc-strong">{{ $log->securityGuard->name ?? '—' }}</span>
+                                    </div>
+                                </td>
+                                <td class="fc-nowrap"><i class="bi bi-{{ $log->shift === 'night' ? 'moon-stars' : 'sun' }} text-muted mr-1"></i>{{ ucfirst($log->shift) }}</td>
+                                <td class="fc-nowrap">{{ $log->started_at->format('d M Y, h:i A') }}</td>
+                                <td class="fc-nowrap">
                                     @if ($log->ended_at)
                                         {{ $log->ended_at->format('d M Y, h:i A') }}
                                     @else
-                                        <span class="badge badge-success">Ongoing</span>
+                                        <x-fc.pill status="ongoing" tone="success" />
                                     @endif
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            @else
-                <div class="p-4 text-center text-muted">
-                    <p>No duty history yet.</p>
-                </div>
-            @endif
-        </div>
-    </div>
+            </div>
+        @else
+            <x-fc.empty icon="clock-history" title="No duty history yet" text="Shift changes are recorded here automatically." />
+        @endif
 
-    @if ($logs->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $logs->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$logs" />
+    </div>
 @stop

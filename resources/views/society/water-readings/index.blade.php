@@ -3,12 +3,12 @@
 @section('title', 'Water Readings')
 
 @section('content_header')
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="fc-page-head">
         <div>
             <h1 class="h3 mb-1">Water Readings</h1>
             <p class="text-muted mb-0">Monthly meter readings and the maintenance bills generated from them</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="fc-page-actions">
             <a href="{{ route('society.water-extra-charges.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-cash-stack"></i> Add Extra Charges
             </a>
@@ -20,46 +20,77 @@
 @stop
 
 @section('content')
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($readings->count() > 0)
+    <div class="fc-stats">
+        <x-fc.stat icon="droplet" :value="number_format($summary['count'])" label="Readings" />
+        <x-fc.stat icon="speedometer2" tone="info" :value="number_format($summary['units'], 2)" label="Units used" />
+        <x-fc.stat icon="receipt" tone="success" :value="'₹'.number_format($summary['billed'], 2)" label="Total billed" />
+    </div>
+
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search flat or block…">
+            <x-fc.select name="month" placeholder="All months" :options="$months" />
+            <x-fc.select name="block_id" placeholder="All blocks" :options="$blocks" />
+        </x-fc.toolbar>
+
+        @if ($readings->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
+                    <table class="table fc-table">
                         <thead>
                             <tr>
-                                <th>Month</th>
-                                <th>Flat</th>
-                                <th>Previous</th>
-                                <th>Current</th>
-                                <th>Units</th>
-                                <th>Extra Amount</th>
-                                <th>Bill Amount</th>
-                                <th></th>
+                                <x-fc.th sort="month" :default="true" first="desc">Month</x-fc.th>
+                                <x-fc.th sort="flat">Flat</x-fc.th>
+                                <th class="num">Previous</th>
+                                <th class="num">Current</th>
+                                <x-fc.th sort="units" first="desc" class="num">Units</x-fc.th>
+                                <th class="num">Extra</th>
+                                <x-fc.th sort="amount" first="desc" class="num">Bill Amount</x-fc.th>
+                                <th>Status</th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($readings as $reading)
+                                @php $editable = ! $reading->bill || $reading->bill->payments->isEmpty(); @endphp
                                 <tr>
-                                    <td>{{ $reading->reading_month->format('F Y') }}</td>
-                                    <td>{{ $reading->flat?->display_label ?? '—' }}</td>
-                                    <td>{{ $reading->previous_reading }}</td>
-                                    <td>{{ $reading->current_reading }}</td>
-                                    <td>{{ $reading->units }}</td>
-                                    <td>₹{{ number_format($reading->extra_amount, 2) }}</td>
+                                    <td class="fc-nowrap">{{ $reading->reading_month->format('F Y') }}</td>
                                     <td>
+                                        <div class="fc-person">
+                                            <x-fc.avatar :name="$reading->flat?->block?->block_number ?? $reading->flat?->flat_number" />
+                                            <div>
+                                                <span class="fc-strong">{{ $reading->flat?->flat_number ?? '—' }}</span>
+                                                <span class="fc-sub">{{ $reading->flat?->block?->name }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="num">{{ $reading->previous_reading }}</td>
+                                    <td class="num">{{ $reading->current_reading }}</td>
+                                    <td class="num">{{ rtrim(rtrim(number_format($reading->units, 2), '0'), '.') }}</td>
+                                    <td class="num">{{ (float) $reading->extra_amount > 0 ? '₹'.number_format($reading->extra_amount, 2) : '—' }}</td>
+                                    <td class="num">
                                         @if ($reading->bill)
-                                            ₹{{ number_format($reading->bill->amount, 2) }}
+                                            <span class="fc-amount">₹{{ number_format($reading->bill->amount, 2) }}</span>
                                         @else
-                                            <span class="text-muted">—</span>
+                                            <span class="fc-dim">—</span>
                                         @endif
                                     </td>
-                                    <td class="text-end">
-                                        @if (! $reading->bill || $reading->bill->payments->isEmpty())
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#editReadingModal{{ $reading->id }}">Edit</button>
-                                        @endif
+                                    <td>
                                         @if ($reading->bill)
-                                            <a href="{{ route('society.payments.show', $reading->bill->id) }}" class="btn btn-sm btn-outline-secondary">View Bill</a>
+                                            <x-fc.pill :status="$reading->bill->status" />
+                                        @else
+                                            <x-fc.pill status="no_bill" label="No bill" />
                                         @endif
+                                    </td>
+                                    <td>
+                                        <div class="fc-actions">
+                                            @if ($editable)
+                                                <x-fc.action icon="pencil" label="Edit reading" data-toggle="modal" data-target="#editReadingModal{{ $reading->id }}" />
+                                            @else
+                                                <x-fc.action icon="lock" label="Paid bills can't be edited" :disabled="true" />
+                                            @endif
+                                            @if ($reading->bill)
+                                                <x-fc.action icon="receipt" label="View bill" :href="route('society.payments.show', $reading->bill->id)" />
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -110,19 +141,11 @@
                         </div>
                     @endif
                 @endforeach
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-droplet fs-1 d-block mb-2"></i>
-                    <p class="mb-2">No water readings recorded yet.</p>
-                    <a href="{{ route('society.water-readings.create') }}" class="btn btn-brand btn-sm">Add the first reading</a>
-                </div>
-            @endif
-        </div>
-    </div>
+        @else
+            <x-fc.empty icon="droplet" title="No water readings yet" text="Add this month's meter readings to generate maintenance bills."
+                :action-url="route('society.water-readings.create')" action-label="Add the first reading" />
+        @endif
 
-    @if ($readings->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $readings->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$readings" />
+    </div>
 @stop

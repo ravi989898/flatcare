@@ -9,6 +9,7 @@ use App\Models\Society;
 use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\SecurityGuardLog;
 use App\Services\TenantService;
+use App\Support\ListQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,7 +35,21 @@ class SocietySecurityController extends Controller
 
         $this->tenantService->switchConnection($societyId);
 
-        $guards = SecurityGuard::latest()->paginate(10);
+        $query = SecurityGuard::query();
+
+        ListQuery::applySearch($query, $request, ['name', 'phone']);
+
+        if (in_array($shift = $request->string('shift')->value(), ['day', 'night'], true)) {
+            $query->where('shift', $shift);
+        }
+
+        if (in_array($status = $request->string('status')->value(), ['active', 'inactive'], true)) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, ['added' => 'created_at', 'name' => 'name', 'shift' => 'shift'], 'added');
+
+        $guards = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
         $onDuty = $this->currentDutyByShift();
 
         return view('admin.societies.security.index', compact('society', 'guards', 'onDuty'));
@@ -170,7 +185,17 @@ class SocietySecurityController extends Controller
 
         $this->tenantService->switchConnection($societyId);
 
-        $logs = SecurityGuardLog::with('securityGuard')->orderByDesc('started_at')->paginate(20);
+        $query = SecurityGuardLog::with('securityGuard');
+
+        ListQuery::applySearch($query, $request, ['securityGuard.name', 'securityGuard.phone']);
+
+        if (in_array($shift = $request->string('shift')->value(), ['day', 'night'], true)) {
+            $query->where('shift', $shift);
+        }
+
+        ListQuery::applySort($query, $request, ['started' => 'started_at', 'ended' => 'ended_at'], 'started');
+
+        $logs = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('admin.societies.security.history', compact('society', 'logs'));
     }

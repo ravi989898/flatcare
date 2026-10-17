@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SecurityGuardRequest;
 use App\Models\Tenant\SecurityGuard;
 use App\Models\Tenant\SecurityGuardLog;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -21,9 +23,23 @@ class SecurityGuardController extends Controller
 {
     use ManagesSecurityGuardDuty;
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $guards = SecurityGuard::latest()->paginate(10);
+        $query = SecurityGuard::query();
+
+        ListQuery::applySearch($query, $request, ['name', 'phone']);
+
+        if (in_array($shift = $request->string('shift')->value(), ['day', 'night'], true)) {
+            $query->where('shift', $shift);
+        }
+
+        if (in_array($status = $request->string('status')->value(), ['active', 'inactive'], true)) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, ['added' => 'created_at', 'name' => 'name', 'shift' => 'shift'], 'added');
+
+        $guards = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
         $onDuty = $this->currentDutyByShift();
 
         return view('society.security.index', compact('guards', 'onDuty'));
@@ -123,9 +139,19 @@ class SecurityGuardController extends Controller
      * Full duty history - every (guard, shift) period, newest first, so
      * "who was on night duty on 5 Sep?" can actually be answered.
      */
-    public function history(): View
+    public function history(Request $request): View
     {
-        $logs = SecurityGuardLog::with('securityGuard')->orderByDesc('started_at')->paginate(20);
+        $query = SecurityGuardLog::with('securityGuard');
+
+        ListQuery::applySearch($query, $request, ['securityGuard.name', 'securityGuard.phone']);
+
+        if (in_array($shift = $request->string('shift')->value(), ['day', 'night'], true)) {
+            $query->where('shift', $shift);
+        }
+
+        ListQuery::applySort($query, $request, ['started' => 'started_at', 'ended' => 'ended_at'], 'started');
+
+        $logs = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('society.security.history', compact('logs'));
     }

@@ -3,141 +3,101 @@
 @section('title', 'Extra Charges')
 
 @php
-    $statusBadge = ['unpaid' => 'secondary', 'partially_paid' => 'warning', 'paid' => 'success', 'overdue' => 'danger'];
+    $statusTone = ['unpaid' => 'warning', 'partially_paid' => 'info', 'paid' => 'success', 'overdue' => 'danger'];
+    $statusTabs = ['' => ['All', $statusCounts->sum()]];
+    foreach (\App\Models\Tenant\MaintenanceBill::STATUSES as $status) {
+        $statusTabs[$status] = [ucfirst(str_replace('_', ' ', $status)), $statusCounts->get($status, 0)];
+    }
 @endphp
 
 @section('content_header')
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="fc-page-head">
         <div>
             <h1 class="h3 mb-1">Extra Charges</h1>
             <p class="text-muted mb-0">Function/event usage, hall booking, renovation fund, transfer fee, etc.</p>
         </div>
-        <div>
+        <div class="fc-page-actions">
             <a href="{{ route('society.fee-types.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-tags"></i> Manage Fee Types
             </a>
-            <a href="{{ route('society.extra-charges.create') }}" class="btn btn-brand">
-                <i class="bi bi-plus-lg"></i> Raise Charge
-            </a>
             <a href="{{ route('society.water-extra-charges.index') }}" class="btn btn-outline-info">
                 <i class="bi bi-cash-stack"></i> Add Extra Charges
+            </a>
+            <a href="{{ route('society.extra-charges.create') }}" class="btn btn-brand">
+                <i class="bi bi-plus-lg"></i> Raise Charge
             </a>
         </div>
     </div>
 @stop
 
 @section('content')
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card stat-card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon"><i class="bi bi-receipt"></i></div>
-                    <div>
-                        <div class="text-muted small">Total Charged</div>
-                        <div class="font-weight-bold">₹{{ number_format($summary['total_due'], 2) }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
-                    <div>
-                        <div class="text-muted small">Total Collected</div>
-                        <div class="font-weight-bold">₹{{ number_format($summary['total_collected'], 2) }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
-                    <div>
-                        <div class="text-muted small">Overdue Charges</div>
-                        <div class="font-weight-bold">{{ $summary['overdue_count'] }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="fc-stats">
+        <x-fc.stat icon="receipt" :value="'₹'.number_format($summary['total_due'], 2)" label="Total charged" />
+        <x-fc.stat icon="cash-coin" tone="success" :value="'₹'.number_format($summary['total_collected'], 2)" label="Total collected" />
+        <x-fc.stat icon="exclamation-triangle" tone="danger" :value="$summary['overdue_count']" label="Overdue charges"
+            :href="route('society.extra-charges.index', ['status' => 'overdue'])" />
     </div>
 
-    <div class="card stat-card mb-3">
-        <div class="card-body">
-            <form action="{{ route('society.extra-charges.index') }}" method="GET" class="row align-items-end">
-                <div class="col-md-4">
-                    <label class="font-weight-bold mb-1 d-block small text-muted">Status</label>
-                    <select name="status" class="custom-select">
-                        <option value="">All</option>
-                        @foreach (\App\Models\Tenant\MaintenanceBill::STATUSES as $status)
-                            <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
-                    @if (request()->anyFilled(['status']))
-                        <a href="{{ route('society.extra-charges.index') }}" class="btn btn-link">Clear</a>
-                    @endif
-                </div>
-            </form>
-        </div>
-    </div>
+    <div class="fc-card">
+        <x-fc.tabs name="status" label="Charge status" :tabs="$statusTabs" />
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($charges->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+        <x-fc.toolbar placeholder="Search fee type, flat or block…" :keep="['status']">
+            <x-fc.select name="block_id" placeholder="All blocks" :options="$blocks" />
+        </x-fc.toolbar>
+
+        @if ($charges->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <x-fc.th sort="title">Fee Type</x-fc.th>
+                            <x-fc.th sort="flat">Flat</x-fc.th>
+                            <x-fc.th sort="amount" first="desc" class="num">Amount</x-fc.th>
+                            <th class="num">Paid</th>
+                            <x-fc.th sort="balance" first="desc" class="num">Balance</x-fc.th>
+                            <x-fc.th sort="due" :default="true" first="desc">Valid Till</x-fc.th>
+                            <th>Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($charges as $charge)
                             <tr>
-                                <th>Fee Type</th>
-                                <th>Flat</th>
-                                <th>Amount</th>
-                                <th>Paid</th>
-                                <th>Balance</th>
-                                <th>Valid Till</th>
-                                <th>Status</th>
-                                <th></th>
+                                <td>
+                                    <a href="{{ route('society.payments.show', $charge->id) }}" class="fc-strong">{{ $charge->feeType?->name ?? $charge->title }}</a>
+                                    @if ($charge->feeType && $charge->title !== $charge->feeType->name)
+                                        <span class="fc-sub">{{ $charge->title }}</span>
+                                    @endif
+                                </td>
+                                <td class="fc-nowrap">
+                                    @if ($charge->flat)
+                                        <span class="fc-strong">{{ $charge->flat->flat_number }}</span>
+                                        <span class="fc-sub">{{ $charge->flat->block?->name }}</span>
+                                    @else
+                                        <span class="fc-dim">—</span>
+                                    @endif
+                                </td>
+                                <td class="num fc-amount">₹{{ number_format($charge->amount, 2) }}</td>
+                                <td class="num">₹{{ number_format($charge->paid_amount, 2) }}</td>
+                                <td class="num {{ $charge->balance > 0 ? 'fc-amount' : 'fc-dim' }}">₹{{ number_format($charge->balance, 2) }}</td>
+                                <td class="fc-nowrap">{{ $charge->due_date->format('d M Y') }}</td>
+                                <td><x-fc.pill :status="$charge->status" :tone="$statusTone[$charge->status] ?? 'neutral'" /></td>
+                                <td>
+                                    <div class="fc-actions">
+                                        <x-fc.action icon="eye" label="View charge" :href="route('society.payments.show', $charge->id)" />
+                                        <x-fc.action icon="printer" label="Invoice" :href="route('society.payments.invoice', $charge->id)" target="_blank" rel="noopener" />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($charges as $charge)
-                                <tr>
-                                    <td><a href="{{ route('society.payments.show', $charge->id) }}" class="text-decoration-none">{{ $charge->feeType?->name ?? $charge->title }}</a></td>
-                                    <td>{{ $charge->flat?->display_label ?? '—' }}</td>
-                                    <td>₹{{ number_format($charge->amount, 2) }}</td>
-                                    <td>₹{{ number_format($charge->paid_amount, 2) }}</td>
-                                    <td>₹{{ number_format($charge->balance, 2) }}</td>
-                                    <td class="text-muted small">{{ $charge->due_date->format('d M Y') }}</td>
-                                    <td><span class="badge bg-{{ $statusBadge[$charge->status] }}">{{ ucfirst(str_replace('_', ' ', $charge->status)) }}</span></td>
-                                    <td class="text-right">
-                                        <div class="btn-group">
-                                            <a href="{{ route('society.payments.show', $charge->id) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                            <a href="{{ route('society.payments.invoice', $charge->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                <i class="bi bi-receipt"></i> Invoice
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-receipt fs-1 d-block mb-2"></i>
-                    <p class="mb-2">No extra charges raised yet.</p>
-                    <a href="{{ route('society.extra-charges.create') }}" class="btn btn-brand btn-sm">Raise the first charge</a>
-                </div>
-            @endif
-        </div>
-    </div>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="receipt" title="No extra charges yet" :keep="['status']"
+                :action-url="route('society.extra-charges.create')" action-label="Raise the first charge" />
+        @endif
 
-    @if ($charges->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $charges->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$charges" />
+    </div>
 @stop

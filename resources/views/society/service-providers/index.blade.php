@@ -8,10 +8,6 @@
         <p class="text-muted mb-0">Vetted plumbers, electricians, carpenters etc. residents can browse and call directly.</p>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <div class="card stat-card mb-3">
         <div class="card-header bg-white"><strong>Add a Service Provider</strong></div>
         <div class="card-body">
@@ -38,58 +34,52 @@
                     <input type="number" name="sort_order" min="0" class="form-control" value="0">
                 </div>
                 <div class="col-md-1">
-                    <button type="submit" class="btn btn-brand w-100"><i class="bi bi-plus-lg"></i></button>
+                    <button type="submit" class="btn btn-brand w-100" aria-label="Add service provider"><i class="bi bi-plus-lg"></i></button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($providers->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+    <div class="fc-card">
+        @if ($providers->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Service Type</th>
+                            <th>Phone</th>
+                            <th>Notes</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($providers as $provider)
+                            <form id="edit-provider-{{ $provider->id }}" action="{{ route('society.service-providers.update', $provider->id) }}" method="POST" novalidate></form>
                             <tr>
-                                <th>Name</th>
-                                <th>Service Type</th>
-                                <th>Phone</th>
-                                <th>Notes</th>
-                                <th></th>
+                                <td><input form="edit-provider-{{ $provider->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $provider->name }}" maxlength="100" aria-label="Name"></td>
+                                <td><input form="edit-provider-{{ $provider->id }}" type="text" name="service_type" class="form-control form-control-sm" value="{{ $provider->service_type }}" maxlength="100" aria-label="Service type"></td>
+                                <td><input form="edit-provider-{{ $provider->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $provider->phone }}" maxlength="20" aria-label="Phone"></td>
+                                <td><input form="edit-provider-{{ $provider->id }}" type="text" name="notes" class="form-control form-control-sm" value="{{ $provider->notes }}" maxlength="255" aria-label="Notes"></td>
+                                <td>
+                                    <input form="edit-provider-{{ $provider->id }}" type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <input form="edit-provider-{{ $provider->id }}" type="hidden" name="_method" value="PUT">
+                                    <input form="edit-provider-{{ $provider->id }}" type="hidden" name="sort_order" value="{{ $provider->sort_order }}">
+                                    <div class="fc-actions">
+                                        <x-fc.action type="submit" form="edit-provider-{{ $provider->id }}" icon="check-lg" label="Save changes" />
+                                        <x-fc.post-action :action="route('society.service-providers.destroy', $provider->id)" method="DELETE"
+                                            icon="trash" label="Remove" tone="danger" confirm="Remove this provider?" />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($providers as $provider)
-                                <form id="edit-provider-{{ $provider->id }}" action="{{ route('society.service-providers.update', $provider->id) }}" method="POST" novalidate></form>
-                                <tr>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="name" class="form-control form-control-sm" value="{{ $provider->name }}" maxlength="100"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="service_type" class="form-control form-control-sm" value="{{ $provider->service_type }}" maxlength="100"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="phone" class="form-control form-control-sm" value="{{ $provider->phone }}" maxlength="20"></td>
-                                    <td><input form="edit-provider-{{ $provider->id }}" type="text" name="notes" class="form-control form-control-sm" value="{{ $provider->notes }}" maxlength="255"></td>
-                                    <td class="text-end text-nowrap">
-                                        @csrf
-                                        @method('PUT')
-                                        <input form="edit-provider-{{ $provider->id }}" type="hidden" name="_token" value="{{ csrf_token() }}">
-                                        <input form="edit-provider-{{ $provider->id }}" type="hidden" name="_method" value="PUT">
-                                        <input form="edit-provider-{{ $provider->id }}" type="hidden" name="sort_order" value="{{ $provider->sort_order }}">
-                                        <button form="edit-provider-{{ $provider->id }}" type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check-lg"></i></button>
-                                        <form action="{{ route('society.service-providers.destroy', $provider->id) }}" method="POST" class="d-inline" data-confirm="Remove this provider?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-tools fs-1 d-block mb-2"></i>
-                    No service providers added yet.
-                </div>
-            @endif
-        </div>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="tools" title="No service providers yet" text="Add plumbers, electricians and others residents can call." />
+        @endif
+
+        <x-fc.footer :paginator="$providers" noun="providers" />
     </div>
 @stop

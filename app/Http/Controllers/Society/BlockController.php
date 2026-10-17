@@ -11,7 +11,9 @@ use App\Models\Tenant\Flat;
 use App\Models\Tenant\FlatResident;
 use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -26,9 +28,23 @@ use Illuminate\View\View;
  */
 class BlockController extends Controller
 {
-    public function blocksIndex(): View
+    public function blocksIndex(Request $request): View
     {
-        $blocks = Block::withCount('flats')->orderBy('name')->paginate(15);
+        $query = Block::withCount('flats');
+
+        ListQuery::applySearch($query, $request, ['name', 'block_number']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, [
+            'name' => 'name',
+            'flats' => 'flats_count',
+            'status' => 'status',
+        ], 'name', 'asc');
+
+        $blocks = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('society.blocks.index', compact('blocks'));
     }
@@ -87,13 +103,30 @@ class BlockController extends Controller
             ->with('success', 'Block deleted successfully.');
     }
 
-    public function flatsIndex(int $blockId): View
+    public function flatsIndex(Request $request, int $blockId): View
     {
         $block = Block::findOrFail($blockId);
-        $flats = Flat::where('block_id', $block->id)
+        $query = Flat::where('block_id', $block->id);
+
+        ListQuery::applySearch($query, $request, ['flat_number', 'owner_name', 'mobile_number', 'residents.user.name']);
+
+        foreach (['status', 'ownership_type'] as $filter) {
+            if ($value = $request->string($filter)->trim()->value()) {
+                $query->where($filter, $value);
+            }
+        }
+
+        ListQuery::applySort($query, $request, [
+            'flat' => fn ($q, $dir) => $q->orderByRaw('LENGTH(flat_number) '.$dir)->orderBy('flat_number', $dir),
+            'owner' => 'owner_name',
+            'ownership' => 'ownership_type',
+            'status' => 'status',
+        ], 'flat', 'asc');
+
+        $flats = $query
             ->with(['residents' => fn ($query) => $query->active()->orderByDesc('is_primary')->with('user:id,name')])
-            ->orderBy('flat_number')
-            ->paginate(20);
+            ->paginate(ListQuery::perPage($request, 25))
+            ->withQueryString();
 
         return view('society.blocks.flats.index', compact('block', 'flats'));
     }

@@ -7,15 +7,31 @@ use App\Http\Requests\Society\StorePollRequest;
 use App\Http\Requests\Society\UpdatePollStatusRequest;
 use App\Models\Tenant\Poll;
 use App\Models\Tenant\PollOption;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class PollController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $polls = Poll::with('options')->latest()->paginate(15);
+        $query = Poll::with('options');
+
+        ListQuery::applySearch($query, $request, ['question']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, [
+            'created' => 'created_at',
+            'question' => 'question',
+            'status' => 'status',
+        ], 'created');
+
+        $polls = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('society.polls.index', compact('polls'));
     }

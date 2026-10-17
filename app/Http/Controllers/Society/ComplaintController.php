@@ -9,6 +9,7 @@ use App\Models\Tenant\Block;
 use App\Models\Tenant\Complaint;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\User;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,15 +31,16 @@ class ComplaintController extends Controller
             $query->where('category', $category);
         }
 
-        if ($search = $request->string('search')->trim()->value()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('subject', 'like', "%{$search}%")
-                    ->orWhere('raised_by_name', 'like', "%{$search}%")
-                    ->orWhere('against', 'like', "%{$search}%");
-            });
-        }
+        ListQuery::applySearch($query, $request, ['subject', 'raised_by_name', 'against', 'flat.flat_number']);
 
-        $complaints = $query->latest()->paginate(15)->withQueryString();
+        ListQuery::applySort($query, $request, [
+            'logged' => 'created_at',
+            'subject' => 'subject',
+            'priority' => fn ($q, $dir) => $q->orderByRaw("FIELD(priority, 'low', 'medium', 'high', 'urgent') ".$dir),
+            'status' => fn ($q, $dir) => $q->orderByRaw("FIELD(status, 'open', 'in_review', 'resolved', 'closed', 'rejected') ".$dir),
+        ], 'logged');
+
+        $complaints = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         $statusCounts = Complaint::query()
             ->selectRaw('status, count(*) as total')

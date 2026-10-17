@@ -440,6 +440,31 @@ return [
                 ],
             ],
         ],
+        // Shared listing-page look (search/filter toolbar, sortable headers,
+        // status pills, icon actions, footer) for both portals - markup from
+        // resources/views/components/fc, see public/css/fc-table.css.
+        'FcTable' => [
+            'active' => true,
+            'files' => [
+                [
+                    // The fc components use Bootstrap Icons; the Super Admin
+                    // pages otherwise only load Font Awesome.
+                    'type' => 'css',
+                    'asset' => false,
+                    'location' => 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+                ],
+                [
+                    'type' => 'css',
+                    'asset' => true,
+                    'location' => 'css/fc-table.css?v=3',
+                ],
+                [
+                    'type' => 'js',
+                    'asset' => true,
+                    'location' => 'js/fc-table.js?v=2',
+                ],
+            ],
+        ],
         // Replaces inline onclick/onsubmit confirm() handlers (blocked by the
         // CSP) with data-confirm="..." — see public/js/security-ui.js.
         'SecurityUi' => [

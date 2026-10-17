@@ -3,10 +3,10 @@
 @section('title', 'Flats')
 
 @section('content_header')
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="fc-page-head">
         <div>
             <h1 class="h3 mb-1">{{ $block->block_number }} - Flats</h1>
-            <p class="text-muted mb-0"><a href="{{ route('society.blocks.index') }}">&laquo; Back to Blocks</a></p>
+            <p class="text-muted mb-0"><a href="{{ route('society.blocks.index') }}"><i class="bi bi-arrow-left"></i> Back to Blocks</a></p>
         </div>
         <a href="{{ route('society.blocks.flats.create', $block->id) }}" class="btn btn-brand">
             <i class="bi bi-plus-lg"></i> Add Flats
@@ -15,65 +15,66 @@
 @stop
 
 @section('content')
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search flat, resident or owner…">
+            <x-fc.select name="ownership_type" placeholder="Any ownership" :options="['owned' => 'Owned', 'rented' => 'Rented', 'vacant' => 'Vacant']" />
+            <x-fc.select name="status" placeholder="Any status" :options="['active' => 'Active', 'inactive' => 'Inactive', 'under_construction' => 'Under construction', 'under_maintenance' => 'Under maintenance']" />
+        </x-fc.toolbar>
 
-    <div class="card stat-card">
-        <div class="card-body p-0">
-            @if ($flats->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
+        @if ($flats->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
+                    <thead>
+                        <tr>
+                            <x-fc.th sort="flat" :default="true" default-dir="asc">Flat</x-fc.th>
+                            <th>Resident</th>
+                            <x-fc.th sort="ownership">Ownership</x-fc.th>
+                            <x-fc.th sort="owner">Owner</x-fc.th>
+                            <x-fc.th sort="status">Status</x-fc.th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($flats as $flat)
+                            @php $residentName = $flat->residents->first()?->user?->name; @endphp
                             <tr>
-                                <th>Flat Number</th>
-                                <th>Name</th>
-                                <th>Ownership</th>
-                                <th>Owner</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php $statusBadge = ['active' => 'success', 'inactive' => 'secondary', 'under_construction' => 'warning', 'under_maintenance' => 'danger']; @endphp
-                            @foreach ($flats as $flat)
-                                <tr>
-                                    <td>{{ $flat->flat_number }}</td>
-                                    <td>{{ $flat->residents->first()?->user?->name ?? '—' }}</td>
-                                    <td>{{ ucfirst($flat->ownership_type) }}</td>
-                                    <td>{{ $flat->owner_name ?? '—' }}</td>
-                                    <td><span class="badge bg-{{ $statusBadge[$flat->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_', ' ', $flat->status)) }}</span></td>
-                                    <td class="text-end">
-                                        <div class="btn-group">
-                                            <a href="{{ route('society.blocks.flats.edit', [$block->id, $flat->id]) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                            <form action="{{ route('society.blocks.flats.toggle_status', [$block->id, $flat->id]) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @if ($flat->status === 'active')
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning" data-confirm="Mark this flat inactive?">Deactivate</button>
-                                                @else
-                                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
-                                                @endif
-                                            </form>
+                                <td>
+                                    <div class="fc-person">
+                                        <x-fc.avatar :name="$block->block_number" />
+                                        <div>
+                                            <span class="fc-strong">{{ $flat->flat_number }}</span>
+                                            @if ($flat->mobile_number)
+                                                <span class="fc-sub"><i class="bi bi-phone"></i> {{ $flat->mobile_number }}</span>
+                                            @endif
                                         </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-door-open fs-1 d-block mb-2"></i>
-                    <p class="mb-2">No flats found in this block.</p>
-                    <a href="{{ route('society.blocks.flats.create', $block->id) }}" class="btn btn-brand btn-sm">Add Flats</a>
-                </div>
-            @endif
-        </div>
-    </div>
+                                    </div>
+                                </td>
+                                <td>{!! $residentName ? e($residentName) : '<span class="fc-dim">—</span>' !!}</td>
+                                <td><x-fc.pill :status="$flat->ownership_type" :tone="['owned' => 'success', 'rented' => 'info', 'vacant' => 'neutral'][$flat->ownership_type] ?? 'neutral'" :dot="false" /></td>
+                                <td>{!! $flat->owner_name ? e($flat->owner_name) : '<span class="fc-dim">—</span>' !!}</td>
+                                <td><x-fc.pill :status="$flat->status" /></td>
+                                <td>
+                                    <div class="fc-actions">
+                                        <x-fc.action icon="pencil" label="Edit flat" :href="route('society.blocks.flats.edit', [$block->id, $flat->id])" />
+                                        @if ($flat->status === 'active')
+                                            <x-fc.post-action :action="route('society.blocks.flats.toggle_status', [$block->id, $flat->id])"
+                                                icon="pause-circle" label="Mark inactive" tone="warning" confirm="Mark this flat inactive?" />
+                                        @else
+                                            <x-fc.post-action :action="route('society.blocks.flats.toggle_status', [$block->id, $flat->id])"
+                                                icon="play-circle" label="Mark active" />
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <x-fc.empty icon="door-open" title="No flats in this block yet"
+                :action-url="route('society.blocks.flats.create', $block->id)" action-label="Add Flats" />
+        @endif
 
-    @if ($flats->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $flats->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$flats" />
+    </div>
 @stop

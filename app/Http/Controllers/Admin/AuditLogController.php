@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Society;
+use App\Support\ListQuery;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,7 +19,9 @@ class AuditLogController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = AuditLog::with(['superAdmin', 'society'])->latest();
+        $query = AuditLog::with(['superAdmin', 'society']);
+
+        ListQuery::applySearch($query, $request, ['performed_by', 'ip_address', 'superAdmin.name']);
 
         if ($action = $request->string('action')->trim()->value()) {
             $query->byAction($action);
@@ -40,7 +43,9 @@ class AuditLogController extends Controller
             $query->whereDate('created_at', '<=', $to);
         }
 
-        $logs = $query->paginate(25)->withQueryString();
+        ListQuery::applySort($query, $request, ['when' => 'created_at'], 'when');
+
+        $logs = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         $actions = AuditLog::query()->distinct()->orderBy('action')->pluck('action');
         $modules = AuditLog::query()->distinct()->orderBy('module')->pluck('module');

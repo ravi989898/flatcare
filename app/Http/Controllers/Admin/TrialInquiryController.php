@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SuperAdmin;
 use App\Models\TrialInquiry;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,24 +19,25 @@ class TrialInquiryController extends Controller
     {
         $query = TrialInquiry::query();
 
-        if ($search = $request->string('search')->trim()->value()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('society_name', 'like', "%{$search}%")
-                    ->orWhere('contact_name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
+        ListQuery::applySearch($query, $request, ['society_name', 'contact_name', 'email', 'phone']);
+
+        $statusCounts = (clone $query)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
 
         if ($status = $request->string('status')->trim()->value()) {
             $query->where('status', $status);
         }
 
-        $inquiries = $query->latest()->paginate(15)->withQueryString();
+        ListQuery::applySort($query, $request, [
+            'received' => 'created_at',
+            'society' => 'society_name',
+            'contact' => 'contact_name',
+        ], 'received');
+
+        $inquiries = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         $newCount = TrialInquiry::new()->count();
 
-        return view('admin.inquiries.index', compact('inquiries', 'newCount'));
+        return view('admin.inquiries.index', compact('inquiries', 'newCount', 'statusCounts'));
     }
 
     /**

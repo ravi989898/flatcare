@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Society;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Society\WaterExtraChargeRequest;
 use App\Models\Tenant\WaterExtraCharge;
+use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -23,11 +25,23 @@ class WaterExtraChargeController extends Controller
 {
     private const DEFAULT_TITLE = 'Extra Charge';
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $charges = WaterExtraCharge::with(['createdBy', 'updatedBy'])
-            ->latest('start_date')
-            ->paginate(20);
+        $query = WaterExtraCharge::with(['createdBy', 'updatedBy']);
+
+        ListQuery::applySearch($query, $request, ['remarks']);
+
+        if (in_array($status = $request->string('status')->value(), ['active', 'inactive'], true)) {
+            $query->where('is_active', $status === 'active');
+        }
+
+        ListQuery::applySort($query, $request, [
+            'start' => 'start_date',
+            'end' => 'end_date',
+            'amount' => 'amount',
+        ], 'start');
+
+        $charges = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('society.water-extra-charges.index', compact('charges'));
     }

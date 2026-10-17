@@ -1,13 +1,11 @@
 @extends('adminlte::page')
 
-@section('title', 'Society Security')
+@section('title', 'Security')
 
 @section('content_header')
-    <div class="row">
-        <div class="col-sm-6">
-            <h1>{{ $society->name }} - Security</h1>
-        </div>
-        <div class="col-sm-6 text-right">
+    <div class="fc-page-head">
+        <h1 class="mb-0">{{ $society->name }} - Security</h1>
+        <div class="fc-page-actions">
             <a href="{{ route('admin.societies.security.history', $society->id) }}" class="btn btn-secondary">
                 <i class="fas fa-history"></i> Duty History
             </a>
@@ -28,113 +26,79 @@
         </div>
     @endif
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body d-flex align-items-center">
-                    <i class="fas fa-sun text-warning mr-3" style="font-size:1.75rem;"></i>
-                    <div>
-                        <div class="text-muted small">Day Shift — On Duty</div>
-                        <div class="font-weight-bold">{{ $onDuty->get('day')?->name ?? 'Vacant' }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body d-flex align-items-center">
-                    <i class="fas fa-moon text-info mr-3" style="font-size:1.75rem;"></i>
-                    <div>
-                        <div class="text-muted small">Night Shift — On Duty</div>
-                        <div class="font-weight-bold">{{ $onDuty->get('night')?->name ?? 'Vacant' }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="fc-stats">
+        <x-fc.stat icon="sun" tone="warning" :value="$onDuty->get('day')?->name ?? 'Vacant'" label="Day shift — on duty" />
+        <x-fc.stat icon="moon-stars" tone="info" :value="$onDuty->get('night')?->name ?? 'Vacant'" label="Night shift — on duty" />
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Security Guards</h3>
-        </div>
-        <div class="card-body p-0">
-            @if ($guards->count() > 0)
-                <table class="table table-striped table-hover mb-0">
+    <div class="fc-card">
+        <x-fc.toolbar placeholder="Search name or phone…">
+            <x-fc.select name="shift" placeholder="Any shift" :options="['day' => 'Day', 'night' => 'Night']" />
+            <x-fc.select name="status" placeholder="Any status" :options="['active' => 'Active', 'inactive' => 'Inactive']" />
+        </x-fc.toolbar>
+
+        @if ($guards->count() > 0)
+            <div class="table-responsive">
+                <table class="table fc-table">
                     <thead>
                         <tr>
-                            <th>Photo</th>
-                            <th>Name</th>
+                            <x-fc.th sort="name">Guard</x-fc.th>
                             <th>Phone</th>
-                            <th>Shift</th>
+                            <x-fc.th sort="shift">Shift</x-fc.th>
                             <th>Status</th>
-                            <th>Added</th>
-                            <th>Actions</th>
+                            <x-fc.th sort="added" :default="true" first="desc">Added</x-fc.th>
+                            <th class="text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($guards as $guard)
+                            @php $isOnDuty = $guard->shift && $onDuty->get($guard->shift)?->id === $guard->id; @endphp
                             <tr>
                                 <td>
-                                    @if ($guard->photo_path)
-                                        <img src="{{ Illuminate\Support\Facades\Storage::disk('public')->url($guard->photo_path) }}" alt="{{ $guard->name }}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;">
+                                    <div class="fc-person">
+                                        <x-fc.avatar :name="$guard->name" :round="true"
+                                            :src="$guard->photo_path ? Illuminate\Support\Facades\Storage::disk('public')->url($guard->photo_path) : null" />
+                                        <div>
+                                            <span class="fc-strong">{{ $guard->name }}</span>
+                                            @if ($isOnDuty)
+                                                <span class="fc-sub text-success"><i class="bi bi-broadcast"></i> On duty now</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="fc-nowrap">{{ $guard->phone }}</td>
+                                <td>
+                                    @if ($guard->shift)
+                                        <span class="fc-nowrap"><i class="bi bi-{{ $guard->shift === 'night' ? 'moon-stars' : 'sun' }} text-muted mr-1"></i>{{ ucfirst($guard->shift) }}</span>
                                     @else
-                                        <i class="fas fa-user-shield text-muted" style="font-size:1.5rem;"></i>
+                                        <span class="fc-dim">—</span>
                                     @endif
                                 </td>
+                                <td><x-fc.pill :status="$guard->status" /></td>
+                                <td class="fc-nowrap">{{ $guard->created_at->format('d M Y') }}</td>
                                 <td>
-                                    {{ $guard->name }}
-                                    @if ($onDuty->get($guard->shift)?->id === $guard->id)
-                                        <span class="badge badge-info">On duty</span>
-                                    @endif
-                                </td>
-                                <td>{{ $guard->phone }}</td>
-                                <td>{{ $guard->shift ? ucfirst($guard->shift) : '—' }}</td>
-                                <td>
-                                    @if ($guard->status === 'active')
-                                        <span class="badge badge-success">Active</span>
-                                    @else
-                                        <span class="badge badge-secondary">Inactive</span>
-                                    @endif
-                                </td>
-                                <td>{{ $guard->created_at->format('d M Y') }}</td>
-                                <td>
-                                    <a href="{{ route('admin.societies.security.edit', [$society->id, $guard->id]) }}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    @if ($guard->status === 'active')
-                                        <form action="{{ route('admin.societies.security.deactivate', [$society->id, $guard->id]) }}" method="POST" style="display:inline;">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-warning" data-confirm="Deactivate this guard?">
-                                                <i class="fas fa-ban"></i> Deactivate
-                                            </button>
-                                        </form>
-                                    @else
-                                        <form action="{{ route('admin.societies.security.activate', [$society->id, $guard->id]) }}" method="POST" style="display:inline;">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" data-confirm="Activate this guard?">
-                                                <i class="fas fa-check"></i> Activate
-                                            </button>
-                                        </form>
-                                    @endif
+                                    <div class="fc-actions">
+                                        <x-fc.action icon="pencil" label="Edit guard" :href="route('admin.societies.security.edit', [$society->id, $guard->id])" />
+                                        @if ($guard->status === 'active')
+                                            <x-fc.post-action :action="route('admin.societies.security.deactivate', [$society->id, $guard->id])"
+                                                icon="pause-circle" label="Deactivate" tone="warning" confirm="Deactivate this guard?" />
+                                        @else
+                                            <x-fc.post-action :action="route('admin.societies.security.activate', [$society->id, $guard->id])"
+                                                icon="play-circle" label="Activate" confirm="Activate this guard?" />
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            @else
-                <div class="p-4 text-center text-muted">
-                    <p>No security guards found for this society.</p>
-                    <a href="{{ route('admin.societies.security.create', $society->id) }}" class="btn btn-primary">
-                        Add First Security Guard
-                    </a>
-                </div>
-            @endif
-        </div>
-    </div>
+            </div>
+        @else
+            <x-fc.empty icon="shield-lock" title="No security guards yet">
+                <a href="{{ route('admin.societies.security.create', $society->id) }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add the first security guard</a>
+            </x-fc.empty>
+        @endif
 
-    @if ($guards->count() > 0)
-        <div class="d-flex justify-content-center mt-3">
-            {{ $guards->links() }}
-        </div>
-    @endif
+        <x-fc.footer :paginator="$guards" />
+    </div>
 @stop

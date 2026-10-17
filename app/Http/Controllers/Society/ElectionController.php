@@ -11,8 +11,10 @@ use App\Models\Tenant\Election;
 use App\Models\Tenant\ElectionCandidate;
 use App\Models\Tenant\ElectionVote;
 use App\Models\Tenant\User;
+use App\Support\ListQuery;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -32,9 +34,25 @@ class ElectionController extends Controller
         'cancelled' => [],
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $elections = Election::withCount('candidates', 'votes')->latest()->paginate(10);
+        $query = Election::withCount('candidates', 'votes');
+
+        ListQuery::applySearch($query, $request, ['title']);
+
+        if ($status = $request->string('status')->trim()->value()) {
+            $query->where('status', $status);
+        }
+
+        ListQuery::applySort($query, $request, [
+            'created' => 'created_at',
+            'title' => 'title',
+            'candidates' => 'candidates_count',
+            'votes' => 'votes_count',
+            'voting' => 'voting_start_at',
+        ], 'created');
+
+        $elections = $query->paginate(ListQuery::perPage($request, 25))->withQueryString();
 
         return view('society.elections.index', compact('elections'));
     }
