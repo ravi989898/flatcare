@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  * residents sharing an email address (e.g. a family that only gives out one
  * shared address) shouldn't be blocked. phone stays unique: it's still the
  * OTP identifier and the admin UI's uniqueness guarantees depend on it (see
- * Society\BlockController::syncResident()). The plain (non-unique) index on
+ * App\Services\FlatResidentSync::sync()). The plain (non-unique) index on
  * email from the original migration is untouched, so email lookups
  * (TenantAccountLocator, password reset) stay indexed.
  */

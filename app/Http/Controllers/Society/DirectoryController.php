@@ -77,7 +77,7 @@ class DirectoryController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => ($validated['email'] ?? null) ?: Str::uuid().'@resident.flatcare.local',
             'phone' => $validated['phone'],
             'password' => Hash::make(Str::password(20)),
             'country' => 'India',

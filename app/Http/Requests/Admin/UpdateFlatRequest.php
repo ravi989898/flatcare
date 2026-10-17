@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * IndianMobileNumber format check because flats.mobile_number is the
  * OTP-login identifier used by Api\V1\Auth\OtpAuthController.
  * resident_name/resident_email write through to the flat's linked resident
- * User (see SocietyStructureController::syncResident()) - email isn't
+ * User (see App\Services\FlatResidentSync::sync()) - email isn't
  * unique among residents (they don't log in with it), so no uniqueness
  * check here.
  */

@@ -10,14 +10,11 @@ use App\Models\Society;
 use App\Models\Tenant\Block;
 use App\Models\Tenant\Flat;
 use App\Models\Tenant\FlatResident;
-use App\Models\Tenant\Role;
-use App\Models\Tenant\User;
+use App\Services\FlatResidentSync;
 use App\Services\TenantService;
 use App\Support\ListQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -235,9 +232,9 @@ class SocietyStructureController extends Controller
             // A restored flat should start resident-less like a brand-new
             // one - otherwise it keeps showing whoever lived there before
             // it was deleted (incl. on any other flat that reused the same
-            // account via the phone-number lookup in syncResident()).
+            // account via the phone-number lookup in FlatResidentSync::sync()).
             FlatResident::where('flat_id', $flat->id)->active()->update([
-                'status' => 'moved_out',
+                'status' => 'inactive',
                 'moved_out_date' => now(),
             ]);
         }
@@ -305,95 +302,13 @@ class SocietyStructureController extends Controller
             'floor_number' => $this->deriveFloorNumber($validated['flat_number']),
         ]);
 
-        $warning = $this->syncResident($flat, trim((string) ($validated['resident_name'] ?? '')), trim((string) ($validated['resident_email'] ?? '')));
+        $warning = app(FlatResidentSync::class)->sync($flat, trim((string) ($validated['resident_name'] ?? '')), trim((string) ($validated['resident_email'] ?? '')));
 
         $redirect = redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
             ->with('success', 'Flat updated successfully.');
 
         return $warning ? $redirect->with('warning', $warning) : $redirect;
-    }
-
-    /**
-     * Writes Name/Email through to the flat's linked resident User, the
-     * same account the FlatCare app's Profile screen edits (see
-     * Api\V1\Resident\ProfileController::update()) — so this form and the
-     * resident's own app stay pointed at one record instead of drifting.
-     * Mirrors Api\V1\Auth\OtpAuthController::findOrCreateResident(): if no
-     * resident is linked yet but a mobile number is set, provisions the
-     * account now instead of waiting for the resident's first OTP login.
-     * Same logic as Society\BlockController::syncResident() — this is the
-     * Super Admin's cross-tenant equivalent.
-     */
-    private function syncResident(Flat $flat, string $name, string $email): ?string
-    {
-        $residency = FlatResident::where('flat_id', $flat->id)->active()->orderByDesc('is_primary')->with('user')->first();
-
-        if ($residency) {
-            // Guards against data left over from before this check existed:
-            // if this flat's resident account is still shared with another
-            // flat (see UnlinkFlatResident command), editing the name/email
-            // here would silently change it there too.
-            if (FlatResident::where('user_id', $residency->user_id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
-                return "This flat's resident account is also linked to another flat - run `flats:unlink-resident` to separate them before editing the name/email.";
-            }
-
-            // Always write both fields through, falling back to the same
-            // placeholders used at creation time - otherwise clearing the
-            // Name/Email box to blank it out does nothing, because an
-            // array_filter()'d update simply drops the blank field instead
-            // of applying it.
-            $residency->user->update([
-                'name' => $name ?: "Resident of {$flat->flat_number}",
-                'email' => $email ?: Str::uuid().'@resident.flatcare.local',
-            ]);
-
-            return null;
-        }
-
-        if (!$flat->mobile_number) {
-            return null;
-        }
-
-        $user = User::where('phone', $flat->mobile_number)->first();
-
-        if ($user && FlatResident::where('user_id', $user->id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
-            // That phone number's account is already the active resident of
-            // a different flat - attaching it here too would make both
-            // flats show the same resident name/email. Skip instead of
-            // silently double-linking one account to two flats.
-            return "Mobile number {$flat->mobile_number} is already linked to another flat's resident - resident not updated.";
-        }
-
-        if (!$user) {
-            $user = User::create([
-                'name' => $name ?: "Resident of {$flat->flat_number}",
-                // users.email is required + unique — same placeholder scheme
-                // as findOrCreateResident() when the admin leaves it blank.
-                'email' => $email ?: Str::uuid().'@resident.flatcare.local',
-                'phone' => $flat->mobile_number,
-                'password' => Hash::make(Str::password(20)),
-                'country' => 'India',
-                'status' => 'active',
-            ]);
-
-            if ($residentRole = Role::where('name', 'resident')->first()) {
-                $user->assignRole($residentRole);
-            }
-        } elseif ($name || $email) {
-            $user->update(array_filter(['name' => $name ?: null, 'email' => $email ?: null]));
-        }
-
-        FlatResident::create([
-            'flat_id' => $flat->id,
-            'user_id' => $user->id,
-            'resident_type' => 'owner',
-            'moved_in_date' => now(),
-            'status' => 'active',
-            'is_primary' => !FlatResident::where('flat_id', $flat->id)->active()->exists(),
-        ]);
-
-        return null;
     }
 
     /**

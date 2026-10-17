@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 /**
  * One-off cleanup for flats that ended up sharing one resident User account
- * (see Society\BlockController::syncResident()'s now-fixed phone-reuse and
+ * (see App\Services\FlatResidentSync::sync()'s now-fixed phone-reuse and
  * restore bugs) — detaches the given flat from its current resident without
  * touching the User account or any other flat still linked to it, so the
  * admin can then edit this flat in the UI and attach its real resident.
@@ -66,7 +66,7 @@ class UnlinkFlatResident extends Command
                 $sharedElsewhere ? ' — still linked to another flat, left untouched there' : ''
             ));
 
-            $residency->update(['status' => 'moved_out', 'moved_out_date' => now()]);
+            $residency->update(['status' => 'inactive', 'moved_out_date' => now()]);
         }
 
         if ($this->option('clear-mobile')) {
