@@ -244,19 +244,23 @@ class BlockController extends Controller
         $residency = FlatResident::where('flat_id', $flat->id)->active()->orderByDesc('is_primary')->with('user')->first();
 
         if ($residency) {
-            $updates = array_filter(['name' => $name ?: null, 'email' => $email ?: null]);
-
-            if ($updates) {
-                // Guards against data left over from before this check
-                // existed: if this flat's resident account is still shared
-                // with another flat (see UnlinkFlatResident command), editing
-                // the name/email here would silently change it there too.
-                if (FlatResident::where('user_id', $residency->user_id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
-                    return "This flat's resident account is also linked to another flat - run `flats:unlink-resident` to separate them before editing the name/email.";
-                }
-
-                $residency->user->update($updates);
+            // Guards against data left over from before this check existed:
+            // if this flat's resident account is still shared with another
+            // flat (see UnlinkFlatResident command), editing the name/email
+            // here would silently change it there too.
+            if (FlatResident::where('user_id', $residency->user_id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
+                return "This flat's resident account is also linked to another flat - run `flats:unlink-resident` to separate them before editing the name/email.";
             }
+
+            // Always write both fields through, falling back to the same
+            // placeholders used at creation time - otherwise clearing the
+            // Name/Email box to blank it out does nothing, because an
+            // array_filter()'d update simply drops the blank field instead
+            // of applying it.
+            $residency->user->update([
+                'name' => $name ?: "Resident of {$flat->flat_number}",
+                'email' => $email ?: Str::uuid().'@resident.flatcare.local',
+            ]);
 
             return null;
         }
