@@ -228,7 +228,17 @@ class SocietyStructureController extends Controller
                 'floor_number' => $this->deriveFloorNumber($flat->flat_number),
                 'ownership_type' => 'vacant',
                 'owner_name' => null,
+                'mobile_number' => null,
                 'status' => 'active',
+            ]);
+
+            // A restored flat should start resident-less like a brand-new
+            // one - otherwise it keeps showing whoever lived there before
+            // it was deleted (incl. on any other flat that reused the same
+            // account via the phone-number lookup in syncResident()).
+            FlatResident::where('flat_id', $flat->id)->active()->update([
+                'status' => 'moved_out',
+                'moved_out_date' => now(),
             ]);
         }
 
@@ -295,11 +305,13 @@ class SocietyStructureController extends Controller
             'floor_number' => $this->deriveFloorNumber($validated['flat_number']),
         ]);
 
-        $this->syncResident($flat, trim((string) ($validated['resident_name'] ?? '')), trim((string) ($validated['resident_email'] ?? '')));
+        $warning = $this->syncResident($flat, trim((string) ($validated['resident_name'] ?? '')), trim((string) ($validated['resident_email'] ?? '')));
 
-        return redirect()
+        $redirect = redirect()
             ->route('admin.societies.blocks.flats.index', [$societyId, $blockId])
             ->with('success', 'Flat updated successfully.');
+
+        return $warning ? $redirect->with('warning', $warning) : $redirect;
     }
 
     /**
@@ -313,25 +325,45 @@ class SocietyStructureController extends Controller
      * Same logic as Society\BlockController::syncResident() — this is the
      * Super Admin's cross-tenant equivalent.
      */
-    private function syncResident(Flat $flat, string $name, string $email): void
+    private function syncResident(Flat $flat, string $name, string $email): ?string
     {
         $residency = FlatResident::where('flat_id', $flat->id)->active()->orderByDesc('is_primary')->with('user')->first();
 
         if ($residency) {
-            $updates = array_filter(['name' => $name ?: null, 'email' => $email ?: null]);
-
-            if ($updates) {
-                $residency->user->update($updates);
+            // Guards against data left over from before this check existed:
+            // if this flat's resident account is still shared with another
+            // flat (see UnlinkFlatResident command), editing the name/email
+            // here would silently change it there too.
+            if (FlatResident::where('user_id', $residency->user_id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
+                return "This flat's resident account is also linked to another flat - run `flats:unlink-resident` to separate them before editing the name/email.";
             }
 
-            return;
+            // Always write both fields through, falling back to the same
+            // placeholders used at creation time - otherwise clearing the
+            // Name/Email box to blank it out does nothing, because an
+            // array_filter()'d update simply drops the blank field instead
+            // of applying it.
+            $residency->user->update([
+                'name' => $name ?: "Resident of {$flat->flat_number}",
+                'email' => $email ?: Str::uuid().'@resident.flatcare.local',
+            ]);
+
+            return null;
         }
 
         if (!$flat->mobile_number) {
-            return;
+            return null;
         }
 
         $user = User::where('phone', $flat->mobile_number)->first();
+
+        if ($user && FlatResident::where('user_id', $user->id)->where('flat_id', '!=', $flat->id)->active()->exists()) {
+            // That phone number's account is already the active resident of
+            // a different flat - attaching it here too would make both
+            // flats show the same resident name/email. Skip instead of
+            // silently double-linking one account to two flats.
+            return "Mobile number {$flat->mobile_number} is already linked to another flat's resident - resident not updated.";
+        }
 
         if (!$user) {
             $user = User::create([
@@ -360,6 +392,8 @@ class SocietyStructureController extends Controller
             'status' => 'active',
             'is_primary' => !FlatResident::where('flat_id', $flat->id)->active()->exists(),
         ]);
+
+        return null;
     }
 
     /**
