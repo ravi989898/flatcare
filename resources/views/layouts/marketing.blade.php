@@ -71,16 +71,21 @@
 
 @include('marketing.partials.nav')
 
-<main id="main">
+<main id="main" tabindex="-1">
     @yield('content')
 </main>
 
 @include('marketing.partials.footer')
 @include('marketing.partials.trial-modal')
 
+<button type="button" id="back-to-top" class="back-to-top" aria-label="Back to top" title="Back to top">
+    <i class="bi bi-arrow-up" aria-hidden="true"></i>
+</button>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
 {{-- External script (the CSP forbids inline JS); data-open tells it whether to
      re-open the trial modal to show validation errors / the thank-you note. --}}
+<script src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}" defer></script>
 <script src="{{ asset('js/welcome-trial-modal.js') }}" defer @if (($autoOpenTrialModal ?? true) && ($errors->any() || session('trial_inquiry_sent'))) data-open="1" @endif></script>
 </body>
 </html>

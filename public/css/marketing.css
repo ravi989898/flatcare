@@ -263,3 +263,21 @@ a.seo-card.related-link { transition: transform .15s ease, box-shadow .15s ease;
 a.seo-card.related-link:hover { transform: translateY(-3px); box-shadow: 0 1.4rem 2.4rem -1.4rem rgba(20, 32, 25, .3); }
 .faq-item { min-height: 0; }
 .visually-hidden-focusable:not(:focus):not(:focus-within) { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; }
+
+/* Back to top (bottom right, shown after scrolling - js/back-to-top.js) */
+.back-to-top {
+    position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1030;
+    width: 3rem; height: 3rem; border-radius: 50%; border: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #34a065, var(--brand));
+    color: #fff; font-size: 1.25rem;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 .6rem 1.4rem -.4rem rgba(28,63,43,.55);
+    opacity: 0; visibility: hidden; transform: translateY(.75rem);
+    transition: opacity .2s ease, transform .2s ease, visibility .2s, filter .15s ease;
+}
+.back-to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
+.back-to-top:hover { filter: brightness(1.12); transform: translateY(-2px); }
+.back-to-top:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+#main:focus { outline: none; }
+@media (max-width: 575.98px) { .back-to-top { right: 1rem; bottom: 1rem; width: 2.75rem; height: 2.75rem; } }
+@media (prefers-reduced-motion: reduce) { .back-to-top { transition: none; } }
