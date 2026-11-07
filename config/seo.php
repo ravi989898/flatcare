@@ -681,6 +681,65 @@ return [
             'related' => [],
         ],
 
+        'terms-of-service' => [
+            'path' => '/terms-of-service',
+            'name' => 'Terms of Service',
+            'legal' => true,
+            'priority' => '0.3',
+            'title' => 'Terms of Service – FlatCare Society App',
+            'description' => 'The terms for using the FlatCare society management app and website: accounts, visitors, maintenance payments, acceptable use and liability.',
+            'h1' => 'Terms of Service',
+            'lead' => 'Effective 1 September 2026. These terms explain the rules for using the FlatCare app and website in your society: what you can expect from us, and what we expect from every resident, committee member and security guard.',
+            'sections' => [
+                [
+                    'h2' => 'Acceptance and the service',
+                    'items' => [
+                        ['h3' => 'Your acceptance', 'text' => 'These Terms of Service ("Terms") are an agreement between FlatCare ("we", "us") and you. They apply to the FlatCare mobile app, the FlatCare website and every related service (together, the "Service"). By signing in to FlatCare, or by continuing to use it, you agree to these Terms and to our <a href="/privacy-policy">Privacy Policy</a>. If you do not agree, please do not use the Service and ask your society office to deactivate your account.'],
+                        ['h3' => 'What FlatCare does', 'text' => 'FlatCare is a society management platform that connects residents, the managing committee and security staff of a housing society. Depending on what your society has turned on, you can approve visitors and share gate passes, view and pay maintenance bills, read notices and take part in polls and events, raise complaints, keep household records up to date and use the society directory. Features may differ between societies and may change over time.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Accounts and your society',
+                    'items' => [
+                        ['h3' => 'Your account', 'text' => 'Accounts are created by your society admin for people who live in, own, or work for the society. You sign in with your registered mobile number and a one-time password (OTP). Give correct information and keep it up to date, never share your OTP with anyone (FlatCare and your society office will never ask for it), and tell your society office or FlatCare support straight away if you think someone else has used your account. One account belongs to one person.'],
+                        ['h3' => 'Your society\'s role', 'text' => 'FlatCare provides the technology; your housing society decides how it is used. Your society admin and committee add and remove residents, staff and guards, set maintenance amounts, due dates and late fees, publish notices and handle complaints, and follow their own bye-laws. Disagreements about a bill or a complaint should be taken up with your society office. FlatCare cannot overrule your society\'s decisions.'],
+                        ['h3' => 'Permission to use FlatCare', 'text' => 'As long as you follow these Terms, we give you a personal, limited, non-transferable permission to use FlatCare for genuine society matters. Do not copy, sell, rent or distribute any part of the Service, reverse-engineer or copy the app or its servers, or use robots, scrapers or automated tools to access it.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Visitors, payments and content',
+                    'items' => [
+                        ['h3' => 'Visitors and gate security', 'text' => 'Approve visitors only when you know or expect them; you are responsible for the people you let in. Gate passes are for your own guests only. Security guards may still stop or refuse entry to any visitor for the safety of the society. Visitor details, photos and entry times are recorded as the society\'s entry log. In an emergency, call the gate or your emergency contacts directly rather than relying on an app notification.'],
+                        ['h3' => 'Maintenance bills and payments', 'text' => 'Bills shown in FlatCare are raised by your society; FlatCare only displays them and helps you pay. Online payments are processed by Razorpay, and your card, UPI or bank details are never stored by FlatCare. A payment is complete only once the payment partner confirms it. If money is deducted but the bill still shows unpaid after a few minutes, contact FlatCare support with your transaction reference. Refunds, waivers, late fees and disputes about the amount are decided by your society office.'],
+                        ['h3' => 'Content you share', 'text' => 'You are responsible for what you add, such as complaints, photos, poll votes, family and vehicle details. Share only information that is true and that you have the right to share, and do not share another person\'s private details without permission. You allow FlatCare to store and show this content to the people in your society who need it, only to run the Service. Your society admin may remove content that is false, offensive or against society rules.'],
+                        ['h3' => 'Things you must not do', 'text' => 'Do not post false complaints, abusive or hateful language, spam or advertisements; try to view, change or delete another resident\'s data; pretend to be another resident, committee member or guard; misuse visitor approvals or get around gate security; upload harmful code or try to overload or break into our servers; or collect phone numbers or other details from the directory for marketing or any purpose unrelated to society life.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Availability, ownership and liability',
+                    'items' => [
+                        ['h3' => 'Availability and updates', 'text' => 'We work hard to keep FlatCare running smoothly, but we cannot promise it will always be available or free of errors. It may be briefly unavailable during maintenance or because of problems with the internet, mobile networks or third-party services. We release updates to add features, improve security and fix issues; older app versions may stop working, so please keep the app updated.'],
+                        ['h3' => 'Ownership', 'text' => 'The FlatCare name, logo, app design, software and related material belong to FlatCare and are protected by law. Your society\'s records and the content you add belong to you and your society; we use them only to provide the Service, as explained in our <a href="/privacy-policy">Privacy Policy</a>.'],
+                        ['h3' => 'Limitation of liability', 'text' => 'FlatCare is provided "as is". To the extent the law allows, we are not responsible for decisions made by your society, its committee or staff, for the actions of visitors, residents or security guards, or for indirect losses or losses caused by events outside our reasonable control such as network failures, power cuts or natural disasters. Nothing in these Terms limits any rights you have under Indian consumer protection law.'],
+                    ],
+                ],
+                [
+                    'h2' => 'Ending, changes and contact',
+                    'items' => [
+                        ['h3' => 'Suspension and termination', 'text' => 'Your society admin or FlatCare may suspend or close your account if you break these Terms, move out of the society, or if your society stops using FlatCare. You can stop using FlatCare at any time; see <a href="/delete-account">how to delete your FlatCare account</a>. Records the society needs for its accounts, such as payment history, may be kept as explained in our Privacy Policy.'],
+                        ['h3' => 'Changes to these terms', 'text' => 'We may update these Terms as FlatCare grows or when the law changes. We will change the effective date above and tell you in the app before any important change takes effect. Continuing to use FlatCare after that means you accept the updated Terms.'],
+                        ['h3' => 'Governing law', 'text' => 'These Terms are governed by the laws of India. We always prefer to solve problems by talking first. Any dispute that cannot be settled this way will be handled by the competent courts in India.'],
+                        ['h3' => 'Contact us', 'text' => 'Questions about these Terms: email support@flatcare.in, or use the <a href="/contact">contact page</a> or Help Line in the app menu. For questions about your bills, flat or society rules, please contact your society office.'],
+                    ],
+                ],
+            ],
+            'faqs' => [
+                ['Who decides my maintenance amount and late fees?', 'Your housing society. FlatCare only displays the bills your society raises and helps you pay them online.'],
+                ['Can FlatCare close my account?', 'Your society admin or FlatCare may suspend or close an account that breaks these Terms, or when you move out or your society stops using FlatCare.'],
+            ],
+            'related' => [],
+        ],
+
         'delete-account' => [
             'path' => '/delete-account',
             'name' => 'Delete Account',
